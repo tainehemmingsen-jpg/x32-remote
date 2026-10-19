@@ -47,8 +47,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 
 - `Tests/CoreTests` — 38 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics), addresses, meters, the client (request window, retries, coalescing, reconnect) and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
-- The whole app type‑checks against the iOS SDK.
-- `ci/` + `.github/workflows/ios.yml` — a GitHub Actions job that builds for the iOS Simulator, takes screenshots of every screen and runs the app against the emulator. Push this folder to a GitHub repo to use it.
+- `ci/` + `.github/workflows/ios.yml` — on every push, GitHub Actions builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 
 It hasn't been run against a physical X32 yet. If something behaves differently on the real desk, the X32's own screen is the source of truth.
 
