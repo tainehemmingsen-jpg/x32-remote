@@ -46,7 +46,7 @@ private struct ConnectHeader: View {
             Text("X32 Remote")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Theme.text)
-            Text("Mix your Behringer X32 or Midas M32 from this iPad.")
+            Text("Mix your Behringer X32 or Midas M32 from here.")
                 .font(.system(size: 16))
                 .foregroundStyle(Theme.secondary)
                 .multilineTextAlignment(.center)
