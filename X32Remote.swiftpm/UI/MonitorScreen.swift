@@ -107,6 +107,7 @@ private struct MonitorMasterRow: View {
     let app: AppModel
     let bus: Int
     let color: Color
+    @State private var drag = DragTarget()
 
     var body: some View {
         let strip = StripID(.bus, bus)
@@ -125,8 +126,10 @@ private struct MonitorMasterRow: View {
                 value: fader.float,
                 tint: color,
                 hapticAtUnity: app.settings.hapticAtUnity,
-                onChange: { v in app.setFloat(strip.faderPath, v, steps: 1023) },
-                onTouch: { began in app.touch(strip.faderPath, began) }
+                onChange: { v in app.dragSet(strip.faderPath, drag, v, steps: 1023) },
+                onTouch: { began in
+                    if began { app.beginDrag(strip.faderPath, drag) } else { app.endDrag(drag) }
+                }
             )
             .frame(height: 50)
             Text(fader.isKnown ? X32Math.formatFader(fader.float) : "—")
@@ -145,6 +148,7 @@ private struct MonitorRow: View {
     let source: StripID
     let bus: Int
     let color: Color
+    @State private var drag = DragTarget()
 
     var body: some View {
         let name = app.param(source.namePath).string
@@ -154,54 +158,82 @@ private struct MonitorRow: View {
         let level = app.param(levelAddress)
         let on = app.param(onAddress).int(or: 1) != 0
         let channelMuted = app.param(source.onPath).int(or: 1) == 0
-        HStack(spacing: 12) {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(sourceColor)
-                    .frame(width: 6, height: 34)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(name.isEmpty ? source.shortLabel : name)
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                    HStack(spacing: 4) {
-                        Text(source.shortLabel)
-                        if channelMuted {
-                            Text("· MUTED AT DESK")
-                                .foregroundStyle(Theme.mute)
-                        }
-                    }
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
+        let label = MonitorRowLabel(name: name.isEmpty ? source.shortLabel : name, short: source.shortLabel, color: sourceColor, mutedAtDesk: channelMuted)
+        let fader = HFader(
+            value: level.float,
+            tint: color,
+            hapticAtUnity: app.settings.hapticAtUnity,
+            onChange: { v in app.dragSet(levelAddress, drag, v, steps: 160) },
+            onTouch: { began in
+                if began { app.beginDrag(levelAddress, drag) } else { app.endDrag(drag) }
+            }
+        )
+        .frame(height: 48)
+        .opacity(on ? 1 : 0.45)
+        let readout = Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
+            .font(Theme.mono(14, .semibold))
+            .frame(width: 52, alignment: .trailing)
+        let meter = MeterView(meter: app.meters.meter(source))
+            .frame(width: 8, height: 40)
+        let onButton = LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 44, fontSize: 13) {
+            app.setBool(onAddress, !on)
+        }
+        .frame(width: 70)
+        // Phones: put the name above the fader so the fader keeps a usable length.
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                label.frame(width: 112, alignment: .leading)
+                fader.frame(minWidth: 180)
+                readout
+                meter
+                onButton
+            }
+            VStack(spacing: 6) {
+                HStack(spacing: 10) {
+                    label
+                    Spacer(minLength: 4)
+                    readout
+                    onButton
+                }
+                HStack(spacing: 8) {
+                    fader
+                    meter
                 }
             }
-            .frame(width: 112, alignment: .leading)
-
-            HFader(
-                value: level.float,
-                tint: color,
-                hapticAtUnity: app.settings.hapticAtUnity,
-                onChange: { v in app.setFloat(levelAddress, v, steps: 160) },
-                onTouch: { began in app.touch(levelAddress, began) }
-            )
-            .frame(height: 48)
-            .opacity(on ? 1 : 0.45)
-
-            Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
-                .font(Theme.mono(14, .semibold))
-                .frame(width: 52, alignment: .trailing)
-
-            MeterView(meter: app.meters.meter(source))
-                .frame(width: 8, height: 40)
-
-            LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 44, fontSize: 13) {
-                app.setBool(onAddress, !on)
-            }
-            .frame(width: 70)
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
         .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
+    }
+}
+
+private struct MonitorRowLabel: View {
+    let name: String
+    let short: String
+    let color: Color
+    let mutedAtDesk: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            RoundedRectangle(cornerRadius: 3)
+                .fill(color)
+                .frame(width: 6, height: 34)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(name)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1)
+                HStack(spacing: 4) {
+                    Text(short)
+                    if mutedAtDesk {
+                        Text("· MUTED AT DESK")
+                            .foregroundStyle(Theme.mute)
+                    }
+                }
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.secondary)
+            }
+        }
     }
 }
 
@@ -245,7 +277,7 @@ struct MonitorSetupSheet: View {
                         .keyboardType(.numberPad)
                     Button("Lock to this mix") {
                         app.updateSettings { s in
-                            if !lockPIN.isEmpty {
+                            if lockPIN.count >= 4 {
                                 s.pin = lockPIN
                             }
                             s.locked = true

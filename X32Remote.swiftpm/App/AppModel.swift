@@ -41,6 +41,8 @@ final class AppModel {
     var detailStrip: StripID?
     var sheet: Sheet?
     var detailTab: DetailTab = .eq
+    /// The channel the open channel page is showing now (it can step prev/next).
+    @ObservationIgnored var visibleDetailStrip: StripID?
 
     init() {
         discovery.onChange = { [weak self] consoles in
@@ -96,24 +98,11 @@ final class AppModel {
     }
 
     static func isValidIPv4(_ s: String) -> Bool {
-        normalizedIPv4(s) != nil
-    }
-
-    /// "192.168.001.050 " -> "192.168.1.50" (replies are matched against this exact text).
-    static func normalizedIPv4(_ s: String) -> String? {
-        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
-        let parts = trimmed.split(separator: ".", omittingEmptySubsequences: false)
-        guard parts.count == 4 else { return nil }
-        var numbers: [Int] = []
-        for p in parts {
-            guard !p.isEmpty, p.count <= 3, let n = Int(p), n >= 0, n <= 255 else { return nil }
-            numbers.append(n)
-        }
-        return numbers.map { String($0) }.joined(separator: ".")
+        IPv4.normalized(s) != nil
     }
 
     func connect(host rawHost: String) {
-        guard let host = AppModel.normalizedIPv4(rawHost) else {
+        guard let host = IPv4.normalized(rawHost) else {
             let shown = rawHost.trimmingCharacters(in: .whitespacesAndNewlines)
             lastError = "“\(shown)” isn't an IP address. It looks like 192.168.1.50 — find it on the X32 under Setup › Network."
             return
@@ -128,6 +117,11 @@ final class AppModel {
             let work = DispatchWorkItem { [weak self] in
                 guard let self = self else { return }
                 if case .connecting = self.phase {
+                    if self.settings.locked {
+                        // A locked staff/performer iPad: keep waiting for the desk (e.g. it's still booting).
+                        self.connect(host: host)
+                        return
+                    }
                     self.disconnect()
                     self.lastError = "No answer from \(host). Check the X32's IP address (Setup › Network), that this iPad is on the same network, and that Local Network is allowed for X32 Remote in Settings › Privacy."
                 }
@@ -166,6 +160,10 @@ final class AppModel {
         store.clear()
         meters.reset()
         isDemo = demo
+        client = makeClient(transport)
+    }
+
+    private func makeClient(_ transport: X32Transport) -> X32Client {
         let c = X32Client(transport: transport)
         c.onStatus = { [weak self] status in
             self?.clientStatusChanged(status)
@@ -179,8 +177,10 @@ final class AppModel {
         c.onMeters = { [weak self] block, values in
             self?.meters.ingest(block: block, values: values)
         }
-        client = c
+        return c
     }
+
+    @ObservationIgnored private var resyncOnConnect = false
 
     private func clientStatusChanged(_ status: X32Client.Status) {
         switch status {
@@ -205,43 +205,44 @@ final class AppModel {
                 syncAll()
                 applyIdleTimer()
                 applyLaunchActionsAfterConnect()
-            } else if wasLost {
+            } else if wasLost || resyncOnConnect {
+                // Changes made on the desk while we couldn't hear it would otherwise be missed.
                 syncAll()
             }
+            resyncOnConnect = false
             updateMeterSubscriptions()
         case .lost:
             linkLost = true
+            meters.reset()
         case .connecting:
             break
         }
     }
 
+    @ObservationIgnored private var wasInBackground = false
+
     /// iOS can quietly kill sockets while the app is in the background, so start fresh on return.
-    func scenePhaseChanged(_ newPhase: ScenePhase) {
-        guard newPhase == .active else { return }
-        if phase == .connected, !isDemo, let host = currentHost {
-            let transport: UDPTransport
-            do {
-                transport = try UDPTransport(host: host)
-            } catch {
-                return
+    /// (Going active -> background passes through inactive, so remember that we were in the background.)
+    func scenePhaseChanged(from oldPhase: ScenePhase, to newPhase: ScenePhase) {
+        if newPhase == .background {
+            wasInBackground = true
+            store.releaseAllTouches()
+        }
+        if newPhase == .active && wasInBackground {
+            wasInBackground = false
+            if phase == .connected && !isDemo, let host = currentHost, let transport = try? UDPTransport(host: host) {
+                client?.close()
+                let fresh = makeClient(transport)
+                client = fresh
+                resyncOnConnect = true
+                // If the desk doesn't answer soon (e.g. we're on another network now), say so.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self, weak fresh] in
+                    guard let self = self, let fresh = fresh, self.client === fresh else { return }
+                    if fresh.status != .connected {
+                        self.linkLost = true
+                    }
+                }
             }
-            client?.close()
-            let c = X32Client(transport: transport)
-            c.onStatus = { [weak self] status in
-                self?.clientStatusChanged(status)
-            }
-            c.onInfo = { [weak self] info in
-                self?.console = info
-            }
-            c.onMessage = { [weak self] message in
-                self?.handle(message)
-            }
-            c.onMeters = { [weak self] block, values in
-                self?.meters.ingest(block: block, values: values)
-            }
-            client = c
-            linkLost = true
         }
         applyIdleTimer()
     }
@@ -256,6 +257,10 @@ final class AppModel {
         guard let value = message.args.first else { return }
         let address = message.address
         let previous = store.value(address)
+        if let t = lastLocalSet[address] {
+            if X32Client.now() - t < 0.6 { return }
+            lastLocalSet[address] = nil
+        }
         store.applyRemote(address, value)
 
         if address.hasPrefix("/-ha/") && address.hasSuffix("/index"), let ha = value.intValue, ha >= 0, ha < 128 {
@@ -316,7 +321,7 @@ final class AppModel {
         if settings.mode == .monitor {
             loadSends(bus: settings.monitorBus)
         }
-        if let d = detailStrip {
+        if let d = visibleDetailStrip ?? detailStrip {
             loadDetail(d)
         }
     }
@@ -422,8 +427,13 @@ final class AppModel {
 
     func set(_ address: String, _ value: OSCArg) {
         store.applyLocal(address, value)
+        lastLocalSet[address] = X32Client.now()
         client?.set(address, value)
     }
+
+    /// When each parameter was last changed from this app. Replies to older requests that arrive
+    /// shortly afterwards would otherwise undo the change on screen.
+    @ObservationIgnored private var lastLocalSet: [String: TimeInterval] = [:]
 
     func setFloat(_ address: String, _ value: Float, steps: Int) {
         set(address, .float(X32Math.quantize(value, steps: steps)))
@@ -447,14 +457,48 @@ final class AppModel {
         p.touchCount = max(0, p.touchCount + (began ? 1 : -1))
     }
 
+    /// Start a drag on `address`. The drag keeps controlling that parameter until it ends,
+    /// even if the view is re-used for another channel mid-gesture.
+    func beginDrag(_ address: String, _ target: DragTarget) {
+        if let previous = target.address {
+            touch(previous, false)
+        }
+        // Never drag from a value we haven't read from the desk: it would jump the real level.
+        target.blocked = !store.param(address).isKnown
+        if target.blocked {
+            client?.get(address)
+        }
+        target.address = address
+        touch(address, true)
+    }
+
+    func endDrag(_ target: DragTarget) {
+        if let address = target.address {
+            touch(address, false)
+        }
+        target.address = nil
+    }
+
+    /// Set a float on the parameter the current drag started on (or `address` if no drag).
+    func dragSet(_ address: String, _ target: DragTarget, _ value: Float, steps: Int) {
+        if target.blocked { return }
+        setFloat(target.address ?? address, value, steps: steps)
+    }
+
     func toggleMute(_ strip: StripID) {
         let p = store.param(strip.onPath)
-        setBool(strip.onPath, p.int(or: 1) == 0)
+        guard p.isKnown else {
+            client?.get(strip.onPath)
+            return
+        }
+        setBool(strip.onPath, p.int == 0)
     }
 
     func toggleSolo(_ strip: StripID) {
         let p = store.param(strip.soloPath)
         setBool(strip.soloPath, !p.bool)
+        let anySolo = StripID.everything.contains { store.param($0.soloPath).bool }
+        store.applyLocal("/-stat/solo", .int(anySolo ? 1 : 0))
     }
 
     func clearSolo() {
@@ -588,6 +632,12 @@ final class AppModel {
             self.setBool("/config/mute/3", true)
         }
     }
+}
+
+/// Remembers which parameter a drag started on (held in a view's @State).
+final class DragTarget {
+    var address: String?
+    var blocked = false
 }
 
 /// Tabs on the channel page.

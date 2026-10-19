@@ -60,8 +60,18 @@ final class ParamStore {
 
     /// Forget everything (used when switching consoles).
     func clear() {
-        for p in params.values where p.value != nil {
-            p.value = nil
+        for p in params.values {
+            p.touchCount = 0
+            if p.value != nil {
+                p.value = nil
+            }
+        }
+    }
+
+    /// Safety net: forget any touch locks (e.g. when the app goes to the background).
+    func releaseAllTouches() {
+        for p in params.values {
+            p.touchCount = 0
         }
     }
 }

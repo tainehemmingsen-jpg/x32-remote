@@ -18,6 +18,7 @@ struct RootView: View {
             }
             if app.linkLost && app.phase == .connected {
                 LinkLostBanner()
+                    .allowsHitTesting(false)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }
         }
@@ -25,8 +26,8 @@ struct RootView: View {
         .onAppear {
             app.applyLaunchArguments()
         }
-        .onChange(of: scenePhase) { _, newPhase in
-            app.scenePhaseChanged(newPhase)
+        .onChange(of: scenePhase) { oldPhase, newPhase in
+            app.scenePhaseChanged(from: oldPhase, to: newPhase)
         }
     }
 }

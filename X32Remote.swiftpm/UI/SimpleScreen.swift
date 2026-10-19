@@ -117,6 +117,7 @@ struct SimpleScreen: View {
 private struct SimpleColumn: View {
     let app: AppModel
     let control: SimpleControl
+    @State private var drag = DragTarget()
 
     var body: some View {
         let strip = control.strip
@@ -141,8 +142,10 @@ private struct SimpleColumn: View {
                     maxValue: cap,
                     showScale: false,
                     hapticAtUnity: app.settings.hapticAtUnity,
-                    onChange: { v in app.setFloat(strip.faderPath, min(v, cap), steps: 1023) },
-                    onTouch: { began in app.touch(strip.faderPath, began) }
+                    onChange: { v in app.dragSet(strip.faderPath, drag, min(v, cap), steps: 1023) },
+                    onTouch: { began in
+                        if began { app.beginDrag(strip.faderPath, drag) } else { app.endDrag(drag) }
+                    }
                 )
                 if strip.kind != .dca {
                     MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
@@ -165,6 +168,7 @@ private struct SimpleColumn: View {
 private struct SimpleRow: View {
     let app: AppModel
     let control: SimpleControl
+    @State private var drag = DragTarget()
 
     var body: some View {
         let strip = control.strip
@@ -187,8 +191,10 @@ private struct SimpleRow: View {
                     tint: color,
                     maxValue: cap,
                     hapticAtUnity: app.settings.hapticAtUnity,
-                    onChange: { v in app.setFloat(strip.faderPath, min(v, cap), steps: 1023) },
-                    onTouch: { began in app.touch(strip.faderPath, began) }
+                    onChange: { v in app.dragSet(strip.faderPath, drag, min(v, cap), steps: 1023) },
+                    onTouch: { began in
+                        if began { app.beginDrag(strip.faderPath, drag) } else { app.endDrag(drag) }
+                    }
                 )
                 .frame(height: 56)
                 SimpleMute(app: app, strip: strip, height: 56)

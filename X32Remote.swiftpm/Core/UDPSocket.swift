@@ -47,8 +47,13 @@ final class UDPSocket {
     private var closed = false
     private let lock = NSLock()
 
+    private var receiveHandler: ((Data, String) -> Void)?
+
     /// (payload, sender IPv4 address)
-    var onReceive: ((Data, String) -> Void)?
+    var onReceive: ((Data, String) -> Void)? {
+        get { lock.lock(); defer { lock.unlock() }; return receiveHandler }
+        set { lock.lock(); receiveHandler = newValue; lock.unlock() }
+    }
 
     init(label: String = "x32remote.udp") throws {
         queue = DispatchQueue(label: label, qos: .userInteractive)

@@ -6,6 +6,9 @@ import UIKit
 /// A transparent UIKit view that reports one touch. Each surface tracks its own finger,
 /// so several faders can be moved at once. It's a UIControl so scroll views don't steal its touches.
 struct TouchSurface: UIViewRepresentable {
+    /// When set, a touch that starts moving mostly across this axis is ignored (so scrolling past a
+    /// fader can't nudge it).
+    var axis: Axis? = nil
     var onBegin: (CGPoint) -> Void = { _ in }
     var onMove: (CGPoint) -> Void = { _ in }
     /// (moved, tapCount)
@@ -20,6 +23,7 @@ struct TouchSurface: UIViewRepresentable {
     }
 
     func updateUIView(_ view: TouchControl, context: Context) {
+        view.axis = axis
         view.onBegin = onBegin
         view.onMove = onMove
         view.onEnd = onEnd
@@ -29,14 +33,19 @@ struct TouchSurface: UIViewRepresentable {
         var onBegin: ((CGPoint) -> Void)?
         var onMove: ((CGPoint) -> Void)?
         var onEnd: ((Bool, Int) -> Void)?
+        var axis: Axis?
         private var activeTouch: UITouch?
         private var startPoint: CGPoint = .zero
         private var moved = false
+        private var directionDecided = false
+        private var ignoringMoves = false
 
         override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
             guard activeTouch == nil, let touch = touches.first else { return }
             activeTouch = touch
             moved = false
+            directionDecided = axis == nil
+            ignoringMoves = false
             startPoint = touch.location(in: self)
             onBegin?(startPoint)
         }
@@ -44,9 +53,21 @@ struct TouchSurface: UIViewRepresentable {
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
             guard let touch = activeTouch, touches.contains(touch) else { return }
             let p = touch.location(in: self)
-            if !moved && hypot(p.x - startPoint.x, p.y - startPoint.y) > 4 {
+            let dx = abs(p.x - startPoint.x)
+            let dy = abs(p.y - startPoint.y)
+            if !moved && hypot(dx, dy) > 4 {
                 moved = true
             }
+            if !directionDecided {
+                guard hypot(dx, dy) >= 6 else { return }
+                directionDecided = true
+                if axis == .horizontal {
+                    ignoringMoves = dy > dx * 1.2
+                } else if axis == .vertical {
+                    ignoringMoves = dx > dy * 1.2
+                }
+            }
+            if ignoringMoves { return }
             onMove?(p)
         }
 
@@ -117,6 +138,7 @@ struct FaderView: View {
             .frame(width: width, height: height)
             .overlay(
                 TouchSurface(
+                    axis: .vertical,
                     onBegin: { p in
                         touching = true
                         dragValue = value
@@ -127,7 +149,8 @@ struct FaderView: View {
                         let dy = p.y - lastPoint.y
                         lastPoint = p
                         let fine: CGFloat = abs(p.x - width / 2) > max(80, width) ? 0.25 : 1
-                        var next = dragValue - Float(dy / travel * fine)
+                        // Never let a short fader become hair-trigger: at least 150 pt per full throw.
+                        var next = dragValue - Float(dy / max(travel, 150) * fine)
                         next = min(max(next, 0), maxValue)
                         let unity = X32Math.unityFader
                         if hapticAtUnity && ((dragValue < unity) != (next < unity)) {
@@ -142,6 +165,12 @@ struct FaderView: View {
                     }
                 )
             )
+        }
+        .onDisappear {
+            if touching {
+                touching = false
+                onTouch(false)
+            }
         }
     }
 }
@@ -301,6 +330,7 @@ struct HFader: View {
             .frame(width: width, height: height)
             .overlay(
                 TouchSurface(
+                    axis: .horizontal,
                     onBegin: { p in
                         touching = true
                         dragValue = value
@@ -311,7 +341,8 @@ struct HFader: View {
                         let dx = p.x - lastPoint.x
                         lastPoint = p
                         let fine: CGFloat = abs(p.y - height / 2) > max(70, height * 1.5) ? 0.25 : 1
-                        var next = dragValue + Float(dx / travel * fine)
+                        // Never let a short fader become hair-trigger: at least 150 pt per full throw.
+                        var next = dragValue + Float(dx / max(travel, 150) * fine)
                         next = min(max(next, 0), maxValue)
                         let unity = X32Math.unityFader
                         if hapticAtUnity && ((dragValue < unity) != (next < unity)) {
@@ -326,6 +357,12 @@ struct HFader: View {
                     }
                 )
             )
+        }
+        .onDisappear {
+            if touching {
+                touching = false
+                onTouch(false)
+            }
         }
     }
 }
@@ -398,6 +435,7 @@ struct Knob: View {
             .contentShape(Circle())
             .overlay(
                 TouchSurface(
+                    axis: .vertical,
                     onBegin: { p in
                         touching = true
                         dragValue = value
@@ -406,9 +444,8 @@ struct Knob: View {
                     },
                     onMove: { p in
                         let dy = lastPoint.y - p.y
-                        let dx = p.x - lastPoint.x
                         lastPoint = p
-                        var next = dragValue + Float((dy + dx * 0.5) / 220)
+                        var next = dragValue + Float(dy / 220)
                         next = min(max(next, 0), 1)
                         dragValue = next
                         onChange(next)
@@ -430,6 +467,12 @@ struct Knob: View {
         }
         .frame(minWidth: size + 10)
         .opacity(enabled ? 1 : 0.55)
+        .onDisappear {
+            if touching {
+                touching = false
+                onTouch(false)
+            }
+        }
     }
 }
 
@@ -523,6 +566,7 @@ struct PanControl: View {
 
     @State private var dragValue: Float = 0.5
     @State private var lastPoint: CGPoint = .zero
+    @State private var touching = false
 
     var body: some View {
         GeometryReader { geo in
@@ -546,7 +590,9 @@ struct PanControl: View {
             .frame(width: width, height: height)
             .overlay(
                 TouchSurface(
+                    axis: .horizontal,
                     onBegin: { p in
+                        touching = true
                         dragValue = value
                         lastPoint = p
                         onTouch(true)
@@ -563,6 +609,7 @@ struct PanControl: View {
                         onChange(next)
                     },
                     onEnd: { moved, taps in
+                        touching = false
                         onTouch(false)
                         if !moved && taps >= 2 {
                             onChange(0.5)
@@ -572,6 +619,12 @@ struct PanControl: View {
             )
         }
         .frame(height: height)
+        .onDisappear {
+            if touching {
+                touching = false
+                onTouch(false)
+            }
+        }
     }
 }
 

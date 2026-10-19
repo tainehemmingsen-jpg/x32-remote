@@ -18,7 +18,9 @@ enum OSCArg: Equatable {
     var intValue: Int? {
         switch self {
         case .int(let i): return Int(i)
-        case .float(let f): return Int(f.rounded())
+        case .float(let f):
+            guard f.isFinite, abs(f) < 1_000_000_000 else { return nil }
+            return Int(f.rounded())
         default: return nil
         }
     }

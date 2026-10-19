@@ -90,3 +90,20 @@ final class X32Discovery {
         }
     }
 }
+
+enum IPv4 {
+    /// "192.168.001.050 " -> "192.168.1.50". Replies from the desk are matched against this exact text.
+    static func normalized(_ s: String) -> String? {
+        let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+        let parts = trimmed.split(separator: ".", omittingEmptySubsequences: false)
+        guard parts.count == 4 else { return nil }
+        var numbers: [Int] = []
+        for p in parts {
+            guard !p.isEmpty, p.count <= 3, p.allSatisfy({ $0.isASCII && $0.isNumber }), let n = Int(p), n <= 255 else {
+                return nil
+            }
+            numbers.append(n)
+        }
+        return numbers.map { String($0) }.joined(separator: ".")
+    }
+}

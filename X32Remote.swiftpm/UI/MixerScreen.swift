@@ -519,13 +519,16 @@ struct SendOnButton: View {
 struct ParamPan: View {
     let app: AppModel
     let address: String
+    @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
         PanControl(
             value: p.float(or: 0.5),
-            onChange: { v in app.setFloat(address, v, steps: 100) },
-            onTouch: { began in app.touch(address, began) }
+            onChange: { v in app.dragSet(address, drag, v, steps: 100) },
+            onTouch: { began in
+                if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+            }
         )
     }
 }
@@ -538,6 +541,7 @@ struct ParamFader: View {
     var tint: Color = Theme.accent
     var label: String? = nil
     var maxValue: Float = 1
+    @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
@@ -548,8 +552,10 @@ struct ParamFader: View {
             showScale: app.settings.showFaderScale,
             hapticAtUnity: app.settings.hapticAtUnity,
             capLabel: label,
-            onChange: { v in app.setFloat(address, v, steps: steps) },
-            onTouch: { began in app.touch(address, began) }
+            onChange: { v in app.dragSet(address, drag, v, steps: steps) },
+            onTouch: { began in
+                if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+            }
         )
     }
 }

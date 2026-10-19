@@ -38,7 +38,14 @@ struct ChannelDetailView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .preferredColorScheme(.dark)
+        .onAppear {
+            app.visibleDetailStrip = strip
+        }
+        .onDisappear {
+            app.visibleDetailStrip = nil
+        }
         .onChange(of: strip) { _, newStrip in
+            app.visibleDetailStrip = newStrip
             app.loadDetail(newStrip)
         }
     }
@@ -230,17 +237,21 @@ struct PanReadout: View {
 private struct CompactStripBar: View {
     let app: AppModel
     let strip: StripID
+    @State private var drag = DragTarget()
 
     var body: some View {
-        let fader = app.param(strip.faderPath)
+        let address = strip.faderPath
+        let fader = app.param(address)
         HStack(spacing: 10) {
             MuteButton(app: app, strip: strip, height: 40)
                 .frame(width: 70)
             HFader(
                 value: fader.float,
                 hapticAtUnity: app.settings.hapticAtUnity,
-                onChange: { v in app.setFloat(strip.faderPath, v, steps: 1023) },
-                onTouch: { began in app.touch(strip.faderPath, began) }
+                onChange: { v in app.dragSet(address, drag, v, steps: 1023) },
+                onTouch: { began in
+                    if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+                }
             )
             .frame(height: 44)
             FaderReadout(app: app, address: strip.faderPath)
@@ -264,6 +275,9 @@ struct ParamKnob: View {
     var tint: Color = Theme.accent
     var enabled: Bool = true
     var size: CGFloat = 54
+    /// Double-tap to reset. Off by default: resetting gain or a threshold mid-show is dangerous.
+    var resettable: Bool = false
+    @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
@@ -274,11 +288,13 @@ struct ParamKnob: View {
             display: p.isKnown ? spec.display(v) : "—",
             tint: tint,
             bipolar: bipolar,
-            defaultValue: spec.defaultNorm,
+            defaultValue: resettable ? spec.defaultNorm : nil,
             enabled: enabled,
             size: size,
-            onChange: { nv in app.setFloat(address, nv, steps: spec.steps) },
-            onTouch: { began in app.touch(address, began) }
+            onChange: { nv in app.dragSet(address, drag, nv, steps: spec.steps) },
+            onTouch: { began in
+                if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+            }
         )
     }
 }
@@ -292,6 +308,7 @@ struct EnumKnob: View {
     var suffix: String = ""
     var tint: Color = Theme.accent
     var enabled: Bool = true
+    @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
@@ -305,13 +322,16 @@ struct EnumKnob: View {
             tint: tint,
             enabled: enabled,
             onChange: { nv in
+                let target = drag.address ?? address
                 let i = Int((nv * Float(count - 1)).rounded())
-                if i != app.param(address).int {
-                    app.setInt(address, i)
+                if i != app.param(target).int {
+                    app.setInt(target, i)
                     Haptics.click()
                 }
             },
-            onTouch: { began in app.touch(address, began) }
+            onTouch: { began in
+                if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+            }
         )
     }
 }

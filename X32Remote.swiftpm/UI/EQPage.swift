@@ -182,9 +182,10 @@ struct EQPage: View {
         let count = strip.eqBandCount
         let selected = min(max(band, 1), max(count, 1))
         VStack(spacing: 12) {
+            ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 10) {
                 OnSwitch(app: app, address: strip.eqOnPath, title: "EQ ON", width: 80)
-                Spacer()
+                Spacer(minLength: 10)
                 ForEach(1...max(count, 1), id: \.self) { b in
                     Button {
                         band = b
@@ -201,8 +202,10 @@ struct EQPage: View {
                     .buttonStyle(.plain)
                 }
             }
+            .frame(minWidth: 0)
+            }
             EQGraph(app: app, strip: strip, selectedBand: $band)
-                .frame(minHeight: 200)
+                .frame(minHeight: 140)
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
             BandControls(app: app, strip: strip, band: selected)
@@ -233,7 +236,7 @@ private struct BandControls: View {
                     EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
                 }
                 ParamKnob(app: app, address: strip.eqPath(band, "f"), spec: Specs.eqFreq, title: "Freq", tint: tint)
-                ParamKnob(app: app, address: strip.eqPath(band, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain)
+                ParamKnob(app: app, address: strip.eqPath(band, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain, resettable: true)
                 ParamKnob(app: app, address: strip.eqPath(band, "q"), spec: Specs.eqQ, title: "Q", tint: tint, enabled: usesQ)
                 Button {
                     app.setFloat(strip.eqPath(band, "g"), 0.5, steps: Specs.eqGain.steps)
@@ -254,10 +257,22 @@ struct EQGraph: View {
     let strip: StripID
     @Binding var selectedBand: Int
 
+    @GestureState private var gestureActive = false
     @State private var dragBand: Int?
+    @State private var dragStrip: StripID?
+    @State private var dragUsesGain = false
     @State private var dragOrigin: CGPoint = .zero
 
     private static let dbRange: Double = 18
+
+    private func endDrag() {
+        if let b = dragBand, let s = dragStrip {
+            app.touch(s.eqPath(b, "f"), false)
+            app.touch(s.eqPath(b, "g"), false)
+        }
+        dragBand = nil
+        dragStrip = nil
+    }
 
     var body: some View {
         let count = strip.eqBandCount
@@ -286,34 +301,45 @@ struct EQGraph: View {
             .contentShape(Rectangle())
             .gesture(
                 DragGesture(minimumDistance: 0)
+                    .updating($gestureActive) { _, state, _ in
+                        state = true
+                    }
                     .onChanged { g in
                         if dragBand == nil {
                             guard let hit = EQGraph.nearestBand(to: g.startLocation, bands: bands, size: size) else { return }
                             dragBand = hit.band
+                            dragStrip = strip
+                            dragUsesGain = hit.usesGain
                             dragOrigin = EQGraph.point(for: hit, size: size)
                             selectedBand = hit.band
                             app.touch(strip.eqPath(hit.band, "f"), true)
                             app.touch(strip.eqPath(hit.band, "g"), true)
                         }
-                        guard let b = dragBand, let current = bands.first(where: { $0.band == b }) else { return }
+                        // Keep editing the channel the drag started on, even if the page moved on.
+                        guard let b = dragBand, let s = dragStrip else { return }
                         let x = min(max(dragOrigin.x + g.translation.width, 0), size.width)
                         let y = min(max(dragOrigin.y + g.translation.height, 0), size.height)
                         let freqNorm = Float(x / max(size.width, 1))
-                        app.setFloat(strip.eqPath(b, "f"), freqNorm, steps: Specs.eqFreq.steps)
-                        if current.usesGain {
+                        app.setFloat(s.eqPath(b, "f"), freqNorm, steps: Specs.eqFreq.steps)
+                        if dragUsesGain {
                             let db = (Double(size.height) / 2 - Double(y)) / (Double(size.height) / 2) * EQGraph.dbRange
                             let clamped = Float(min(max(db, -15), 15))
-                            app.setFloat(strip.eqPath(b, "g"), Specs.eqGain.norm(clamped), steps: Specs.eqGain.steps)
+                            app.setFloat(s.eqPath(b, "g"), Specs.eqGain.norm(clamped), steps: Specs.eqGain.steps)
                         }
                     }
                     .onEnded { _ in
-                        if let b = dragBand {
-                            app.touch(strip.eqPath(b, "f"), false)
-                            app.touch(strip.eqPath(b, "g"), false)
-                        }
-                        dragBand = nil
+                        endDrag()
                     }
             )
+            .onDisappear {
+                endDrag()
+            }
+            .onChange(of: gestureActive) { _, active in
+                // Also runs when the system cancels the gesture (onEnded doesn't).
+                if !active {
+                    endDrag()
+                }
+            }
         }
     }
 

@@ -49,6 +49,7 @@ private struct PreampControls: View {
     var body: some View {
         let haIndex = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
         let hasHeadamp = haIndex >= 0 && haIndex < 128
+        let phantomOn = hasHeadamp && app.param(StripID.headampPhantomPath(haIndex)).bool
         HStack(alignment: .top, spacing: 22) {
             if hasHeadamp {
                 ParamKnob(app: app, address: StripID.headampGainPath(haIndex), spec: Specs.headampGain, title: "Gain", size: 64)
@@ -72,15 +73,17 @@ private struct PreampControls: View {
                     .frame(maxWidth: 220, alignment: .leading)
             }
         }
-        .alert("Turn on 48V phantom power?", isPresented: $confirmPhantom) {
-            Button("Turn on 48V", role: .destructive) {
+        .alert(phantomOn ? "Turn off 48V phantom power?" : "Turn on 48V phantom power?", isPresented: $confirmPhantom) {
+            Button(phantomOn ? "Turn off 48V" : "Turn on 48V", role: .destructive) {
                 if hasHeadamp {
-                    app.setBool(StripID.headampPhantomPath(haIndex), true)
+                    app.setBool(StripID.headampPhantomPath(haIndex), !phantomOn)
                 }
             }
             Button("Cancel", role: .cancel) {}
         } message: {
-            Text("Phantom power can damage ribbon mics and some line-level gear. Pull the channel down first.")
+            Text(phantomOn
+                 ? "Condenser mics and DI boxes on this input will go silent."
+                 : "Phantom power can damage ribbon mics and some line-level gear. Pull the channel down first.")
         }
     }
 }
@@ -97,11 +100,7 @@ private struct PhantomSwitch: View {
                 .font(.system(size: 10, weight: .bold))
                 .foregroundStyle(Theme.secondary)
             LitButton(title: "48V", isOn: on, color: Theme.mute, height: 32) {
-                if on {
-                    app.setBool(address, false)
-                } else {
-                    confirm = true
-                }
+                confirm = true
             }
             .frame(width: 64)
         }
@@ -231,6 +230,7 @@ private struct SendRow: View {
     let strip: StripID
     let n: Int
     @Environment(\.dismiss) private var dismiss
+    @State private var drag = DragTarget()
 
     var body: some View {
         let target = strip.sendsFeedMatrix ? StripID(.matrix, n) : StripID(.bus, n)
@@ -241,56 +241,69 @@ private struct SendRow: View {
         let level = app.param(levelAddress)
         let on = app.param(onAddress).int(or: 1) != 0
         let tap = app.param(strip.sendTypePath(n))
-        HStack(spacing: 12) {
-            Button {
-                guard target.kind == .bus else { return }
-                app.selectSendsBus(n)
-                dismiss()
-            } label: {
-                HStack(spacing: 8) {
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(color)
-                        .frame(width: 6, height: 30)
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(target.shortLabel.uppercased())
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Theme.secondary)
-                        Text(name.isEmpty ? target.shortLabel : name)
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundStyle(Theme.text)
-                            .lineLimit(1)
-                    }
+        let nameButton = Button {
+            guard target.kind == .bus else { return }
+            app.selectSendsBus(n)
+            dismiss()
+        } label: {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(color)
+                    .frame(width: 6, height: 30)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(target.shortLabel.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.secondary)
+                    Text(name.isEmpty ? target.shortLabel : name)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(1)
                 }
-                .frame(width: 140, alignment: .leading)
-                .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
-
-            HFader(
-                value: level.float,
-                tint: color,
-                hapticAtUnity: app.settings.hapticAtUnity,
-                onChange: { v in app.setFloat(levelAddress, v, steps: 160) },
-                onTouch: { began in app.touch(levelAddress, began) }
-            )
-            .frame(height: 40)
-            .opacity(on ? 1 : 0.45)
-
-            Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
-                .font(Theme.mono(13, .semibold))
-                .frame(width: 52, alignment: .trailing)
-
-            if tap.isKnown, tap.int >= 0, tap.int < X32Enums.sendTaps.count {
-                Text(X32Enums.sendTaps[tap.int])
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
-                    .frame(width: 44)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        let fader = HFader(
+            value: level.float,
+            tint: color,
+            hapticAtUnity: app.settings.hapticAtUnity,
+            onChange: { v in app.dragSet(levelAddress, drag, v, steps: 160) },
+            onTouch: { began in
+                if began { app.beginDrag(levelAddress, drag) } else { app.endDrag(drag) }
             }
-
-            LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 34) {
-                app.setBool(onAddress, !on)
+        )
+        .frame(height: 40)
+        .opacity(on ? 1 : 0.45)
+        let readout = Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
+            .font(Theme.mono(13, .semibold))
+            .frame(width: 52, alignment: .trailing)
+        let tapText = (tap.isKnown && tap.int >= 0 && tap.int < X32Enums.sendTaps.count) ? X32Enums.sendTaps[tap.int] : ""
+        let tapLabel = Text(tapText)
+            .font(.system(size: 10, weight: .bold))
+            .foregroundStyle(Theme.secondary)
+            .frame(width: 44)
+        let onButton = LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 34) {
+            app.setBool(onAddress, !on)
+        }
+        .frame(width: 56)
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 12) {
+                nameButton.frame(width: 140, alignment: .leading)
+                fader.frame(minWidth: 180)
+                readout
+                tapLabel
+                onButton
             }
-            .frame(width: 56)
+            VStack(spacing: 6) {
+                HStack(spacing: 10) {
+                    nameButton
+                    Spacer(minLength: 4)
+                    tapLabel
+                    readout
+                    onButton
+                }
+                fader
+            }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 8)
@@ -455,11 +468,14 @@ struct BitToggles: View {
     let color: Color
 
     var body: some View {
-        let mask = app.param(address).int
+        let param = app.param(address)
+        let mask = param.int
         HStack(spacing: 8) {
             ForEach(0..<count, id: \.self) { bit in
                 let on = (mask >> bit) & 1 == 1
                 LitButton(title: "\(prefix) \(bit + 1)", isOn: on, color: color, height: 34, fontSize: 11) {
+                    // Writing a mask we haven't read would silently drop the channel from its other groups.
+                    guard param.isKnown else { return }
                     let newMask = on ? (mask & ~(1 << bit)) : (mask | (1 << bit))
                     app.setInt(address, newMask)
                 }

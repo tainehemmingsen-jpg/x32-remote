@@ -495,3 +495,17 @@ final class DemoDeskTests: XCTestCase {
         XCTAssertEqual(missing, [])
     }
 }
+
+final class AddressTests: XCTestCase {
+    func testIPv4Normalisation() {
+        XCTAssertEqual(IPv4.normalized("192.168.1.50"), "192.168.1.50")
+        XCTAssertEqual(IPv4.normalized(" 192.168.001.050\n"), "192.168.1.50")
+        XCTAssertEqual(IPv4.normalized("10.0.0.255"), "10.0.0.255")
+        XCTAssertNil(IPv4.normalized("192.168.1"))
+        XCTAssertNil(IPv4.normalized("192.168.1.256"))
+        XCTAssertNil(IPv4.normalized("192.168..1"))
+        XCTAssertNil(IPv4.normalized("192.168.1.-1"))
+        XCTAssertNil(IPv4.normalized("x32.local"))
+        XCTAssertNil(IPv4.normalized("1.2.3.+4"))
+    }
+}
