@@ -1,0 +1,6 @@
+build/
+ci-out/
+.DS_Store
+xcuserdata/
+*.xcuserstate
+X32Remote.swiftpm/.swiftpm/

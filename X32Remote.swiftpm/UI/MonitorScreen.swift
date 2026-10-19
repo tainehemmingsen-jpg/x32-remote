@@ -1,0 +1,305 @@
+import SwiftUI
+
+/// One performer's monitor mix: every input's send to a single bus, as big horizontal faders.
+struct MonitorScreen: View {
+    @Bindable var app: AppModel
+    @State private var editing = false
+    @State private var askPIN = false
+
+    var body: some View {
+        let bus = app.settings.monitorBus
+        let busStrip = StripID(.bus, bus)
+        let busName = app.param(busStrip.namePath).string
+        let busColor = Theme.scribble(app.param(busStrip.colorPath).int)
+        let sources = visibleSources()
+        VStack(spacing: 0) {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(busColor)
+                    .frame(width: 8, height: 40)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("MY MIX · BUS \(bus)")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundStyle(Theme.secondary)
+                    Text(busName.isEmpty ? "Bus \(bus)" : busName)
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(1)
+                }
+                Spacer()
+                if app.settings.locked {
+                    Button {
+                        askPIN = true
+                    } label: {
+                        Label("Locked", systemImage: "lock.fill")
+                            .barChip()
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Button {
+                        editing = true
+                    } label: {
+                        Label("Choose", systemImage: "slider.horizontal.3")
+                            .barChip()
+                    }
+                    .buttonStyle(.plain)
+                    Button {
+                        app.setMode(.mixer)
+                    } label: {
+                        Label("Mixer", systemImage: "slider.vertical.3")
+                            .barChip()
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Theme.panel)
+
+            MonitorMasterRow(app: app, bus: bus, color: busColor)
+                .padding(.horizontal, 14)
+                .padding(.vertical, 10)
+                .background(busColor.opacity(0.12))
+
+            ScrollView {
+                LazyVStack(spacing: 6) {
+                    ForEach(sources) { source in
+                        MonitorRow(app: app, source: source, bus: bus, color: busColor)
+                    }
+                    if sources.isEmpty {
+                        Text("No inputs to show. Tap Choose to pick which inputs appear here.")
+                            .foregroundStyle(Theme.secondary)
+                            .padding(30)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+            }
+        }
+        .background(Theme.background)
+        .onAppear {
+            app.loadSends(bus: bus)
+        }
+        .onChange(of: bus) { _, newBus in
+            app.loadSends(bus: newBus)
+        }
+        .sheet(isPresented: $editing) {
+            MonitorSetupSheet(app: app)
+        }
+        .sheet(isPresented: $askPIN) {
+            PINPrompt(app: app, title: "Unlock this iPad", message: "Enter the PIN to unlock and leave the monitor mix.") {
+                app.updateSettings { $0.locked = false }
+            }
+        }
+    }
+
+    private func visibleSources() -> [StripID] {
+        let hidden = Set(app.settings.monitorHidden)
+        return StripID.busSources.filter { s in
+            if hidden.contains(s.id) { return false }
+            if app.settings.monitorShowAll { return true }
+            return !app.param(s.namePath).string.isEmpty
+        }
+    }
+}
+
+private struct MonitorMasterRow: View {
+    let app: AppModel
+    let bus: Int
+    let color: Color
+
+    var body: some View {
+        let strip = StripID(.bus, bus)
+        let fader = app.param(strip.faderPath)
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("OVERALL")
+                    .font(.system(size: 11, weight: .heavy))
+                    .foregroundStyle(Theme.text)
+                Text("Whole mix level")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondary)
+            }
+            .frame(width: 112, alignment: .leading)
+            HFader(
+                value: fader.float,
+                tint: color,
+                hapticAtUnity: app.settings.hapticAtUnity,
+                onChange: { v in app.setFloat(strip.faderPath, v, steps: 1023) },
+                onTouch: { began in app.touch(strip.faderPath, began) }
+            )
+            .frame(height: 50)
+            Text(fader.isKnown ? X32Math.formatFader(fader.float) : "—")
+                .font(Theme.mono(14, .semibold))
+                .frame(width: 52, alignment: .trailing)
+            MeterView(meter: app.meters.meter(strip))
+                .frame(width: 8, height: 44)
+            MuteButton(app: app, strip: strip, height: 44)
+                .frame(width: 70)
+        }
+    }
+}
+
+private struct MonitorRow: View {
+    let app: AppModel
+    let source: StripID
+    let bus: Int
+    let color: Color
+
+    var body: some View {
+        let name = app.param(source.namePath).string
+        let sourceColor = Theme.scribble(app.param(source.colorPath).int)
+        let levelAddress = source.sendLevelPath(bus)
+        let onAddress = source.sendOnPath(bus)
+        let level = app.param(levelAddress)
+        let on = app.param(onAddress).int(or: 1) != 0
+        let channelMuted = app.param(source.onPath).int(or: 1) == 0
+        HStack(spacing: 12) {
+            HStack(spacing: 8) {
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(sourceColor)
+                    .frame(width: 6, height: 34)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(name.isEmpty ? source.shortLabel : name)
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(Theme.text)
+                        .lineLimit(1)
+                    HStack(spacing: 4) {
+                        Text(source.shortLabel)
+                        if channelMuted {
+                            Text("· MUTED AT DESK")
+                                .foregroundStyle(Theme.mute)
+                        }
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.secondary)
+                }
+            }
+            .frame(width: 112, alignment: .leading)
+
+            HFader(
+                value: level.float,
+                tint: color,
+                hapticAtUnity: app.settings.hapticAtUnity,
+                onChange: { v in app.setFloat(levelAddress, v, steps: 160) },
+                onTouch: { began in app.touch(levelAddress, began) }
+            )
+            .frame(height: 48)
+            .opacity(on ? 1 : 0.45)
+
+            Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
+                .font(Theme.mono(14, .semibold))
+                .frame(width: 52, alignment: .trailing)
+
+            MeterView(meter: app.meters.meter(source))
+                .frame(width: 8, height: 40)
+
+            LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 44, fontSize: 13) {
+                app.setBool(onAddress, !on)
+            }
+            .frame(width: 70)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
+    }
+}
+
+/// Pick the bus and which inputs appear in the monitor mix, and lock it.
+struct MonitorSetupSheet: View {
+    @Bindable var app: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var lockPIN = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Mix") {
+                    Picker("Bus", selection: Binding(
+                        get: { app.settings.monitorBus },
+                        set: { newBus in
+                            app.updateSettings { $0.monitorBus = newBus }
+                            app.loadSends(bus: newBus)
+                        }
+                    )) {
+                        ForEach(1...16, id: \.self) { b in
+                            Text(busTitle(b)).tag(b)
+                        }
+                    }
+                }
+                Section {
+                    Toggle("Show unnamed inputs", isOn: Binding(
+                        get: { app.settings.monitorShowAll },
+                        set: { v in app.updateSettings { $0.monitorShowAll = v } }
+                    ))
+                    ForEach(StripID.busSources) { s in
+                        SourceVisibilityRow(app: app, source: s)
+                    }
+                } header: {
+                    Text("Inputs shown")
+                } footer: {
+                    Text("Turn off anything the performer doesn't need, so their list stays short.")
+                }
+                Section {
+                    SecureField("PIN (4+ digits)", text: $lockPIN)
+                        .keyboardType(.numberPad)
+                    Button("Lock to this mix") {
+                        app.updateSettings { s in
+                            if !lockPIN.isEmpty {
+                                s.pin = lockPIN
+                            }
+                            s.locked = true
+                        }
+                        dismiss()
+                    }
+                    .disabled(lockPIN.count < 4 && !app.hasPIN)
+                } header: {
+                    Text("Lock")
+                } footer: {
+                    Text("Locking hides the mixer so a performer can only change their own mix. Unlock with the PIN.")
+                }
+            }
+            .navigationTitle("Monitor mix")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func busTitle(_ b: Int) -> String {
+        let name = app.param(StripID(.bus, b).namePath).string
+        return name.isEmpty ? "Bus \(b)" : "Bus \(b) · \(name)"
+    }
+}
+
+private struct SourceVisibilityRow: View {
+    let app: AppModel
+    let source: StripID
+
+    var body: some View {
+        let name = app.param(source.namePath).string
+        let hidden = app.settings.monitorHidden.contains(source.id)
+        Toggle(isOn: Binding(
+            get: { !hidden },
+            set: { show in
+                app.updateSettings { s in
+                    s.monitorHidden.removeAll { $0 == source.id }
+                    if !show {
+                        s.monitorHidden.append(source.id)
+                    }
+                }
+            }
+        )) {
+            HStack {
+                Text(source.shortLabel)
+                    .foregroundStyle(Theme.secondary)
+                    .frame(width: 64, alignment: .leading)
+                Text(name.isEmpty ? "—" : name)
+            }
+        }
+    }
+}
