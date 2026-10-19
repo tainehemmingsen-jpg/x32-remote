@@ -54,22 +54,37 @@ shot() {
 }
 
 boot "$IPAD"
-LAND=(-autoOrientation landscape)
-shot "$IPAD" 01-connect 5 270 "${LAND[@]}" -autoMode mixer
-shot "$IPAD" 02-mixer 7 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoLayer inputs1
-shot "$IPAD" 03-mixer-17-32 7 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoLayer inputs2
-shot "$IPAD" 04-sends-on-fader 7 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
-shot "$IPAD" 05-dca 7 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoLayer dca
-shot "$IPAD" 06-eq 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
-shot "$IPAD" 07-dynamics 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab dynamics
-shot "$IPAD" 08-input 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input
-shot "$IPAD" 09-sends 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends
-shot "$IPAD" 10-setup 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab setup
-shot "$IPAD" 11-bus-eq 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoDetail bus-1 -autoTab eq
-shot "$IPAD" 12-scenes 8 270 "${LAND[@]}" -autoDemo YES -autoMode mixer -autoSheet scenes
-shot "$IPAD" 13-monitor 7 270 "${LAND[@]}" -autoDemo YES -autoMode monitor -autoMonitorBus 1
-shot "$IPAD" 14-simple 7 270 "${LAND[@]}" -autoDemo YES -autoMode simple
-shot "$IPAD" 15-mixer-portrait 7 0 -autoOrientation portrait -autoDemo YES -autoMode mixer -autoLayer inputs1
+# Portrait set (the simulator boots in portrait).
+shot "$IPAD" 01-connect 6 0 -autoMode mixer
+shot "$IPAD" 02-mixer 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs1
+shot "$IPAD" 03-mixer-17-32 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs2
+shot "$IPAD" 04-sends-on-fader 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
+shot "$IPAD" 05-dca 8 0 -autoDemo YES -autoMode mixer -autoLayer dca
+shot "$IPAD" 06-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
+shot "$IPAD" 07-dynamics 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab dynamics
+shot "$IPAD" 08-input 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input
+shot "$IPAD" 09-sends 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends
+shot "$IPAD" 10-setup 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab setup
+shot "$IPAD" 11-bus-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail bus-1 -autoTab eq
+shot "$IPAD" 12-scenes 9 0 -autoDemo YES -autoMode mixer -autoSheet scenes
+shot "$IPAD" 13-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
+sleep 5
+xcrun simctl io "$IPAD" screenshot "$SHOTS/13b-monitor-later.png" > /dev/null 2>&1
+shot "$IPAD" 14-simple 9 0 -autoDemo YES -autoMode simple
+
+# Landscape set: rotate the simulated iPad (Cmd+Right in Simulator). Best effort.
+open -a Simulator || true
+sleep 3
+osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 124 using command down' > "$OUT/rotate.log" 2>&1 || true
+sleep 3
+shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1
+shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
+shot "$IPAD" 42-landscape-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
+shot "$IPAD" 43-landscape-dynamics 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab dynamics
+shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
+shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple
+osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
+sleep 3
 
 # Integration test against the X32 emulator over real UDP.
 EMU="$ROOT/build/X32-Behringer/X32emu"
@@ -78,11 +93,11 @@ if [ -x "$EMU" ]; then
   (cd "$ROOT/build" && "$EMU" -i 127.0.0.1 -v 1 > "$OUT/emulator.log" 2>&1 &)
   sleep 2
   python3 "$ROOT/ci/x32tool.py" seed 127.0.0.1 | tee "$OUT/seed.log"
-  shot "$IPAD" 20-emulator-mixer 10 270 "${LAND[@]}" -autoHost 127.0.0.1 -autoMode mixer -autoLayer inputs1 -autoScript selftest
+  shot "$IPAD" 20-emulator-mixer 10 0 -autoHost 127.0.0.1 -autoMode mixer -autoLayer inputs1 -autoScript selftest
   sleep 2
   python3 "$ROOT/ci/x32tool.py" check 127.0.0.1 | tee "$OUT/selftest-check.log"
   RESULT=${PIPESTATUS[0]}
-  shot "$IPAD" 21-emulator-eq 9 270 "${LAND[@]}" -autoHost 127.0.0.1 -autoMode mixer -autoDetail channel-6 -autoTab eq
+  shot "$IPAD" 21-emulator-eq 9 0 -autoHost 127.0.0.1 -autoMode mixer -autoDetail channel-6 -autoTab eq
   pkill -f X32emu || true
 else
   echo "emulator missing; skipped integration test"
@@ -90,9 +105,10 @@ fi
 
 if [ -n "$IPHONE" ]; then
   boot "$IPHONE"
-  shot "$IPHONE" 30-iphone-monitor 7 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
-  shot "$IPHONE" 31-iphone-simple 7 0 -autoDemo YES -autoMode simple
-  shot "$IPHONE" 32-iphone-connect 5 0 -autoMode mixer
+  sleep 20
+  shot "$IPHONE" 30-iphone-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
+  shot "$IPHONE" 31-iphone-simple 10 0 -autoDemo YES -autoMode simple
+  shot "$IPHONE" 32-iphone-connect 10 0 -autoMode mixer
 fi
 
 xcrun simctl spawn "$IPAD" log show --last 5m --predicate 'process == "X32Remote" OR process == "X32 Remote"' --style compact > "$OUT/app-log.txt" 2>/dev/null || true

@@ -42,7 +42,8 @@ enum X32Math {
 
     static func formatDB(_ db: Float, decimals: Int = 1) -> String {
         if db.isInfinite || db <= -89.9 { return "-∞" }
-        let rounded = (db * 10).rounded() / 10
+        var rounded = (db * 10).rounded() / 10
+        if abs(rounded) < 0.05 { rounded = 0 }   // no "-0.0"
         let sign = rounded > 0 ? "+" : ""
         return sign + String(format: "%.\(decimals)f", rounded)
     }

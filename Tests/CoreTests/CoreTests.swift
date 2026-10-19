@@ -84,6 +84,7 @@ final class ValueTests: XCTestCase {
 
     func testFormatting() {
         XCTAssertEqual(X32Math.formatFader(0.75), "0.0")
+        XCTAssertEqual(X32Math.formatFader(X32Math.quantize(0.75, steps: 1023)), "0.0")
         XCTAssertEqual(X32Math.formatFader(1.0), "+10.0")
         XCTAssertEqual(X32Math.formatFader(0.5), "-10.0")
         XCTAssertEqual(X32Math.formatFader(0), "-∞")

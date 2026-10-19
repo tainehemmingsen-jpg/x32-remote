@@ -500,8 +500,9 @@ final class DemoTransport: X32Transport {
                 return .int(2)
             }
             if address.hasSuffix("/f") {
-                let freqs: [Float] = [100, 400, 1600, 8000, 3000, 10000]
-                return .float(X32Math.logInverse(freqs[max(0, min(5, band - 1))], 20, 20000))
+                let sixBand = address.hasPrefix("/bus") || address.hasPrefix("/mtx") || address.hasPrefix("/main")
+                let freqs: [Float] = sixBand ? [80, 250, 800, 2500, 6000, 12000] : [100, 400, 1600, 8000]
+                return .float(X32Math.logInverse(freqs[max(0, min(freqs.count - 1, band - 1))], 20, 20000))
             }
             if address.hasSuffix("/g") { return .float(0.5) }
             if address.hasSuffix("/q") { return .float(X32Math.logInverse(2, 10, 0.3)) }
