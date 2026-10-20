@@ -191,10 +191,8 @@ private struct MeterCell: View {
         .padding(3)
         .background(Theme.panel)
         .onTapGesture {
+            app.pendingDetail = strip
             app.sheet = nil
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
-                app.openDetail(strip, tab: .overview)
-            }
         }
     }
 }

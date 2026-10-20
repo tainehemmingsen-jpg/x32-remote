@@ -155,8 +155,8 @@ private struct BlockBar: View {
             let weights = tabs.map { BlockBar.weight($0) }
             let total = weights.reduce(0, +)
             let spacing: CGFloat = 2
-            let available = geo.size.width - spacing * CGFloat(max(tabs.count - 1, 0)) - 4
-            let fitted = available / CGFloat(total)
+            let available = max(0, geo.size.width - spacing * CGFloat(max(tabs.count - 1, 0)) - 4)
+            let fitted = available / CGFloat(max(total, 0.01))
             let unit = wide ? fitted : max(fitted, 78)
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: spacing) {
@@ -453,12 +453,16 @@ struct OverviewPage: View {
         let cols = columns
         if wide {
             GeometryReader { geo in
-                let total = cols.reduce(0) { $0 + $1.weight }
-                let usable = geo.size.width - 4 - CGFloat(cols.count - 1) * 2
+                let usable = max(0, geo.size.width - 4 - CGFloat(cols.count - 1) * 2)
+                // The config column's buttons need ~120 pt; the rest share what's left by weight.
+                let configWidth = min(usable, max(124, usable * Column.config.weight / cols.reduce(0) { $0 + $1.weight }))
+                let others = cols.filter { $0 != .config }
+                let otherTotal = max(others.reduce(0) { $0 + $1.weight }, 0.01)
+                let rest = max(0, usable - configWidth)
                 HStack(spacing: 2) {
                     ForEach(cols, id: \.self) { c in
                         column(c)
-                            .frame(width: usable * c.weight / total)
+                            .frame(width: c == .config ? configWidth : rest * c.weight / otherTotal)
                     }
                 }
                 .padding(2)
@@ -605,6 +609,7 @@ private struct EQColumn: View {
             OnToggle(app: app, address: strip.eqOnPath)
             EQGraph(app: app, strip: strip, selectedBand: .constant(0), interactive: false)
                 .aspectRatio(1.4, contentMode: .fit)
+                .contentShape(Rectangle())
                 .onTapGesture { app.detailTab = .eq }
             if strip.hasHighPass {
                 OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)

@@ -56,6 +56,8 @@ final class AppModel {
     var selectedStrip: StripID?
     /// The precision editor (long-press any control).
     var valueEditor: ValueEditRequest?
+    /// A channel to open once the current sheet has finished closing.
+    @ObservationIgnored var pendingDetail: StripID?
     /// The channel the open channel page is showing now (it can step prev/next).
     @ObservationIgnored var visibleDetailStrip: StripID?
 
@@ -537,12 +539,17 @@ final class AppModel {
         }
         target.address = nil
         target.blocked = false
+        target.steps = nil
     }
 
     /// Set a float on the parameter the current drag started on (or `address` if no drag).
     func dragSet(_ address: String, _ target: DragTarget, _ value: Float, steps: Int) {
         if target.blocked { return }
-        setFloat(target.address ?? address, value, steps: steps)
+        // Keep the resolution the drag started with, even if the control switched mode mid-drag.
+        if target.address != nil && target.steps == nil {
+            target.steps = steps
+        }
+        setFloat(target.address ?? address, value, steps: target.steps ?? steps)
     }
 
     func toggleMute(_ strip: StripID) {
@@ -624,6 +631,10 @@ final class AppModel {
     /// Shows the channels assigned to a DCA (tap the same DCA again to go back).
     func spill(_ dca: Int) {
         spillDCA = spillDCA == dca ? nil : dca
+        if spillDCA == nil && !layer.supportsBusSends {
+            sendsBus = nil
+            gainOnFaders = false
+        }
     }
 
     func layerTitle(_ l: MixerLayer) -> String {
@@ -791,6 +802,7 @@ struct ValueEditRequest: Identifiable {
 final class DragTarget {
     var address: String?
     var blocked = false
+    var steps: Int?
 }
 
 /// Pages of the channel view, one per processing block.

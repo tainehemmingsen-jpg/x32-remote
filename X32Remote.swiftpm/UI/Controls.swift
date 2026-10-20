@@ -67,8 +67,19 @@ struct TouchSurface: UIViewRepresentable {
             }
         }
 
+        /// If the control leaves the screen mid-drag (layer change, DCA spill update), end the
+        /// gesture there and then, so the finger can't keep moving a strip nobody can see.
+        override func didMoveToWindow() {
+            super.didMoveToWindow()
+            if window == nil && activeTouch != nil {
+                longPressWork?.cancel()
+                activeTouch = nil
+                onEnd?(true, 0)
+            }
+        }
+
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
-            guard let touch = activeTouch, touches.contains(touch) else { return }
+            guard window != nil, let touch = activeTouch, touches.contains(touch) else { return }
             let p = touch.location(in: self)
             let dx = abs(p.x - startPoint.x)
             let dy = abs(p.y - startPoint.y)

@@ -58,10 +58,10 @@ private struct ValueEditorCard: View {
                 .foregroundStyle(Theme.text)
                 .frame(maxWidth: .infinity)
             HStack(spacing: 8) {
-                StepKey(label: coarseLabel(-1)) { nudge(norm, coarse: true, up: false) }
-                StepKey(label: fineLabel(-1)) { nudge(norm, coarse: false, up: false) }
-                StepKey(label: fineLabel(1)) { nudge(norm, coarse: false, up: true) }
-                StepKey(label: coarseLabel(1)) { nudge(norm, coarse: true, up: true) }
+                StepKey(label: coarseLabel(-1)) { nudge(coarse: true, up: false) }
+                StepKey(label: fineLabel(-1)) { nudge(coarse: false, up: false) }
+                StepKey(label: fineLabel(1)) { nudge(coarse: false, up: true) }
+                StepKey(label: coarseLabel(1)) { nudge(coarse: true, up: true) }
             }
             HStack(spacing: 8) {
                 TextField(placeholder, text: $text)
@@ -108,7 +108,13 @@ private struct ValueEditorCard: View {
     private var placeholder: String {
         switch request.style {
         case .pan: return "Type L30, C or R30"
-        case .normal: return request.spec.unit.isEmpty ? "Type a value" : "Type a value in \(request.spec.unit)"
+        case .normal:
+            let (lo, hi) = request.spec.range
+            let unit = request.spec.unit.isEmpty ? "" : " \(request.spec.unit)"
+            if case .fader = request.spec.scale {
+                return "Type -90 to +10 dB, or off"
+            }
+            return "Type \(ValueEditorCard.short(lo)) to \(ValueEditorCard.short(hi))\(unit)"
         }
     }
 
@@ -136,8 +142,11 @@ private struct ValueEditorCard: View {
         return s + s
     }
 
-    private func nudge(_ norm: Float, coarse: Bool, up: Bool) {
-        guard app.param(request.address).isKnown else { return }
+    private func nudge(coarse: Bool, up: Bool) {
+        // Read the live value each time, so a held (repeating) key keeps stepping.
+        let p = app.param(request.address)
+        guard p.isKnown else { return }
+        let norm = p.float
         let sign: Float = up ? 1 : -1
         if isFader {
             let db = X32Math.faderToDB(norm)
@@ -174,6 +183,10 @@ private struct ValueEditorCard: View {
         set(n)
         text = ""
         typing = false
+    }
+
+    static func short(_ v: Float) -> String {
+        v == v.rounded() ? String(format: "%.0f", v) : String(format: "%.1f", v)
     }
 
     /// "L30", "R 15", "C", "-30", "30".

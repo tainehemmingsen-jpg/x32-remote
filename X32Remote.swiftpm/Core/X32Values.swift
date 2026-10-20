@@ -143,7 +143,8 @@ struct ParamSpec {
     }
 
     /// Reads a value typed by the user ("-6", "-6 dB", "1.2k", "off", "-inf") and returns the
-    /// normalised 0...1 value, clamped to the parameter's range. Nil if it isn't a number.
+    /// normalised 0...1 value. Nil if it isn't a number or is outside the parameter's range,
+    /// so a typo never sends something unexpected to the desk.
     func parse(_ text: String) -> Float? {
         var t = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         t = t.replacingOccurrences(of: ",", with: ".")
@@ -155,10 +156,10 @@ struct ParamSpec {
         for suffix in ["db", "hz", "ms", "%", ":1"] where t.hasSuffix(suffix) {
             t = String(t.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces)
         }
-        if t.hasSuffix("khz") {
+        if unit == "Hz" && t.hasSuffix("khz") {
             t = String(t.dropLast(3))
             multiplier = 1000
-        } else if t.hasSuffix("k") {
+        } else if unit == "Hz" && t.hasSuffix("k") {
             t = String(t.dropLast())
             multiplier = 1000
         } else if t.hasSuffix("s") && unit == "ms" {
@@ -168,16 +169,31 @@ struct ParamSpec {
         if t.hasPrefix("+") { t.removeFirst() }
         guard let number = Float(t.trimmingCharacters(in: .whitespaces)), number.isFinite else { return nil }
         let value = number * multiplier
+        let (lo, hi) = range
+        // A little slack for rounding, e.g. "0.3" ms or "-90" on a fader.
+        let slack = (hi - lo) * 0.0005
+        guard value >= lo - slack, value <= hi + slack else { return nil }
+        let clamped = min(max(value, lo), hi)
         let n: Float
         switch scale {
-        case .linear(let lo, let hi):
-            n = X32Math.linInverse(min(max(value, min(lo, hi)), max(lo, hi)), lo, hi)
-        case .logarithmic(let lo, let hi):
-            n = X32Math.logInverse(min(max(value, min(lo, hi)), max(lo, hi)), lo, hi)
+        case .linear(let a, let b):
+            n = X32Math.linInverse(clamped, a, b)
+        case .logarithmic(let a, let b):
+            n = X32Math.logInverse(clamped, a, b)
         case .fader:
-            n = X32Math.dbToFader(min(value, 10))
+            n = X32Math.dbToFader(clamped)
         }
         return quantize(min(max(n, 0), 1))
+    }
+
+    /// Lowest and highest value in real units (faders: -90 to +10 dB).
+    var range: (Float, Float) {
+        switch scale {
+        case .linear(let a, let b), .logarithmic(let a, let b):
+            return (min(a, b), max(a, b))
+        case .fader:
+            return (-90, 10)
+        }
     }
 
     static func formatHz(_ hz: Float) -> String {

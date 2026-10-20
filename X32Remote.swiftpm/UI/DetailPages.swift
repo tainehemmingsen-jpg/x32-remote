@@ -233,7 +233,7 @@ struct SendsPage: View {
                             .frame(width: columnWidth - 1)
                     }
                 }
-                .frame(height: geo.size.height - 4)
+                .frame(height: max(0, geo.size.height - 4))
                 .padding(2)
             }
             .scrollDisabled(columnWidth * CGFloat(count) <= geo.size.width)

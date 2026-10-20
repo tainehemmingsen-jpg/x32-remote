@@ -57,7 +57,12 @@ struct MixerScreen: View {
         .fullScreenCover(item: $app.detailStrip) { strip in
             ChannelView(app: app, strip: strip)
         }
-        .sheet(item: $app.sheet) { sheet in
+        .sheet(item: $app.sheet, onDismiss: {
+            if let strip = app.pendingDetail {
+                app.pendingDetail = nil
+                app.openDetail(strip, tab: .overview)
+            }
+        }) { sheet in
             switch sheet {
             case .scenes:
                 ScenesSheet(app: app)
@@ -804,7 +809,13 @@ private struct SourceChip: View {
     }
 
     private var label: String {
-        if isMaster { return strip.kind == .main ? "Main" : "Bus master" }
+        if isMaster {
+            switch strip.kind {
+            case .main: return "Main"
+            case .dca: return "DCA"
+            default: return "Bus master"
+            }
+        }
         if let path = strip.headampIndexPath {
             let ha = app.param(path).int(or: -1)
             if ha >= 0 && ha < 128 {

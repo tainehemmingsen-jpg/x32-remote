@@ -226,6 +226,7 @@ struct EQPage: View {
 private struct EQSideControls: View {
     let app: AppModel
     let strip: StripID
+    @State private var confirmFlatten = false
 
     var body: some View {
         VStack(spacing: 10) {
@@ -237,15 +238,21 @@ private struct EQSideControls: View {
             }
             Spacer(minLength: 0)
             Button {
-                for b in 1...max(strip.eqBandCount, 1) {
-                    app.setFloat(strip.eqPath(b, "g"), 0.5, steps: Specs.eqGain.steps)
-                }
+                confirmFlatten = true
             } label: {
                 Text("Flatten")
                     .frame(maxWidth: .infinity)
                     .barChip()
             }
             .buttonStyle(.plain)
+            .confirmationDialog("Set every EQ band's gain to 0 dB?", isPresented: $confirmFlatten, titleVisibility: .visible) {
+                Button("Flatten EQ", role: .destructive) {
+                    for b in 1...max(strip.eqBandCount, 1) {
+                        app.setFloat(strip.eqPath(b, "g"), 0.5, steps: Specs.eqGain.steps)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
         }
     }
 }

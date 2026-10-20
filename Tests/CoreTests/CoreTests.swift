@@ -549,7 +549,8 @@ final class LayerAndEntryTests: XCTestCase {
         let fader = Specs.fader
         XCTAssertEqual(fader.parse("0")!, X32Math.quantize(X32Math.dbToFader(0), steps: 1023), accuracy: 0.0001)
         XCTAssertEqual(fader.parse("-6 dB")!, X32Math.quantize(X32Math.dbToFader(-6), steps: 1023), accuracy: 0.0001)
-        XCTAssertEqual(fader.parse("+20")!, 1, accuracy: 0.0001)
+        XCTAssertEqual(fader.parse("+10")!, 1, accuracy: 0.0001)
+        XCTAssertNil(fader.parse("+20"))
         XCTAssertEqual(fader.parse("off"), 0)
         XCTAssertEqual(fader.parse("-inf"), 0)
         XCTAssertNil(fader.parse("loud"))
@@ -558,11 +559,15 @@ final class LayerAndEntryTests: XCTestCase {
         let freq = Specs.eqFreq
         XCTAssertEqual(freq.value(freq.parse("1.2k")!), 1200, accuracy: 40)
         XCTAssertEqual(freq.value(freq.parse("250 Hz")!), 250, accuracy: 10)
-        XCTAssertEqual(freq.value(freq.parse("99999")!), 20000, accuracy: 1)
+        XCTAssertNil(freq.parse("99999"))
+        XCTAssertEqual(freq.value(freq.parse("20khz")!), 20000, accuracy: 1)
 
         let gain = Specs.headampGain
         XCTAssertEqual(gain.value(gain.parse("32,5")!), 32.5, accuracy: 0.26)
-        XCTAssertEqual(gain.value(gain.parse("−20")!), -12, accuracy: 0.01)
+        XCTAssertNil(gain.parse("−20"))
+        XCTAssertNil(gain.parse("1k"), "k only means thousand for frequencies")
+        XCTAssertNil(gain.parse("65"))
+        XCTAssertEqual(gain.value(gain.parse("-12")!), -12, accuracy: 0.01)
 
         let release = Specs.release
         XCTAssertEqual(release.value(release.parse("1.5s")!), 1500, accuracy: 120)
