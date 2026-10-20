@@ -42,6 +42,26 @@ struct StripID: Hashable, Codable, Identifiable {
 
     var id: String { "\(kind.rawValue)-\(index)" }
 
+    /// Parses an `id` like "channel-5". Nil for anything that isn't a real strip.
+    init?(id: String) {
+        let parts = id.split(separator: "-")
+        guard parts.count == 2, let kind = StripKind(rawValue: String(parts[0])), let n = Int(parts[1]),
+              n >= 1, n <= kind.count else { return nil }
+        self.init(kind, n)
+    }
+
+    /// Strips assigned to a DCA (1-8), in desk order, given each strip's /grp/dca bitmask.
+    static func dcaMembers(_ dca: Int, mask: (StripID) -> Int?) -> [StripID] {
+        guard dca >= 1 && dca <= 8 else { return [] }
+        return everything.filter { s in
+            guard s.kind != .dca, let m = mask(s) else { return false }
+            return (m >> (dca - 1)) & 1 == 1
+        }
+    }
+
+    /// Whether this strip has a send to the 16 mix buses.
+    var isBusSource: Bool { kind == .channel || kind == .auxIn || kind == .fxReturn }
+
     static func channel(_ n: Int) -> StripID { StripID(.channel, n) }
     static func bus(_ n: Int) -> StripID { StripID(.bus, n) }
     static let mainLR = StripID(.main, 1)
@@ -144,6 +164,8 @@ struct StripID: Hashable, Codable, Identifiable {
     var hasTrim: Bool { kind == .channel || kind == .auxIn }
     var hasPolarity: Bool { kind == .channel || kind == .auxIn || kind == .matrix }
     var hasHighPass: Bool { kind == .channel }
+    var hasDelay: Bool { kind == .channel }
+    func delayPath(_ field: String) -> String { base + "/delay/\(field)" }
     var hasInputPage: Bool { kind == .channel || kind == .auxIn }
     var hasSendsPage: Bool { sendCount > 0 }
     var hasSetup: Bool { true }
@@ -191,7 +213,7 @@ struct StripID: Hashable, Codable, Identifiable {
         case .channel: return String(format: "Ch %02d", index)
         case .auxIn: return index <= 6 ? "Aux \(index)" : (index == 7 ? "USB L" : "USB R")
         case .fxReturn: return "FX \((index - 1) / 2 + 1)\(index % 2 == 1 ? "L" : "R")"
-        case .bus: return "Bus \(index)"
+        case .bus: return "Mix \(index)"
         case .matrix: return "Mtx \(index)"
         case .main: return "LR"
         case .mono: return "M/C"
@@ -250,7 +272,7 @@ struct StripID: Hashable, Codable, Identifiable {
 
 /// Banks of strips shown on the mixer screen.
 enum MixerLayer: String, CaseIterable, Identifiable, Codable {
-    case inputs1, inputs2, aux, buses, matrix, dca
+    case inputs1, inputs2, aux, buses, matrix, dca, user1, user2
 
     var id: String { rawValue }
 
@@ -262,9 +284,21 @@ enum MixerLayer: String, CaseIterable, Identifiable, Codable {
         case .buses: return "Mix"
         case .matrix: return "Mtx/Main"
         case .dca: return "DCA"
+        case .user1: return "User 1"
+        case .user2: return "User 2"
         }
     }
 
+    /// Index into the saved user layers, for the two custom layers.
+    var userIndex: Int? {
+        switch self {
+        case .user1: return 0
+        case .user2: return 1
+        default: return nil
+        }
+    }
+
+    /// The built-in strips of this layer (user layers come from settings).
     var strips: [StripID] {
         switch self {
         case .inputs1: return (1...16).map { StripID(.channel, $0) }
@@ -273,13 +307,14 @@ enum MixerLayer: String, CaseIterable, Identifiable, Codable {
         case .buses: return StripID.all(.bus)
         case .matrix: return StripID.all(.matrix) + [StripID.mainLR, StripID.monoC]
         case .dca: return StripID.all(.dca)
+        case .user1, .user2: return []
         }
     }
 
     /// Whether this layer's strips can show sends-on-fader for a mix bus.
     var supportsBusSends: Bool {
         switch self {
-        case .inputs1, .inputs2, .aux: return true
+        case .inputs1, .inputs2, .aux, .user1, .user2: return true
         default: return false
         }
     }

@@ -26,12 +26,16 @@ struct MixerScreen: View {
             let sidebarWidth: CGFloat = wide ? column * 2 + 12 : 0
             let bodyHeight = geo.size.height - 46
             let stripsWidth = geo.size.width - sidebarWidth
-            let layout = MixerScreen.pageLayout(strips: app.layer.strips, width: stripsWidth, page: page)
+            let layout = MixerScreen.pageLayout(strips: app.visibleStrips, width: stripsWidth, page: page)
             let detail = StripDetail.forHeight(bodyHeight)
             VStack(spacing: 0) {
                 MixerTopBar(app: app, wide: wide, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
                 HStack(spacing: 0) {
-                    StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900)
+                    if layout.visible.isEmpty {
+                        EmptyLayerView(app: app)
+                    } else {
+                        StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900)
+                    }
                     if wide {
                         MixerSidebar(app: app, column: column, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
                             .frame(width: sidebarWidth)
@@ -40,7 +44,14 @@ struct MixerScreen: View {
             }
         }
         .background(Theme.background)
+        .overlay {
+            ValueEditorOverlay(app: app, active: app.detailStrip == nil)
+        }
+        .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .onChange(of: app.layer) { _, _ in
+            page = 0
+        }
+        .onChange(of: app.spillDCA) { _, _ in
             page = 0
         }
         .fullScreenCover(item: $app.detailStrip) { strip in
@@ -54,6 +65,12 @@ struct MixerScreen: View {
                 SettingsSheet(app: app)
             case .modes:
                 ModesSheet(app: app)
+            case .meters:
+                MeterBridge(app: app)
+            case .editUser1:
+                UserLayerEditor(app: app, index: 0)
+            case .editUser2:
+                UserLayerEditor(app: app, index: 1)
             }
         }
     }
@@ -93,13 +110,15 @@ private struct StripBank: View {
     let tallThumbs: Bool
 
     var body: some View {
-        let sendsBus = app.layer.supportsBusSends ? app.sendsBus : nil
+        let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
         HStack(spacing: 1) {
             ForEach(strips) { strip in
-                StripView(app: app, strip: strip, sendsBus: sendsBus, detail: detail, tallThumbs: tallThumbs)
+                StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs)
             }
             Rectangle().fill(Color.black).frame(width: 3)
-            if let bus = sendsBus {
+            if let dca = app.spillDCA {
+                StripView(app: app, strip: StripID(.dca, dca), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
+            } else if let bus = sendsBus {
                 StripView(app: app, strip: StripID(.bus, bus), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
             } else {
                 StripView(app: app, strip: StripID.mainLR, sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
@@ -138,6 +157,9 @@ struct MixerTopBar: View {
             }
             .popover(isPresented: $showMuteGroups) {
                 MuteGroupsPopover(app: app)
+            }
+            TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
+                app.sheet = .meters
             }
             TopIcon(systemName: "folder", label: "Scenes") {
                 app.loadScenes()
@@ -182,11 +204,20 @@ struct ConsoleMenu: View {
 
     var body: some View {
         let mix: String = {
-            guard let bus = app.sendsBus, app.layer.supportsBusSends else { return "LR Mix" }
-            let name = app.param(StripID(.bus, bus).namePath).string
-            return name.isEmpty ? "Mix \(bus)" : "Mix \(bus) · \(name)"
+            var text = "LR Mix"
+            if app.gainOnFaders {
+                text = "Gain on faders"
+            } else if let bus = app.sendsBus {
+                let name = app.param(StripID(.bus, bus).namePath).string
+                text = name.isEmpty ? "Mix \(bus)" : "Mix \(bus) · \(name)"
+            }
+            if let d = app.spillDCA {
+                let name = app.param(StripID(.dca, d).namePath).string
+                text += " · DCA \(d)" + (name.isEmpty ? "" : " \(name)") + " spill"
+            }
+            return text
         }()
-        let mixColor: Color = app.sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) } ?? Theme.secondary
+        let mixColor: Color = app.gainOnFaders ? Theme.mute : (app.sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) } ?? Theme.secondary)
         Menu {
             Section(app.connectedName + (app.isDemo ? "" : " · " + app.connectedAddress)) {
                 Button {
@@ -216,7 +247,7 @@ struct ConsoleMenu: View {
                         .foregroundStyle(Theme.text)
                     Text(mix)
                         .font(.system(size: 12))
-                        .foregroundStyle(app.sendsBus == nil ? Theme.secondary : mixColor)
+                        .foregroundStyle(mixColor)
                         .lineLimit(1)
                 }
             }
@@ -233,17 +264,25 @@ struct LayerMenu: View {
         Menu {
             ForEach(MixerLayer.allCases) { layer in
                 Button {
-                    app.selectLayer(layer)
+                    if layer.userIndex != nil && app.strips(for: layer).isEmpty {
+                        app.sheet = layer == .user1 ? .editUser1 : .editUser2
+                    } else {
+                        app.selectLayer(layer)
+                    }
                 } label: {
                     if app.layer == layer {
-                        Label(layer.title, systemImage: "checkmark")
+                        Label(app.layerTitle(layer), systemImage: "checkmark")
                     } else {
-                        Text(layer.title)
+                        Text(app.layerTitle(layer))
                     }
                 }
             }
+            Section("Custom layers") {
+                Button("Edit \(app.layerTitle(.user1))…") { app.sheet = .editUser1 }
+                Button("Edit \(app.layerTitle(.user2))…") { app.sheet = .editUser2 }
+            }
         } label: {
-            Text(app.layer.title)
+            Text(app.layerTitle(app.layer))
                 .lineLimit(1)
                 .fixedSize()
                 .barChip(active: true)
@@ -255,7 +294,7 @@ struct SendsMenu: View {
     let app: AppModel
 
     var body: some View {
-        let label: String = app.sendsBus.map { "Mix \($0)" } ?? "LR"
+        let label: String = app.gainOnFaders ? "Gain" : (app.sendsBus.map { "Mix \($0)" } ?? "LR")
         Menu {
             Button {
                 app.selectSendsBus(nil)
@@ -271,11 +310,20 @@ struct SendsMenu: View {
                     SendsMenuItem(app: app, bus: bus)
                 }
             }
+            Button {
+                app.toggleGainOnFaders()
+            } label: {
+                if app.gainOnFaders {
+                    Label("Gain on faders", systemImage: "checkmark")
+                } else {
+                    Text("Gain on faders")
+                }
+            }
         } label: {
             Text(label)
                 .lineLimit(1)
                 .fixedSize()
-                .barChip(active: app.sendsBus != nil)
+                .barChip(active: app.sendsBus != nil || app.gainOnFaders)
         }
     }
 }
@@ -387,11 +435,14 @@ struct MixerSidebar: View {
                 }
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 4) {
-                        SideButton(title: "LR Mix", active: app.sendsBus == nil, stripe: Theme.solo) {
+                        SideButton(title: "LR Mix", active: app.sendsBus == nil && !app.gainOnFaders, stripe: Theme.solo) {
                             app.selectSendsBus(nil)
                         }
                         ForEach(1...16, id: \.self) { bus in
                             SoFButton(app: app, bus: bus)
+                        }
+                        SideButton(title: "Gain", active: app.gainOnFaders, stripe: Theme.mute) {
+                            app.toggleGainOnFaders()
                         }
                     }
                 }
@@ -399,9 +450,7 @@ struct MixerSidebar: View {
             .frame(width: column)
             VStack(spacing: 4) {
                 ForEach(MixerLayer.allCases) { layer in
-                    SideButton(title: layer.title, active: app.layer == layer, stripe: MixerSidebar.stripe(layer)) {
-                        app.selectLayer(layer)
-                    }
+                    LayerButton(app: app, layer: layer)
                 }
                 if pageCount > 1 {
                     HStack(spacing: 4) {
@@ -437,6 +486,7 @@ struct MixerSidebar: View {
         case .buses: return Theme.scribble(6)
         case .matrix: return Theme.scribble(5)
         case .dca: return Theme.mute
+        case .user1, .user2: return Theme.accent
         }
     }
 
@@ -493,6 +543,66 @@ struct SideButton: View {
     }
 }
 
+/// A layer button. Custom layers open their editor when empty, and on long-press.
+private struct LayerButton: View {
+    let app: AppModel
+    let layer: MixerLayer
+
+    var body: some View {
+        let button = SideButton(title: app.layerTitle(layer), active: app.layer == layer, stripe: MixerSidebar.stripe(layer)) {
+            if layer.userIndex != nil && app.strips(for: layer).isEmpty {
+                app.sheet = layer == .user1 ? .editUser1 : .editUser2
+            } else {
+                app.selectLayer(layer)
+            }
+        }
+        if layer.userIndex != nil {
+            button.contextMenu {
+                Button {
+                    app.sheet = layer == .user1 ? .editUser1 : .editUser2
+                } label: {
+                    Label("Edit \(app.layerTitle(layer))", systemImage: "slider.horizontal.3")
+                }
+            }
+        } else {
+            button
+        }
+    }
+}
+
+/// Shown for a custom layer with nothing in it yet, or a DCA with nothing assigned.
+private struct EmptyLayerView: View {
+    let app: AppModel
+
+    var body: some View {
+        VStack(spacing: 14) {
+            if let d = app.spillDCA {
+                Text("Nothing is assigned to DCA \(d).")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.text)
+                Text("Assign channels on each channel's Config page.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.secondary)
+                Button("Back to DCAs") { app.spill(d) }
+                    .buttonStyle(.bordered)
+            } else {
+                Text("\(app.layerTitle(app.layer)) is empty.")
+                    .font(.system(size: 17))
+                    .foregroundStyle(Theme.text)
+                Text("Pick the channels you want on this layer.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.secondary)
+                Button("Choose channels") {
+                    app.sheet = app.layer == .user2 ? .editUser2 : .editUser1
+                }
+                .buttonStyle(.borderedProminent)
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Theme.panel)
+    }
+}
+
 private struct SoFButton: View {
     let app: AppModel
     let bus: Int
@@ -534,18 +644,48 @@ struct FineButton: View {
 
 // MARK: - Strip
 
+/// What a strip's fader controls right now: its level, a send, or (gain on faders) preamp gain.
+struct FaderTarget {
+    let address: String
+    let spec: ParamSpec
+    let capTint: Color?
+    let label: String
+
+    var isLevel: Bool {
+        if case .fader = spec.scale { return true }
+        return false
+    }
+
+    static func make(app: AppModel, strip: StripID, sendsBus: Int?, gain: Bool) -> FaderTarget {
+        if gain {
+            let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
+            if ha >= 0 && ha < 128 {
+                return FaderTarget(address: StripID.headampGainPath(ha), spec: Specs.headampGain, capTint: Theme.mute, label: "Gain")
+            }
+            if strip.hasTrim {
+                return FaderTarget(address: strip.preampPath("trim"), spec: Specs.trim, capTint: Theme.mute, label: "Trim")
+            }
+        }
+        if let bus = sendsBus {
+            let color = Theme.scribble(app.param(StripID(.bus, bus).colorPath).int)
+            return FaderTarget(address: strip.sendLevelPath(bus), spec: Specs.send, capTint: color, label: "Send")
+        }
+        return FaderTarget(address: strip.faderPath, spec: Specs.fader, capTint: nil, label: "Fader")
+    }
+}
+
 struct StripView: View {
     let app: AppModel
     let strip: StripID
     let sendsBus: Int?
+    var gain: Bool = false
     var detail: StripDetail = .full
     var tallThumbs = false
     var isMaster = false
 
     var body: some View {
         let selected = app.selectedStrip == strip
-        let busColor: Color? = sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) }
-        let faderAddress = sendsBus.map { strip.sendLevelPath($0) } ?? strip.faderPath
+        let target = FaderTarget.make(app: app, strip: strip, sendsBus: sendsBus, gain: gain)
         let thumb: CGFloat = tallThumbs ? 62 : 46
         VStack(spacing: 3) {
             if detail >= .medium {
@@ -564,8 +704,8 @@ struct StripView: View {
             SoloButton(app: app, strip: strip, height: 28)
             StripPanSlot(app: app, strip: strip, sendsBus: sendsBus)
                 .frame(height: 22)
-            FaderReadout(app: app, address: faderAddress)
-            StripFader(app: app, strip: strip, address: faderAddress, steps: sendsBus == nil ? 1023 : 160, capTint: busColor)
+            FaderReadout(app: app, address: target.address, spec: target.spec)
+            StripFader(app: app, strip: strip, target: target)
             Text(strip.footLabel)
                 .font(.system(size: 11))
                 .foregroundStyle(Theme.text.opacity(0.8))
@@ -589,9 +729,19 @@ private struct StripName: View {
 
     var body: some View {
         let name = app.param(strip.namePath).string
-        ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 32, fontSize: 11)
+        let spilled = strip.kind == .dca && app.spillDCA == strip.index
+        ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 32, fontSize: 11, selected: spilled)
             .onTapGesture {
-                app.openDetail(strip, tab: strip.kind == .dca ? .setup : .overview)
+                if strip.kind == .dca {
+                    // Tap a DCA to see (and mix) the channels assigned to it.
+                    app.spill(strip.index)
+                } else {
+                    app.openDetail(strip, tab: .overview)
+                }
+            }
+            .onLongPressGesture(minimumDuration: 0.5) {
+                Haptics.tick()
+                app.openDetail(strip, tab: .setup)
             }
             .accessibilityLabel("\(strip.shortLabel) \(name)")
             .accessibilityAddTraits(.isButton)
@@ -607,7 +757,7 @@ private struct StripPanSlot: View {
         if let bus = sendsBus {
             SendOnButton(app: app, strip: strip, bus: bus)
         } else if let panPath = strip.panPath {
-            ParamPan(app: app, address: panPath)
+            ParamPan(app: app, address: panPath, editTitle: "\(app.stripTitle(strip)) · Pan")
         } else {
             Color.clear
         }
@@ -617,13 +767,11 @@ private struct StripPanSlot: View {
 private struct StripFader: View {
     let app: AppModel
     let strip: StripID
-    let address: String
-    let steps: Int
-    let capTint: Color?
+    let target: FaderTarget
 
     var body: some View {
         HStack(spacing: 2) {
-            ParamFader(app: app, address: address, steps: steps, capTint: capTint)
+            ParamFader(app: app, address: target.address, steps: target.spec.steps, capTint: target.capTint, editTitle: "\(app.stripTitle(strip)) · \(target.label)", spec: target.spec)
             if strip.kind != .dca {
                 MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
                     .frame(width: strip.kind == .main ? 11 : 6)
@@ -697,6 +845,7 @@ private struct GainCell: View {
                 value: p.float(or: 0),
                 display: p.isKnown ? Specs.headampGain.display(p.float) : "—",
                 fine: app.fineMode,
+                onLongPress: { app.editValue("\(app.stripTitle(strip)) · Gain", address, Specs.headampGain) },
                 onChange: { v in app.dragSet(address, drag, v, steps: Specs.headampGain.steps) },
                 onTouch: { began in
                     if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -710,6 +859,7 @@ private struct GainCell: View {
                 display: p.isKnown ? Specs.trim.display(p.float) : "—",
                 bipolar: true,
                 fine: app.fineMode,
+                onLongPress: { app.editValue("\(app.stripTitle(strip)) · Trim", address, Specs.trim, reset: 0.5) },
                 onChange: { v in app.dragSet(address, drag, v, steps: Specs.trim.steps) },
                 onTouch: { began in
                     if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -727,6 +877,7 @@ struct MiniSlider: View {
     let display: String
     var bipolar = false
     var fine = false
+    var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -751,6 +902,7 @@ struct MiniSlider: View {
             .overlay(
                 TouchSurface(
                     axis: .horizontal,
+                    onLongPress: onLongPress,
                     onBegin: { p in
                         touching = true
                         dragValue = value
@@ -909,6 +1061,7 @@ struct MuteButton: View {
         let muted = app.param(strip.onPath).int(or: 1) == 0
         LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: 12, offColor: Theme.muteOff, enabled: app.muteEnabled) {
             app.toggleMute(strip)
+            Haptics.click()
         }
     }
 }
@@ -944,6 +1097,7 @@ struct ParamPan: View {
     let app: AppModel
     let address: String
     var height: CGFloat = 22
+    var editTitle: String = "Pan"
     @State private var drag = DragTarget()
 
     var body: some View {
@@ -952,6 +1106,7 @@ struct ParamPan: View {
             value: p.float(or: 0.5),
             height: height,
             fine: app.fineMode,
+            onLongPress: { app.editValue(editTitle, address, Specs.pan, reset: 0.5, style: .pan) },
             onChange: { v in app.dragSet(address, drag, v, steps: 100) },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -968,18 +1123,27 @@ struct ParamFader: View {
     var label: String? = nil
     var maxValue: Float = 1
     var capTint: Color? = nil
+    var editTitle: String = "Fader"
+    /// What the fader is controlling, if not a level (e.g. gain on faders).
+    var spec: ParamSpec? = nil
     @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
+        let editSpec = spec ?? (steps == 160 ? Specs.send : Specs.fader)
+        let isLevel: Bool = {
+            if case .fader = editSpec.scale { return true }
+            return false
+        }()
         FaderView(
             value: p.float,
             maxValue: maxValue,
-            showScale: app.settings.showFaderScale,
-            hapticAtUnity: app.settings.hapticAtUnity,
+            showScale: app.settings.showFaderScale && isLevel,
+            hapticAtUnity: app.settings.hapticAtUnity && isLevel,
             capLabel: label,
             fine: app.fineMode,
             capTint: capTint,
+            onLongPress: { app.editValue(editTitle, address, editSpec) },
             onChange: { v in app.dragSet(address, drag, v, steps: steps) },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -992,15 +1156,25 @@ struct FaderReadout: View {
     let app: AppModel
     let address: String
     var size: CGFloat = 11
+    var spec: ParamSpec? = nil
 
     var body: some View {
         let p = app.param(address)
-        Text(p.isKnown ? X32Math.formatFader(p.float) : "—")
+        Text(p.isKnown ? text(p.float) : "—")
             .font(Theme.mono(size))
             .foregroundStyle(Theme.text)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .frame(maxWidth: .infinity)
             .frame(height: 14)
+    }
+
+    private func text(_ v: Float) -> String {
+        if let spec, case .fader = spec.scale {
+            return X32Math.formatFader(v)
+        } else if let spec {
+            return spec.display(v)
+        }
+        return X32Math.formatFader(v)
     }
 }

@@ -17,6 +17,7 @@ struct BarSlider: View {
     /// Height of the bar itself.
     var height: CGFloat = 20
     var steppers: Bool = false
+    var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -91,6 +92,7 @@ struct BarSlider: View {
             let width = geo.size.width
             TouchSurface(
                 axis: .horizontal,
+                onLongPress: onLongPress,
                 onBegin: { p in
                     touching = true
                     dragValue = value

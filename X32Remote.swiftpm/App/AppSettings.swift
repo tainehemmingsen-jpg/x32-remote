@@ -64,6 +64,9 @@ struct AppSettings: Codable, Equatable {
     var keepAwake: Bool = true
     var showFaderScale: Bool = true
     var autoConnect: Bool = true
+    /// The two custom layers: strip ids ("channel-5") and names.
+    var userLayers: [[String]] = [[], []]
+    var userLayerNames: [String] = ["User 1", "User 2"]
 
     static let defaultSimpleControls: [SimpleControl] = [
         SimpleControl(strip: StripID(.auxIn, 1), label: "Music", maxDB: 0),
@@ -76,6 +79,7 @@ struct AppSettings: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case lastHost, recentHosts, mode, pin, locked, monitorBus, monitorShowAll, monitorHidden
         case simpleTitle, simpleControls, hapticAtUnity, keepAwake, showFaderScale, autoConnect
+        case userLayers, userLayerNames
     }
 
     init(from decoder: Decoder) throws {
@@ -94,6 +98,12 @@ struct AppSettings: Codable, Equatable {
         keepAwake = try c.decodeIfPresent(Bool.self, forKey: .keepAwake) ?? true
         showFaderScale = try c.decodeIfPresent(Bool.self, forKey: .showFaderScale) ?? true
         autoConnect = try c.decodeIfPresent(Bool.self, forKey: .autoConnect) ?? true
+        var layers = try c.decodeIfPresent([[String]].self, forKey: .userLayers) ?? []
+        while layers.count < 2 { layers.append([]) }
+        userLayers = layers
+        var names = try c.decodeIfPresent([String].self, forKey: .userLayerNames) ?? []
+        while names.count < 2 { names.append("User \(names.count + 1)") }
+        userLayerNames = names
     }
 
     private static let key = "X32Remote.settings.v1"

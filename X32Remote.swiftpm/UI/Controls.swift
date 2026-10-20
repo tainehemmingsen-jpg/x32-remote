@@ -9,6 +9,8 @@ struct TouchSurface: UIViewRepresentable {
     /// When set, a touch that starts moving mostly across this axis is ignored (so scrolling past a
     /// fader can't nudge it).
     var axis: Axis? = nil
+    /// Holding still for half a second (e.g. to open the precision editor).
+    var onLongPress: (() -> Void)? = nil
     var onBegin: (CGPoint) -> Void = { _ in }
     var onMove: (CGPoint) -> Void = { _ in }
     /// (moved, tapCount)
@@ -27,13 +29,17 @@ struct TouchSurface: UIViewRepresentable {
         view.onBegin = onBegin
         view.onMove = onMove
         view.onEnd = onEnd
+        view.onLongPress = onLongPress
     }
 
     final class TouchControl: UIControl {
         var onBegin: ((CGPoint) -> Void)?
         var onMove: ((CGPoint) -> Void)?
         var onEnd: ((Bool, Int) -> Void)?
+        var onLongPress: (() -> Void)?
         var axis: Axis?
+        private var longPressWork: DispatchWorkItem?
+        private var longPressed = false
         private var activeTouch: UITouch?
         private var startPoint: CGPoint = .zero
         private var moved = false
@@ -46,8 +52,19 @@ struct TouchSurface: UIViewRepresentable {
             moved = false
             directionDecided = axis == nil
             ignoringMoves = false
+            longPressed = false
             startPoint = touch.location(in: self)
             onBegin?(startPoint)
+            if onLongPress != nil {
+                let work = DispatchWorkItem { [weak self] in
+                    guard let self, self.activeTouch === touch, !self.moved else { return }
+                    self.longPressed = true
+                    Haptics.tick()
+                    self.onLongPress?()
+                }
+                longPressWork = work
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: work)
+            }
         }
 
         override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -57,7 +74,9 @@ struct TouchSurface: UIViewRepresentable {
             let dy = abs(p.y - startPoint.y)
             if !moved && hypot(dx, dy) > 4 {
                 moved = true
+                longPressWork?.cancel()
             }
+            if longPressed { return }
             if !directionDecided {
                 guard hypot(dx, dy) >= 6 else { return }
                 directionDecided = true
@@ -74,12 +93,14 @@ struct TouchSurface: UIViewRepresentable {
         override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
             guard let touch = activeTouch, touches.contains(touch) else { return }
             activeTouch = nil
-            onEnd?(moved, touch.tapCount)
+            longPressWork?.cancel()
+            onEnd?(moved || longPressed, longPressed ? 0 : touch.tapCount)
         }
 
         override func touchesCancelled(_ touches: Set<UITouch>, with event: UIEvent?) {
             guard let touch = activeTouch, touches.contains(touch) else { return }
             activeTouch = nil
+            longPressWork?.cancel()
             onEnd?(true, 0)
         }
     }
@@ -118,6 +139,9 @@ struct FaderView: View {
     var fine: Bool = false
     /// Red cap, e.g. for gain-on-fader or sends.
     var capTint: Color? = nil
+    /// Double-tap (without moving) opens the precision editor. Not long-press: engineers often
+    /// rest a finger on a fader.
+    var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -167,9 +191,12 @@ struct FaderView: View {
                         dragValue = next
                         onChange(next)
                     },
-                    onEnd: { _, _ in
+                    onEnd: { moved, taps in
                         touching = false
                         onTouch(false)
+                        if !moved && taps == 2 {
+                            onLongPress?()
+                        }
                     }
                 )
             )
@@ -473,6 +500,7 @@ struct PanControl: View {
     var tint: Color = Theme.accent
     var height: CGFloat = 22
     var fine: Bool = false
+    var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -507,6 +535,7 @@ struct PanControl: View {
             .overlay(
                 TouchSurface(
                     axis: .horizontal,
+                    onLongPress: onLongPress,
                     onBegin: { p in
                         touching = true
                         dragValue = value

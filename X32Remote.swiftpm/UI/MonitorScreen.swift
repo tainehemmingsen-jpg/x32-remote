@@ -21,7 +21,7 @@ struct MonitorScreen: View {
                     Text("MY MIX · BUS \(bus)")
                         .font(.system(size: 11, weight: .bold))
                         .foregroundStyle(Theme.secondary)
-                    Text(busName.isEmpty ? "Bus \(bus)" : busName)
+                    Text(busName.isEmpty ? "Mix \(bus)" : busName)
                         .font(.system(size: 22, weight: .bold))
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
@@ -304,7 +304,7 @@ struct MonitorSetupSheet: View {
 
     private func busTitle(_ b: Int) -> String {
         let name = app.param(StripID(.bus, b).namePath).string
-        return name.isEmpty ? "Bus \(b)" : "Bus \(b) · \(name)"
+        return name.isEmpty ? "Mix \(b)" : "Mix \(b) · \(name)"
     }
 }
 

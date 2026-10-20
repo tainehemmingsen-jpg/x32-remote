@@ -37,6 +37,10 @@ struct ChannelView: View {
             }
         }
         .background(Theme.background.ignoresSafeArea())
+        .overlay {
+            ValueEditorOverlay(app: app)
+        }
+        .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .preferredColorScheme(.dark)
         .onAppear {
             app.visibleDetailStrip = strip
@@ -279,6 +283,9 @@ private struct InputBlock: View {
             }
             HStack(spacing: 3) {
                 chip("LC", on: strip.hasHighPass && app.param(strip.preampPath("hpon")).bool, color: Theme.on, off: Theme.raised2)
+                if strip.hasDelay {
+                    chip("Dly", on: app.param(strip.delayPath("on")).bool, color: Theme.on, off: Theme.raised2)
+                }
                 Text(hasHeadamp ? Specs.headampGain.display(app.param(StripID.headampGainPath(ha)).float(or: 0)) : "")
                     .font(Theme.mono(10))
                     .foregroundStyle(Theme.text.opacity(0.85))
@@ -353,7 +360,7 @@ struct ChannelSideStrip: View {
     var body: some View {
         VStack(spacing: 5) {
             if let pan = strip.panPath {
-                ParamPan(app: app, address: pan, height: 38)
+                ParamPan(app: app, address: pan, height: 38, editTitle: "\(app.stripTitle(strip)) · Pan")
             } else {
                 Color.clear.frame(height: 38)
             }
@@ -361,7 +368,7 @@ struct ChannelSideStrip: View {
             SoloButton(app: app, strip: strip, height: 40)
             FaderReadout(app: app, address: strip.faderPath, size: 12)
             HStack(spacing: 2) {
-                ParamFader(app: app, address: strip.faderPath, steps: 1023)
+                ParamFader(app: app, address: strip.faderPath, steps: 1023, editTitle: "\(app.stripTitle(strip)) · Fader")
                 if strip.kind != .dca {
                     MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
                         .frame(width: strip.kind == .main ? 12 : 8)
@@ -808,6 +815,7 @@ struct ParamKnob: View {
             fine: app.fineMode,
             step: 1 / Float(max(spec.steps, 1)),
             defaultValue: resettable ? spec.defaultNorm : nil,
+            onLongPress: { app.editValue(title, address, spec, reset: resettable ? spec.defaultNorm : nil) },
             onChange: { nv in
                 guard app.param(drag.address ?? address).isKnown else { return }
                 app.dragSet(address, drag, nv, steps: spec.steps)

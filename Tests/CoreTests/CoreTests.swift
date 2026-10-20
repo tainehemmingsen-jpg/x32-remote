@@ -510,3 +510,72 @@ final class AddressTests: XCTestCase {
         XCTAssertNil(IPv4.normalized("1.2.3.+4"))
     }
 }
+
+final class LayerAndEntryTests: XCTestCase {
+    func testStripIDRoundTrip() {
+        for s in StripID.everything {
+            XCTAssertEqual(StripID(id: s.id), s)
+        }
+        XCTAssertNil(StripID(id: "channel-33"))
+        XCTAssertNil(StripID(id: "channel-0"))
+        XCTAssertNil(StripID(id: "nonsense"))
+        XCTAssertNil(StripID(id: "bus-x"))
+    }
+
+    func testDCAMembers() {
+        var masks: [StripID: Int] = [:]
+        masks[StripID(.channel, 1)] = 0b0000_0001
+        masks[StripID(.channel, 2)] = 0b0000_0011
+        masks[StripID(.bus, 3)] = 0b0000_0010
+        masks[StripID(.auxIn, 4)] = 0
+        let dca1 = StripID.dcaMembers(1) { masks[$0] }
+        XCTAssertEqual(dca1, [StripID(.channel, 1), StripID(.channel, 2)])
+        let dca2 = StripID.dcaMembers(2) { masks[$0] }
+        XCTAssertEqual(dca2, [StripID(.channel, 2), StripID(.bus, 3)])
+        XCTAssertEqual(StripID.dcaMembers(9) { masks[$0] }, [])
+        // Unknown masks are left out rather than guessed.
+        XCTAssertEqual(StripID.dcaMembers(3) { _ in nil }, [])
+    }
+
+    func testUserLayersHaveNoBuiltInStrips() {
+        XCTAssertEqual(MixerLayer.user1.strips, [])
+        XCTAssertEqual(MixerLayer.user1.userIndex, 0)
+        XCTAssertEqual(MixerLayer.user2.userIndex, 1)
+        XCTAssertNil(MixerLayer.inputs1.userIndex)
+        XCTAssertEqual(MixerLayer.aux.strips.count, 16)
+    }
+
+    func testTypedValues() {
+        let fader = Specs.fader
+        XCTAssertEqual(fader.parse("0")!, X32Math.quantize(X32Math.dbToFader(0), steps: 1023), accuracy: 0.0001)
+        XCTAssertEqual(fader.parse("-6 dB")!, X32Math.quantize(X32Math.dbToFader(-6), steps: 1023), accuracy: 0.0001)
+        XCTAssertEqual(fader.parse("+20")!, 1, accuracy: 0.0001)
+        XCTAssertEqual(fader.parse("off"), 0)
+        XCTAssertEqual(fader.parse("-inf"), 0)
+        XCTAssertNil(fader.parse("loud"))
+        XCTAssertNil(fader.parse(""))
+
+        let freq = Specs.eqFreq
+        XCTAssertEqual(freq.value(freq.parse("1.2k")!), 1200, accuracy: 40)
+        XCTAssertEqual(freq.value(freq.parse("250 Hz")!), 250, accuracy: 10)
+        XCTAssertEqual(freq.value(freq.parse("99999")!), 20000, accuracy: 1)
+
+        let gain = Specs.headampGain
+        XCTAssertEqual(gain.value(gain.parse("32,5")!), 32.5, accuracy: 0.26)
+        XCTAssertEqual(gain.value(gain.parse("−20")!), -12, accuracy: 0.01)
+
+        let release = Specs.release
+        XCTAssertEqual(release.value(release.parse("1.5s")!), 1500, accuracy: 120)
+        XCTAssertEqual(Specs.dynMix.value(Specs.dynMix.parse("50%")!), 50, accuracy: 3)
+    }
+
+    func testDelayHasDemoValue() {
+        let s = StripID(.channel, 3)
+        XCTAssertTrue(s.hasDelay)
+        XCTAssertFalse(StripID(.bus, 1).hasDelay)
+        XCTAssertNotNil(DemoTransport.defaultValue(for: s.delayPath("on")))
+        XCTAssertNotNil(DemoTransport.defaultValue(for: s.delayPath("time")))
+        XCTAssertEqual(Specs.delay.value(0), 0.3, accuracy: 0.001)
+        XCTAssertEqual(Specs.delay.value(1), 500, accuracy: 0.001)
+    }
+}

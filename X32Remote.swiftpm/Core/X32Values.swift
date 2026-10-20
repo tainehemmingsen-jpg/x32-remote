@@ -142,6 +142,44 @@ struct ParamSpec {
         return unit.isEmpty ? text : text + " " + unit
     }
 
+    /// Reads a value typed by the user ("-6", "-6 dB", "1.2k", "off", "-inf") and returns the
+    /// normalised 0...1 value, clamped to the parameter's range. Nil if it isn't a number.
+    func parse(_ text: String) -> Float? {
+        var t = text.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        t = t.replacingOccurrences(of: ",", with: ".")
+        t = t.replacingOccurrences(of: "−", with: "-")
+        if case .fader = scale, ["off", "-inf", "inf", "-∞", "∞", "-oo"].contains(t) {
+            return 0
+        }
+        var multiplier: Float = 1
+        for suffix in ["db", "hz", "ms", "%", ":1"] where t.hasSuffix(suffix) {
+            t = String(t.dropLast(suffix.count)).trimmingCharacters(in: .whitespaces)
+        }
+        if t.hasSuffix("khz") {
+            t = String(t.dropLast(3))
+            multiplier = 1000
+        } else if t.hasSuffix("k") {
+            t = String(t.dropLast())
+            multiplier = 1000
+        } else if t.hasSuffix("s") && unit == "ms" {
+            t = String(t.dropLast())
+            multiplier = 1000
+        }
+        if t.hasPrefix("+") { t.removeFirst() }
+        guard let number = Float(t.trimmingCharacters(in: .whitespaces)), number.isFinite else { return nil }
+        let value = number * multiplier
+        let n: Float
+        switch scale {
+        case .linear(let lo, let hi):
+            n = X32Math.linInverse(min(max(value, min(lo, hi)), max(lo, hi)), lo, hi)
+        case .logarithmic(let lo, let hi):
+            n = X32Math.logInverse(min(max(value, min(lo, hi)), max(lo, hi)), lo, hi)
+        case .fader:
+            n = X32Math.dbToFader(min(value, 10))
+        }
+        return quantize(min(max(n, 0), 1))
+    }
+
     static func formatHz(_ hz: Float) -> String {
         if hz >= 10000 { return String(format: "%.1fk", hz / 1000) }
         if hz >= 1000 { return String(format: "%.2fk", hz / 1000) }
@@ -155,6 +193,7 @@ enum Specs {
     static let fader = ParamSpec(.fader, steps: 1023, unit: "dB", defaultNorm: 0.75)
     static let send = ParamSpec(.fader, steps: 160, unit: "dB", defaultNorm: 0.75)
     static let pan = ParamSpec(.linear(-100, 100), steps: 100, decimals: 0, defaultNorm: 0.5)
+    static let delay = ParamSpec(.linear(0.3, 500), steps: 4997, unit: "ms", decimals: 1, defaultNorm: 0)
 
     static let headampGain = ParamSpec(.linear(-12, 60), steps: 144, unit: "dB", defaultNorm: 12.0 / 72.0)
     static let trim = ParamSpec(.linear(-18, 18), steps: 144, unit: "dB", defaultNorm: 0.5)

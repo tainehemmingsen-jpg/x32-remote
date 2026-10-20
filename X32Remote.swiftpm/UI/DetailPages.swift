@@ -36,6 +36,23 @@ struct InputPage: View {
                         }
                     }
                 }
+                if strip.hasDelay {
+                    Cell {
+                        VStack(alignment: .leading, spacing: 14) {
+                            Text("Delay")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.secondary)
+                            HStack(spacing: 14) {
+                                OnSwitch(app: app, address: strip.delayPath("on"), title: "Delay", width: 100)
+                                ParamKnob(app: app, address: strip.delayPath("time"), spec: Specs.delay, title: "Time", enabled: app.param(strip.delayPath("on")).bool)
+                            }
+                            Text(delayHint(app.param(strip.delayPath("time")).float(or: 0)))
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.tertiary)
+                        }
+                        .padding(14)
+                    }
+                }
                 Cell {
                     VStack(alignment: .leading, spacing: 10) {
                         Text("Input level")
@@ -50,6 +67,13 @@ struct InputPage: View {
             .padding(2)
         }
     }
+}
+
+/// Distance sound travels in the delay time, to line a channel up with a mic further away.
+private func delayHint(_ norm: Float) -> String {
+    let ms = Specs.delay.value(norm)
+    let metres = ms * 0.343
+    return String(format: "≈ %.1f m of sound travel", metres)
 }
 
 private struct PreampControls: View {
@@ -241,7 +265,7 @@ private struct SendColumn: View {
                     dismiss()
                 }
             FaderReadout(app: app, address: levelAddress)
-            ParamFader(app: app, address: levelAddress, steps: 160)
+            ParamFader(app: app, address: levelAddress, steps: 160, editTitle: "\(app.stripTitle(strip)) → \(name.isEmpty ? target.footLabel : name)")
                 .opacity(on ? 1 : 0.5)
             Text(target.footLabel)
                 .font(.system(size: 11))

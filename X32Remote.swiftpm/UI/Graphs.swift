@@ -137,11 +137,12 @@ struct GateGraph: View {
         let gate = Dynamics.Gate(app: app, strip: strip)
         let meter = app.meters.meter(strip)
         let gr = Double(meter.gateReduction)
-        let level = Double(meter.level)
+        // Only the big graph shows the live input dot; reading it in thumbnails would redraw them on every meter tick.
+        let level: Double? = detailed ? Double(meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
             let rect = CGRect(x: 0, y: 0, width: size.width - grWidth - 2, height: size.height)
-            Dynamics.drawTransfer(&ctx, rect, range: 80, on: gate.on, detailed: detailed, handles: [gate.threshold], level: detailed ? level : nil) { gate.output($0) }
+            Dynamics.drawTransfer(&ctx, rect, range: 80, on: gate.on, detailed: detailed, handles: [gate.threshold], level: level) { gate.output($0) }
             if detailed {
                 // Second handle at the bottom of the step (threshold minus range).
                 let x = rect.minX + CGFloat((gate.threshold + 80) / 80) * rect.width
@@ -163,11 +164,11 @@ struct CompGraph: View {
         let comp = Dynamics.Comp(app: app, strip: strip)
         let meter = app.meters.meter(strip)
         let gr = Double(meter.dynReduction)
-        let level = Double(meter.level)
+        let level: Double? = detailed ? Double(meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
             let rect = CGRect(x: 0, y: 0, width: size.width - grWidth - 2, height: size.height)
-            Dynamics.drawTransfer(&ctx, rect, range: 60, on: comp.on, detailed: detailed, handles: [comp.threshold, 0], level: detailed ? level : nil) { comp.output($0) }
+            Dynamics.drawTransfer(&ctx, rect, range: 60, on: comp.on, detailed: detailed, handles: [comp.threshold, 0], level: level) { comp.output($0) }
             drawGR(&ctx, CGRect(x: size.width - grWidth, y: 0, width: grWidth, height: size.height), gr: comp.on ? gr : 0)
         }
     }

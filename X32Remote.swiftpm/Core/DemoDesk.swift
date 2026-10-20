@@ -518,6 +518,7 @@ final class DemoTransport: X32Transport {
         if address.hasSuffix("/type") && address.contains("/mix/") { return .int(3) }
         if address.hasSuffix("/panFollow") { return .int(0) }
 
+        if address.hasSuffix("/delay/time") { return .float(0) }
         if address.contains("/preamp/") {
             if address.hasSuffix("/trim") { return .float(0.5) }
             if address.hasSuffix("/invert") { return .int(0) }

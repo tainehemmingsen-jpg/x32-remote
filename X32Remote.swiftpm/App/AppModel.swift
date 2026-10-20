@@ -15,6 +15,9 @@ final class AppModel {
         case scenes
         case settings
         case modes
+        case meters
+        case editUser1
+        case editUser2
         var id: String { rawValue }
     }
 
@@ -38,6 +41,10 @@ final class AppModel {
     // Mixer navigation
     var layer: MixerLayer = .inputs1
     var sendsBus: Int?
+    /// Faders control preamp gain instead of level (red caps).
+    var gainOnFaders = false
+    /// A DCA whose member channels are shown instead of the layer.
+    var spillDCA: Int?
     var detailStrip: StripID?
     var sheet: Sheet?
     var detailTab: DetailTab = .overview
@@ -47,6 +54,8 @@ final class AppModel {
     var muteEnabled = true
     /// The last channel opened, outlined on the mixer.
     var selectedStrip: StripID?
+    /// The precision editor (long-press any control).
+    var valueEditor: ValueEditRequest?
     /// The channel the open channel page is showing now (it can step prev/next).
     @ObservationIgnored var visibleDetailStrip: StripID?
 
@@ -158,6 +167,9 @@ final class AppModel {
         isDemo = false
         detailStrip = nil
         sendsBus = nil
+        gainOnFaders = false
+        spillDCA = nil
+        valueEditor = nil
         sheet = nil
         applyIdleTimer()
     }
@@ -400,6 +412,10 @@ final class AppModel {
             a.append(s.preampPath("hpf"))
             a.append(s.preampPath("hpslope"))
         }
+        if s.hasDelay {
+            a.append(s.delayPath("on"))
+            a.append(s.delayPath("time"))
+        }
         if let ha = s.headampIndexPath {
             a.append(ha)
         }
@@ -569,25 +585,102 @@ final class AppModel {
             detailTab = DetailTab.available(for: strip).first ?? .setup
         }
         loadDetail(strip)
+        valueEditor = nil
         selectedStrip = strip
         detailStrip = strip
     }
 
     func selectLayer(_ newLayer: MixerLayer) {
         layer = newLayer
+        spillDCA = nil
         if !newLayer.supportsBusSends {
             sendsBus = nil
+            gainOnFaders = false
         }
     }
 
     func selectSendsBus(_ bus: Int?) {
         sendsBus = bus
+        gainOnFaders = false
         if let b = bus {
             loadSends(bus: b)
-            if !layer.supportsBusSends {
+            if !layer.supportsBusSends && spillDCA == nil {
                 layer = .inputs1
             }
         }
+    }
+
+    /// Faders become preamp gain for the input channels (tap again to go back).
+    func toggleGainOnFaders() {
+        gainOnFaders.toggle()
+        if gainOnFaders {
+            sendsBus = nil
+            if !layer.supportsBusSends && spillDCA == nil {
+                layer = .inputs1
+            }
+        }
+    }
+
+    /// Shows the channels assigned to a DCA (tap the same DCA again to go back).
+    func spill(_ dca: Int) {
+        spillDCA = spillDCA == dca ? nil : dca
+    }
+
+    func layerTitle(_ l: MixerLayer) -> String {
+        if let i = l.userIndex, i < settings.userLayerNames.count {
+            let name = settings.userLayerNames[i].trimmingCharacters(in: .whitespaces)
+            return name.isEmpty ? l.title : name
+        }
+        return l.title
+    }
+
+    func strips(for l: MixerLayer) -> [StripID] {
+        if let i = l.userIndex {
+            guard i < settings.userLayers.count else { return [] }
+            return settings.userLayers[i].compactMap { StripID(id: $0) }
+        }
+        return l.strips
+    }
+
+    /// What the mixer shows right now: a DCA spill, or the selected layer.
+    var visibleStrips: [StripID] {
+        if let d = spillDCA {
+            return StripID.dcaMembers(d) { s in
+                guard let path = s.dcaGroupsPath else { return nil }
+                let p = store.param(path)
+                return p.isKnown ? p.int : nil
+            }
+        }
+        return strips(for: layer)
+    }
+
+    func setUserLayer(_ index: Int, strips: [StripID]) {
+        updateSettings { s in
+            while s.userLayers.count <= index { s.userLayers.append([]) }
+            s.userLayers[index] = strips.map(\.id)
+        }
+    }
+
+    func setUserLayerName(_ index: Int, _ name: String) {
+        updateSettings { s in
+            while s.userLayerNames.count <= index { s.userLayerNames.append("User \(s.userLayerNames.count + 1)") }
+            s.userLayerNames[index] = name
+        }
+    }
+
+    // MARK: - Precision editing
+
+    func editValue(_ title: String, _ address: String, _ spec: ParamSpec, reset: Float? = nil, style: ValueEditRequest.Style = .normal) {
+        if !store.param(address).isKnown {
+            client?.get(address)
+        }
+        valueEditor = ValueEditRequest(title: title, address: address, spec: spec, resetNorm: reset, style: style)
+    }
+
+    /// Short name for a strip, e.g. "Ch 16 Lead Vox".
+    func stripTitle(_ strip: StripID) -> String {
+        let name = param(strip.namePath).string
+        return name.isEmpty ? strip.footLabel : "\(strip.footLabel) \(name)"
     }
 
     // MARK: - Launch arguments (used for automated screenshots)
@@ -680,6 +773,18 @@ final class AppModel {
             self.setBool("/config/mute/3", true)
         }
     }
+}
+
+/// What the precision editor is editing.
+struct ValueEditRequest: Identifiable {
+    enum Style { case normal, pan }
+
+    let id = UUID()
+    let title: String
+    let address: String
+    let spec: ParamSpec
+    let resetNorm: Float?
+    var style: Style = .normal
 }
 
 /// Remembers which parameter a drag started on (held in a view's @State).
