@@ -584,3 +584,97 @@ final class LayerAndEntryTests: XCTestCase {
         XCTAssertEqual(Specs.delay.value(1), 500, accuracy: 0.001)
     }
 }
+
+final class UndoTests: XCTestCase {
+    func testCoalescesRepeatedChangesToOneControl() {
+        let u = UndoStack(limit: 10, coalesceWindow: 1.5)
+        u.record(address: "/ch/01/mix/on", previous: .int(1), label: "Ch 1 mute", now: 100)
+        u.record(address: "/ch/01/mix/on", previous: .int(0), label: "Ch 1 mute", now: 100.5)
+        XCTAssertEqual(u.entries.count, 1)
+        XCTAssertEqual(u.last?.changes.first?.previous, .int(1), "undo goes back to before the burst")
+        u.record(address: "/ch/01/mix/on", previous: .int(1), label: "Ch 1 mute", now: 103)
+        XCTAssertEqual(u.entries.count, 2, "a later change is its own step")
+        u.record(address: "/ch/02/mix/on", previous: .int(1), label: "Ch 2 mute", now: 103.1)
+        XCTAssertEqual(u.entries.count, 3, "a different control is its own step")
+    }
+
+    func testLimitAndPop() {
+        let u = UndoStack(limit: 3)
+        for i in 0..<5 {
+            u.push(UndoEntry(label: "\(i)", changes: [UndoEntry.Change(address: "/a/\(i)", previous: .int(0))], time: Double(i * 10)))
+        }
+        XCTAssertEqual(u.entries.map(\.label), ["2", "3", "4"])
+        XCTAssertEqual(u.popLast()?.label, "4")
+        XCTAssertEqual(u.entries.count, 2)
+        u.push(UndoEntry(label: "empty", changes: [], time: 0))
+        XCTAssertEqual(u.entries.count, 2, "empty steps are ignored")
+        u.clear()
+        XCTAssertTrue(u.isEmpty)
+    }
+
+    func testAddressNames() {
+        XCTAssertEqual(AddressNames.describe("/ch/16/mix/fader"), "Ch 16 fader")
+        XCTAssertEqual(AddressNames.describe("/ch/01/mix/on"), "Ch 1 mute")
+        XCTAssertEqual(AddressNames.describe("/ch/03/mix/05/level"), "Ch 3 send to Mix 5")
+        XCTAssertEqual(AddressNames.describe("/bus/02/mix/03/level"), "Mix 2 send to Mtx 3")
+        XCTAssertEqual(AddressNames.describe("/ch/16/eq/2/g"), "Ch 16 EQ 2 gain")
+        XCTAssertEqual(AddressNames.describe("/ch/01/dyn/thr"), "Ch 1 comp threshold")
+        XCTAssertEqual(AddressNames.describe("/ch/01/gate/range"), "Ch 1 gate depth")
+        XCTAssertEqual(AddressNames.describe("/main/st/mix/fader"), "LR fader")
+        XCTAssertEqual(AddressNames.describe("/dca/3/fader"), "DCA 3 fader")
+        XCTAssertEqual(AddressNames.describe("/headamp/033/gain"), "A 02 gain")
+        XCTAssertEqual(AddressNames.describe("/config/mute/2"), "Mute group 2")
+        XCTAssertEqual(AddressNames.describe("/ch/05/preamp/hpf"), "Ch 5 low cut freq")
+        XCTAssertNil(AddressNames.split("/ch/99/mix/fader"))
+        XCTAssertEqual(StripID.headampLabel(0), "Loc 01")
+        XCTAssertEqual(StripID.headampLabel(127), "B 48")
+    }
+}
+
+final class ClipboardTests: XCTestCase {
+    func testCopyEQFromChannelToChannel() {
+        let src = StripID(.channel, 1)
+        let dst = StripID(.channel, 2)
+        var store: [String: OSCArg] = [:]
+        for rel in src.relativePaths(.eq) { store[src.base + rel] = .float(0.25) }
+        store[src.base + "/eq/1/type"] = .int(1)
+        let clip = ChannelClipboard.copy(from: src, sections: [.eq]) { store[$0] }
+        let changes = clip.changes(onto: dst)
+        XCTAssertEqual(changes.count, src.relativePaths(.eq).count)
+        XCTAssertTrue(changes.allSatisfy { $0.0.hasPrefix("/ch/02/eq/") })
+        XCTAssertTrue(changes.contains { $0.0 == "/ch/02/eq/1/type" && $0.1 == .int(1) })
+    }
+
+    func testBusEQOntoChannelSkipsExtraBandsAndTypes() {
+        let bus = StripID(.bus, 1)
+        let ch = StripID(.channel, 5)
+        var store: [String: OSCArg] = [:]
+        for rel in bus.relativePaths(.eq) { store[bus.base + rel] = .float(0.5) }
+        store[bus.base + "/eq/1/type"] = .int(7)   // a bus-only crossover type
+        store[bus.base + "/eq/2/type"] = .int(2)
+        let clip = ChannelClipboard.copy(from: bus, sections: [.eq]) { store[$0] }
+        let changes = clip.changes(onto: ch)
+        XCTAssertFalse(changes.contains { $0.0.contains("/eq/5/") || $0.0.contains("/eq/6/") })
+        XCTAssertFalse(changes.contains { $0.0 == "/ch/05/eq/1/type" }, "bus-only types are not pasted")
+        XCTAssertTrue(changes.contains { $0.0 == "/ch/05/eq/2/type" && $0.1 == .int(2) })
+    }
+
+    func testSendsOnlyBetweenSameKind() {
+        let ch = StripID(.channel, 1)
+        var store: [String: OSCArg] = [:]
+        for rel in ch.relativePaths(.sends) { store[ch.base + rel] = .float(0.3) }
+        let clip = ChannelClipboard.copy(from: ch, sections: [.sends, .gate]) { store[$0] }
+        XCTAssertEqual(clip.sections(for: StripID(.auxIn, 2)), [.sends], "aux has sends but no gate")
+        XCTAssertEqual(clip.sections(for: StripID(.bus, 2)), [], "channel sends never go onto bus->matrix sends")
+        XCTAssertTrue(clip.changes(onto: StripID(.bus, 2)).isEmpty)
+    }
+
+    func testOnlyKnownValuesAreCopiedAndGainIsNever() {
+        let ch = StripID(.channel, 3)
+        let clip = ChannelClipboard.copy(from: ch, sections: [.preamp]) { $0.hasSuffix("/trim") ? .float(0.6) : nil }
+        XCTAssertEqual(clip.values.count, 1)
+        XCTAssertFalse(ch.relativePaths(.preamp).contains { $0.contains("headamp") || $0.contains("gain") })
+        XCTAssertEqual(clip.changes(onto: StripID(.channel, 4)).map(\.0), ["/ch/04/preamp/trim"])
+    }
+}
+

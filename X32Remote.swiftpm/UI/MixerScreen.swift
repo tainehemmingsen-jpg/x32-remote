@@ -44,6 +44,9 @@ struct MixerScreen: View {
             }
         }
         .background(Theme.background)
+        .overlay(alignment: .bottom) {
+            ToastView(app: app, active: app.detailStrip == nil)
+        }
         .overlay {
             ValueEditorOverlay(app: app, active: app.detailStrip == nil)
         }
@@ -143,45 +146,141 @@ struct MixerTopBar: View {
     let perPage: Int
     let total: Int
     @State private var showMuteGroups = false
+    @State private var showMonitor = false
 
     var body: some View {
         HStack(spacing: 4) {
             ConsoleMenu(app: app)
-            Spacer(minLength: 8)
-            if !wide {
-                LayerMenu(app: app)
-                SendsMenu(app: app)
-                if pageCount > 1 {
-                    PageButtons(page: $page, count: pageCount, perPage: perPage, total: total)
-                }
-                FineButton(app: app, height: 32)
-                    .frame(width: 52)
-            }
-            TopIcon(systemName: "square.grid.3x2", label: "Mute groups") {
-                showMuteGroups = true
-            }
-            .popover(isPresented: $showMuteGroups) {
-                MuteGroupsPopover(app: app)
-            }
-            TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
-                app.sheet = .meters
-            }
-            TopIcon(systemName: "folder", label: "Scenes") {
-                app.loadScenes()
-                app.sheet = .scenes
-            }
             if wide {
+                Spacer(minLength: 8)
+            } else {
+                // Narrow screens: the layer, mix and page controls scroll sideways if they don't fit.
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        LayerMenu(app: app)
+                        SendsMenu(app: app)
+                        if pageCount > 1 {
+                            PageButtons(page: $page, count: pageCount, perPage: perPage, total: total)
+                        }
+                        FineButton(app: app, height: 32)
+                            .frame(width: 52)
+                    }
+                    .padding(.horizontal, 4)
+                }
+            }
+            UndoButton(app: app)
+            if wide {
+                TopIcon(systemName: "headphones", label: "Solo and talkback") {
+                    showMonitor = true
+                }
+                .popover(isPresented: $showMonitor) {
+                    MonitorPopover(app: app)
+                }
+                TopIcon(systemName: "square.grid.3x2", label: "Mute groups") {
+                    showMuteGroups = true
+                }
+                .popover(isPresented: $showMuteGroups) {
+                    MuteGroupsPopover(app: app)
+                }
+                TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
+                    app.sheet = .meters
+                }
+                TopIcon(systemName: "folder", label: "Scenes") {
+                    app.loadScenes()
+                    app.sheet = .scenes
+                }
                 TopIcon(systemName: "rectangle.3.group", label: "Switch mode") {
                     app.sheet = .modes
                 }
-            }
-            TopIcon(systemName: "gearshape", label: "Settings") {
-                app.sheet = .settings
+                TopIcon(systemName: "gearshape", label: "Settings") {
+                    app.sheet = .settings
+                }
+            } else {
+                // Phones: everything else lives in one menu so the bar fits.
+                Menu {
+                    Button { showMonitor = true } label: { Label("Solo and talkback", systemImage: "headphones") }
+                    Button { showMuteGroups = true } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
+                    Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
+                    Button {
+                        app.loadScenes()
+                        app.sheet = .scenes
+                    } label: { Label("Scenes", systemImage: "folder") }
+                    Button { app.sheet = .settings } label: { Label("Settings", systemImage: "gearshape") }
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(Theme.text)
+                        .frame(width: 42, height: 42)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("More")
+                .popover(isPresented: $showMonitor) {
+                    MonitorPopover(app: app)
+                }
+                .background(
+                    Color.clear
+                        .popover(isPresented: $showMuteGroups) {
+                            MuteGroupsPopover(app: app)
+                        }
+                )
             }
         }
         .padding(.horizontal, 8)
         .frame(height: 46)
         .background(Theme.topBar)
+    }
+}
+
+/// Undoes the last change made from this app (shows what it will undo when held).
+struct UndoButton: View {
+    let app: AppModel
+
+    var body: some View {
+        let label = app.undoLabel
+        Button {
+            app.undo()
+        } label: {
+            Image(systemName: "arrow.uturn.backward")
+                .font(.system(size: 19))
+                .foregroundStyle(label == nil ? Theme.tertiary : Theme.text)
+                .frame(width: 46, height: 42)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(label == nil)
+        .contextMenu {
+            if let label {
+                Button {
+                    app.undo()
+                } label: {
+                    Label("Undo \(label)", systemImage: "arrow.uturn.backward")
+                }
+            }
+        }
+        .accessibilityLabel(label.map { "Undo \($0)" } ?? "Nothing to undo")
+    }
+}
+
+/// Brief message at the bottom of the screen (e.g. after an undo).
+struct ToastView: View {
+    let app: AppModel
+    var active: Bool = true
+
+    var body: some View {
+        if active, let text = app.toast {
+            Text(text)
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .padding(.horizontal, 16)
+                .frame(height: 38)
+                .background(Capsule().fill(Theme.raised2))
+                .overlay(Capsule().strokeBorder(Theme.lineStrong, lineWidth: 1))
+                .shadow(color: .black.opacity(0.5), radius: 10, y: 4)
+                .padding(.bottom, 24)
+                .transition(.opacity)
+                .allowsHitTesting(false)
+        }
     }
 }
 
@@ -377,6 +476,49 @@ struct PageButtons: View {
         let first = p * perPage + 1
         let last = min(total, (p + 1) * perPage)
         return first == last ? "\(first)" : "\(first)-\(last)"
+    }
+}
+
+/// Solo/headphone level, dim, and the two talkback switches.
+private struct MonitorPopover: View {
+    let app: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Solo and talkback")
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.text)
+            ParamKnob(app: app, address: "/config/solo/level", spec: Specs.fader, title: "Solo / phones level")
+            HStack(spacing: 8) {
+                OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 90)
+                ClearSoloButton(app: app)
+            }
+            Divider().background(Theme.line)
+            HStack(spacing: 8) {
+                TalkButton(app: app, channel: "A")
+                TalkButton(app: app, channel: "B")
+            }
+            ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.fader, title: "Talk A level")
+            ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.fader, title: "Talk B level")
+        }
+        .padding(16)
+        .frame(width: 320)
+        .background(Theme.panel)
+        .presentationCompactAdaptation(.popover)
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct TalkButton: View {
+    let app: AppModel
+    let channel: String
+
+    var body: some View {
+        let address = "/-stat/talk/\(channel)"
+        let on = app.param(address).bool
+        LitButton(title: "Talk \(channel)", isOn: on, color: Theme.solo, height: 52, fontSize: 15, offColor: Theme.soloOff) {
+            app.setBool(address, !on)
+        }
     }
 }
 
@@ -833,11 +975,7 @@ private struct SourceChip: View {
 enum StripSource {
     /// Headamps 0-31 are the local inputs, 32-79 AES50 A, 80-127 AES50 B.
     static func headampLabel(_ ha: Int) -> String {
-        switch ha {
-        case 0..<32: return String(format: "Loc %02d", ha + 1)
-        case 32..<80: return String(format: "A %02d", ha - 31)
-        default: return String(format: "B %02d", ha - 79)
-        }
+        StripID.headampLabel(ha)
     }
 }
 

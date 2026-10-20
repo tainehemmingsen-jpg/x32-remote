@@ -490,6 +490,9 @@ final class DemoTransport: X32Transport {
         if address.hasPrefix("/config/") && address.contains("link/") { return .int(0) }
         if address == "/-show/prepos/current" { return .int(0) }
         if address == "/config/solo/level" { return .float(0.5) }
+        if address == "/config/solo/dim" { return .int(0) }
+        if address.hasPrefix("/config/talk/") && address.hasSuffix("/level") { return .float(0.5) }
+        if address.hasPrefix("/-stat/talk/") { return .int(0) }
 
         if address.hasSuffix("/config/name") { return .string("") }
         if address.hasSuffix("/config/color") { return .int(0) }

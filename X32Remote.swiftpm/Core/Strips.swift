@@ -186,6 +186,15 @@ struct StripID: Hashable, Codable, Identifiable {
         }
     }
 
+    /// Headamps 0-31 are the local inputs, 32-79 AES50 A, 80-127 AES50 B.
+    static func headampLabel(_ ha: Int) -> String {
+        switch ha {
+        case 0..<32: return String(format: "Loc %02d", ha + 1)
+        case 32..<80: return String(format: "A %02d", ha - 31)
+        default: return String(format: "B %02d", ha - 79)
+        }
+    }
+
     static func headampGainPath(_ ha: Int) -> String { String(format: "/headamp/%03d/gain", ha) }
     static func headampPhantomPath(_ ha: Int) -> String { String(format: "/headamp/%03d/phantom", ha) }
 

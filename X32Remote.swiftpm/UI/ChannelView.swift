@@ -37,6 +37,9 @@ struct ChannelView: View {
             }
         }
         .background(Theme.background.ignoresSafeArea())
+        .overlay(alignment: .bottom) {
+            ToastView(app: app)
+        }
         .overlay {
             ValueEditorOverlay(app: app)
         }
@@ -113,6 +116,8 @@ private struct ChannelHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
             Spacer(minLength: 8)
+            CopyPasteMenu(app: app, strip: strip)
+            UndoButton(app: app)
             FineButton(app: app, height: 34)
                 .frame(width: 64)
                 .padding(.trailing, 6)
@@ -137,6 +142,47 @@ private struct ChannelHeader: View {
         if next < 1 { next = count }
         if next > count { next = 1 }
         strip = StripID(strip.kind, next)
+    }
+}
+
+/// Copy this channel's processing, or paste what was copied from another channel.
+private struct CopyPasteMenu: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        let available = ProcessingSection.allCases.filter { strip.supports($0) }
+        Menu {
+            Section("Copy from \(app.stripTitle(strip))") {
+                Button("Copy everything") {
+                    app.copySettings(from: strip, sections: available)
+                }
+                ForEach(available) { section in
+                    Button("Copy \(section.title)") {
+                        app.copySettings(from: strip, sections: [section])
+                    }
+                }
+            }
+            if let clip = app.clipboard, clip.source != strip {
+                let sections = clip.sections(for: strip)
+                if !sections.isEmpty {
+                    Section("From \(app.stripTitle(clip.source))") {
+                        Button {
+                            app.pasteSettings(onto: strip)
+                        } label: {
+                            Label("Paste \(sections.map(\.title).joined(separator: ", "))", systemImage: "doc.on.clipboard")
+                        }
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "doc.on.doc")
+                .font(.system(size: 18))
+                .foregroundStyle(Theme.text)
+                .frame(width: 46, height: 42)
+                .contentShape(Rectangle())
+        }
+        .accessibilityLabel("Copy and paste")
     }
 }
 

@@ -177,6 +177,7 @@ final class AppModel {
     }
 
     private func start(transport: X32Transport, demo: Bool) {
+        clearUndo()
         store.clear()
         meters.reset()
         isDemo = demo
@@ -290,6 +291,7 @@ final class AppModel {
             client?.get(String(format: "/-show/showfile/scene/%03d/name", scene))
             // A scene recalled on the desk changes almost everything: read it all again.
             if let old = previous, old != value {
+                clearUndo()
                 scheduleResync()
             }
         }
@@ -331,6 +333,7 @@ final class AppModel {
         for n in 1...6 {
             a.append("/config/mute/\(n)")
         }
+        a += ["/config/solo/level", "/config/solo/dim", "/-stat/talk/A", "/-stat/talk/B", "/config/talk/A/level", "/config/talk/B/level"]
         a.append("/-show/prepos/current")
         a.append("/-stat/solo")
         c.get(a)
@@ -487,6 +490,11 @@ final class AppModel {
     }
 
     func set(_ address: String, _ value: OSCArg) {
+        if !restoring && AppModel.recordsUndo(address) && dragOriginals[address] == nil,
+           let previous = store.value(address), previous != value {
+            undoStack.record(address: address, previous: previous, label: undoName(address), now: X32Client.now())
+            undoLabel = undoStack.last?.label
+        }
         store.applyLocal(address, value)
         lastLocalSet[address] = X32Client.now()
         client?.set(address, value)
@@ -531,11 +539,19 @@ final class AppModel {
         }
         target.address = address
         touch(address, true)
+        if !target.blocked, let v = store.value(address), AppModel.recordsUndo(address) {
+            dragOriginals[address] = v
+        }
     }
 
     func endDrag(_ target: DragTarget) {
         if let address = target.address {
             touch(address, false)
+            // A whole drag is one undo step, back to where the finger first landed.
+            if let original = dragOriginals.removeValue(forKey: address), let now = store.value(address), now != original {
+                undoStack.push(UndoEntry(label: undoName(address), changes: [UndoEntry.Change(address: address, previous: original)], time: X32Client.now()))
+                undoLabel = undoStack.last?.label
+            }
         }
         target.address = nil
         target.blocked = false
@@ -577,9 +593,98 @@ final class AppModel {
     }
 
     func recallScene(_ n: Int) {
+        clearUndo()
         client?.send(OSCMessage("/-action/goscene", [.int(Int32(n))]))
         store.applyLocal("/-show/prepos/current", .int(Int32(n)))
         scheduleResync()
+    }
+
+    // MARK: - Undo
+
+    @ObservationIgnored private let undoStack = UndoStack()
+    @ObservationIgnored private var dragOriginals: [String: OSCArg] = [:]
+    @ObservationIgnored private var restoring = false
+    @ObservationIgnored private var toastToken = 0
+    /// What the undo button would undo, if anything.
+    private(set) var undoLabel: String?
+    /// A short message shown at the bottom of the screen.
+    var toast: String?
+
+    /// Solo, actions and show/scene state aren't undoable.
+    static func recordsUndo(_ address: String) -> Bool {
+        !address.hasPrefix("/-")
+    }
+
+    func undoName(_ address: String) -> String {
+        if let (strip, rest) = AddressNames.split(address) {
+            return stripTitle(strip) + " " + AddressNames.parameterName(rest, strip: strip)
+        }
+        return AddressNames.describe(address)
+    }
+
+    func undo() {
+        guard let entry = undoStack.popLast() else { return }
+        restoring = true
+        for change in entry.changes.reversed() {
+            set(change.address, change.previous)
+        }
+        restoring = false
+        undoLabel = undoStack.last?.label
+        Haptics.click()
+        showToast("Undone: \(entry.label)")
+    }
+
+    func clearUndo() {
+        undoStack.clear()
+        dragOriginals.removeAll()
+        undoLabel = nil
+    }
+
+    /// Sets several parameters as one undoable step (e.g. pasting an EQ).
+    func applyBatch(_ changes: [(String, OSCArg)], label: String) {
+        var previous: [UndoEntry.Change] = []
+        for (address, _) in changes {
+            if let v = store.value(address) {
+                previous.append(UndoEntry.Change(address: address, previous: v))
+            }
+        }
+        restoring = true
+        for (address, value) in changes {
+            set(address, value)
+        }
+        restoring = false
+        undoStack.push(UndoEntry(label: label, changes: previous, time: X32Client.now()))
+        undoLabel = undoStack.last?.label
+    }
+
+    func showToast(_ text: String) {
+        toastToken += 1
+        let token = toastToken
+        toast = text
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { [weak self] in
+            guard let self, self.toastToken == token else { return }
+            self.toast = nil
+        }
+    }
+
+    // MARK: - Copy and paste
+
+    /// Channel settings copied from the channel view.
+    var clipboard: ChannelClipboard?
+
+    func copySettings(from strip: StripID, sections: [ProcessingSection]) {
+        clipboard = ChannelClipboard.copy(from: strip, sections: sections) { store.value($0) }
+        let names = clipboard?.sections.map(\.title).joined(separator: ", ") ?? ""
+        showToast("Copied \(names) from \(stripTitle(strip))")
+    }
+
+    func pasteSettings(onto strip: StripID) {
+        guard let clip = clipboard else { return }
+        let changes = clip.changes(onto: strip)
+        guard !changes.isEmpty else { return }
+        let names = clip.sections(for: strip).map(\.title).joined(separator: ", ")
+        applyBatch(changes, label: "paste \(names) onto \(stripTitle(strip))")
+        showToast("Pasted \(names) onto \(stripTitle(strip))")
     }
 
     // MARK: - Navigation
