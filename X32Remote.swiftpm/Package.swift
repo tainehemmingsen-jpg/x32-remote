@@ -16,7 +16,7 @@ let package = Package(
             name: "X32 Remote",
             targets: ["AppModule"],
             bundleIdentifier: "nz.taine.x32remote",
-            teamIdentifier: "",
+            teamIdentifier: "82M7WP2BBY",
             displayVersion: "1.0",
             bundleVersion: "1",
             appIcon: .asset("AppIcon"),
