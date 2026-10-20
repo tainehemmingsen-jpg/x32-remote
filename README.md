@@ -40,6 +40,12 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Parameters** (gain, EQ, dynamics…) are wide slider bars: drag left/right anywhere on the bar, or tap − / + for one step (hold to repeat). Double‑tap resets EQ gain and trim.
 - **Fine:** switch it on (right-hand panel, or the channel page header) and every fader, pan and bar moves 4× more slowly under your finger.
 - **Pan:** drag sideways; double‑tap centres.
+- **Exact values:** long‑press any slider, gain or pan — or double‑tap a fader — to type a value or step it by 0.1 / 1 dB.
+- **Gain on faders:** tap **Gain** at the bottom of the sends list; the faders turn red and control preamp gain.
+- **DCA spill:** on the DCA layer, tap a DCA's name to see its channels; tap again to go back.
+- **Custom layers:** User 1 and User 2 — tap an empty one (or long‑press it) to pick channels.
+- **Config:** long‑press any channel name to jump to its name, colour and group settings.
+- **Meters:** the bar‑chart icon shows every meter on the desk.
 - **48 V** asks for confirmation before switching on.
 - **Scenes** ask before recalling, then the app re-reads the desk.
 - **Locking:** in Monitor or Simple mode, set a PIN and lock. The mixer is then hidden until someone enters the PIN.
