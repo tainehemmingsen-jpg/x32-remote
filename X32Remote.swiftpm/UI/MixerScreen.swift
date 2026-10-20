@@ -1,7 +1,20 @@
 import SwiftUI
 
-/// The full console view. On an iPad: strips, the master, and a control panel down the right
-/// (layers, sends on fader, mute groups). On narrow screens the panel becomes a top bar.
+/// How much of each strip fits on screen.
+enum StripDetail: Int, Comparable {
+    case compact, medium, full
+
+    static func < (a: StripDetail, b: StripDetail) -> Bool { a.rawValue < b.rawValue }
+
+    static func forHeight(_ h: CGFloat) -> StripDetail {
+        if h >= 610 { return .full }
+        if h >= 470 { return .medium }
+        return .compact
+    }
+}
+
+/// The console view: a bank of strips, the master of the selected mix, and on an iPad a
+/// two-column panel down the right (Fine, Mute Enable, sends on fader | layers, mute groups).
 struct MixerScreen: View {
     @Bindable var app: AppModel
     @State private var page = 0
@@ -9,39 +22,20 @@ struct MixerScreen: View {
     var body: some View {
         GeometryReader { geo in
             let wide = geo.size.width >= 700
-            let panelWidth: CGFloat = wide ? (geo.size.width >= 1100 ? 176 : 156) : 0
-            let masterWidth: CGFloat = geo.size.width >= 1100 ? 92 : (wide ? 80 : 76)
-            let stripsWidth = geo.size.width - panelWidth - masterWidth - 30
+            let column: CGFloat = geo.size.width >= 1100 ? 100 : 86
+            let sidebarWidth: CGFloat = wide ? column * 2 + 12 : 0
+            let bodyHeight = geo.size.height - 46
+            let stripsWidth = geo.size.width - sidebarWidth
             let layout = MixerScreen.pageLayout(strips: app.layer.strips, width: stripsWidth, page: page)
-            let overview = geo.size.height >= 600
-            HStack(spacing: 0) {
-                VStack(spacing: 0) {
-                    if !wide {
-                        MixerTopBar(app: app, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+            let detail = StripDetail.forHeight(bodyHeight)
+            VStack(spacing: 0) {
+                MixerTopBar(app: app, wide: wide, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+                HStack(spacing: 0) {
+                    StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900)
+                    if wide {
+                        MixerSidebar(app: app, column: column, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+                            .frame(width: sidebarWidth)
                     }
-                    if let bus = app.sendsBus, app.layer.supportsBusSends {
-                        SendsBanner(app: app, bus: bus)
-                    }
-                    HStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            ForEach(layout.visible) { strip in
-                                StripView(app: app, strip: strip, sendsBus: app.layer.supportsBusSends ? app.sendsBus : nil, overview: overview)
-                            }
-                        }
-                        Rectangle()
-                            .fill(Theme.line)
-                            .frame(width: 1)
-                            .padding(.vertical, 20)
-                        MasterStrip(app: app, overview: overview)
-                            .frame(width: masterWidth)
-                    }
-                    .padding(.horizontal, 8)
-                    .padding(.top, 8)
-                    .padding(.bottom, 6)
-                }
-                if wide {
-                    MixerSidePanel(app: app, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
-                        .frame(width: panelWidth)
                 }
             }
         }
@@ -50,7 +44,7 @@ struct MixerScreen: View {
             page = 0
         }
         .fullScreenCover(item: $app.detailStrip) { strip in
-            ChannelDetailView(app: app, strip: strip)
+            ChannelView(app: app, strip: strip)
         }
         .sheet(item: $app.sheet) { sheet in
             switch sheet {
@@ -71,16 +65,16 @@ struct MixerScreen: View {
         let total: Int
     }
 
-    /// Shows a whole layer when strips can be at least 54 pt wide, otherwise pages of 8 (or fewer on phones).
+    /// Fits the whole layer (plus the master) when strips can be at least 52 pt wide, otherwise pages of 8.
     static func pageLayout(strips: [StripID], width: CGFloat, page: Int) -> PageLayout {
         let count = strips.count
         guard count > 0 else { return PageLayout(visible: [], pageCount: 1, perPage: 1, total: 0) }
         var perPage = count
-        if width / CGFloat(count) < 54 {
-            if width / 8 >= 56 {
+        if width / CGFloat(count + 1) < 52 {
+            if width / 9 >= 60 {
                 perPage = min(8, count)
             } else {
-                perPage = max(3, min(count, Int(width / 64)))
+                perPage = max(2, min(count, Int(width / 70) - 1))
             }
         }
         let pageCount = (count + perPage - 1) / perPage
@@ -91,242 +85,110 @@ struct MixerScreen: View {
     }
 }
 
-// MARK: - Side panel (iPad)
-
-struct MixerSidePanel: View {
+/// The strips of the current layer, then the master of the selected mix.
+private struct StripBank: View {
     let app: AppModel
-    @Binding var page: Int
-    let pageCount: Int
-    let perPage: Int
-    let total: Int
+    let strips: [StripID]
+    let detail: StripDetail
+    let tallThumbs: Bool
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            ConsoleMenu(app: app)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            HStack(spacing: 6) {
-                FineButton(app: app)
-                Button {
-                    app.loadScenes()
-                    app.sheet = .scenes
-                } label: {
-                    Image(systemName: "square.stack.3d.up")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.text)
-                        .frame(maxWidth: .infinity, minHeight: 36)
-                        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.raised))
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Scenes")
+        let sendsBus = app.layer.supportsBusSends ? app.sendsBus : nil
+        HStack(spacing: 1) {
+            ForEach(strips) { strip in
+                StripView(app: app, strip: strip, sendsBus: sendsBus, detail: detail, tallThumbs: tallThumbs)
             }
-
-            PanelLabel("Mute groups")
-            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 3), spacing: 5) {
-                ForEach(1...6, id: \.self) { n in
-                    MuteGroupButton(app: app, group: n, height: 34)
-                }
+            Rectangle().fill(Color.black).frame(width: 3)
+            if let bus = sendsBus {
+                StripView(app: app, strip: StripID(.bus, bus), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
+            } else {
+                StripView(app: app, strip: StripID.mainLR, sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
             }
-
-            PanelLabel("Layers")
-            VStack(spacing: 4) {
-                ForEach(MixerLayer.allCases) { layer in
-                    PanelRow(title: layer.title, active: app.layer == layer, color: Theme.accent) {
-                        app.selectLayer(layer)
-                    }
-                }
-            }
-            if pageCount > 1 {
-                HStack(spacing: 4) {
-                    ForEach(0..<pageCount, id: \.self) { p in
-                        PanelRow(title: pageLabel(p), active: min(page, pageCount - 1) == p, color: Theme.text, height: 32) {
-                            page = p
-                        }
-                    }
-                }
-            }
-
-            PanelLabel("Sends on fader")
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 4) {
-                    PanelRow(title: "LR Mix", active: app.sendsBus == nil, color: Theme.accent) {
-                        app.selectSendsBus(nil)
-                    }
-                    ForEach(1...16, id: \.self) { bus in
-                        SendsBusRow(app: app, bus: bus)
-                    }
-                }
-            }
-            ClearSoloButton(app: app, fullWidth: true)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 10)
-        .frame(maxHeight: .infinity, alignment: .top)
-        .background(Theme.panel)
-        .overlay(alignment: .leading) {
-            Rectangle().fill(Theme.line).frame(width: 1)
-        }
-    }
-
-    private func pageLabel(_ p: Int) -> String {
-        let first = p * perPage + 1
-        let last = min(total, (p + 1) * perPage)
-        return first == last ? "\(first)" : "\(first)–\(last)"
-    }
-}
-
-private struct PanelLabel: View {
-    let text: String
-    init(_ text: String) { self.text = text }
-
-    var body: some View {
-        Text(text.uppercased())
-            .font(.system(size: 10, weight: .heavy))
-            .foregroundStyle(Theme.tertiary)
-            .padding(.top, 2)
-    }
-}
-
-/// A full-width selectable row in the side panel.
-private struct PanelRow: View {
-    let title: String
-    let active: Bool
-    let color: Color
-    var swatch: Color? = nil
-    var height: CGFloat = 36
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                if let swatch {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(swatch)
-                        .frame(width: 4, height: height - 14)
-                }
-                Text(title)
-                    .font(.system(size: 14, weight: .semibold))
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                Spacer(minLength: 0)
-            }
-            .padding(.horizontal, 10)
-            .foregroundStyle(active ? Color.black.opacity(0.85) : Theme.text)
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(active ? color : Theme.raised)
-            )
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SendsBusRow: View {
-    let app: AppModel
-    let bus: Int
-
-    var body: some View {
-        let strip = StripID(.bus, bus)
-        let name = app.param(strip.namePath).string
-        let color = Theme.scribble(app.param(strip.colorPath).int)
-        PanelRow(title: name.isEmpty ? "Bus \(bus)" : "\(bus) · \(name)", active: app.sendsBus == bus, color: color, swatch: color) {
-            app.selectSendsBus(app.sendsBus == bus ? nil : bus)
-        }
-    }
-}
-
-/// Makes every fader, pan and slider bar move 4× more slowly under your finger.
-struct FineButton: View {
-    let app: AppModel
-    var height: CGFloat = 36
-
-    var body: some View {
-        LitButton(title: "FINE", isOn: app.fineMode, color: Theme.on, height: height, fontSize: 13) {
-            app.fineMode.toggle()
-            Haptics.click()
-        }
+        .background(Color.black)
     }
 }
 
 // MARK: - Top bar
 
 struct MixerTopBar: View {
-    @Bindable var app: AppModel
+    let app: AppModel
+    let wide: Bool
     @Binding var page: Int
     let pageCount: Int
     let perPage: Int
     let total: Int
+    @State private var showMuteGroups = false
 
     var body: some View {
-        VStack(spacing: 8) {
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 8) {
-                    ConsoleMenu(app: app)
-                    Spacer(minLength: 6)
-                    LayerButtons(app: app)
-                    if pageCount > 1 {
-                        PageButtons(page: $page, count: pageCount, perPage: perPage, total: total)
-                    }
-                    Spacer(minLength: 6)
-                    SendsMenu(app: app)
-                }
-                compactRow
-                ScrollView(.horizontal, showsIndicators: false) {
-                    compactRow
-                }
-            }
-            ViewThatFits(in: .horizontal) {
-                secondRow
-                ScrollView(.horizontal, showsIndicators: false) {
-                    secondRow
-                }
-            }
-        }
-        .padding(.horizontal, 10)
-        .padding(.top, 8)
-        .padding(.bottom, 8)
-        .background(Theme.panel)
-        .overlay(alignment: .bottom) {
-            Rectangle().fill(Theme.line).frame(height: 1)
-        }
-    }
-
-    private var compactRow: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 4) {
             ConsoleMenu(app: app)
-            Spacer(minLength: 6)
-            LayerMenu(app: app)
-            if pageCount > 1 {
-                PageButtons(page: $page, count: pageCount, perPage: perPage, total: total)
+            Spacer(minLength: 8)
+            if !wide {
+                LayerMenu(app: app)
+                SendsMenu(app: app)
+                if pageCount > 1 {
+                    PageButtons(page: $page, count: pageCount, perPage: perPage, total: total)
+                }
+                FineButton(app: app, height: 32)
+                    .frame(width: 52)
             }
-            SendsMenu(app: app)
+            TopIcon(systemName: "square.grid.3x2", label: "Mute groups") {
+                showMuteGroups = true
+            }
+            .popover(isPresented: $showMuteGroups) {
+                MuteGroupsPopover(app: app)
+            }
+            TopIcon(systemName: "folder", label: "Scenes") {
+                app.loadScenes()
+                app.sheet = .scenes
+            }
+            if wide {
+                TopIcon(systemName: "rectangle.3.group", label: "Switch mode") {
+                    app.sheet = .modes
+                }
+            }
+            TopIcon(systemName: "gearshape", label: "Settings") {
+                app.sheet = .settings
+            }
         }
-    }
-
-    private var secondRow: some View {
-        HStack(spacing: 8) {
-            MuteGroupBar(app: app)
-            Spacer(minLength: 6)
-            FineButton(app: app, height: 30)
-                .frame(width: 64)
-            ClearSoloButton(app: app)
-            SceneButton(app: app)
-        }
+        .padding(.horizontal, 8)
+        .frame(height: 46)
+        .background(Theme.topBar)
     }
 }
 
+struct TopIcon: View {
+    let systemName: String
+    let label: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 19, weight: .regular))
+                .foregroundStyle(Theme.text)
+                .frame(width: 46, height: 42)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(label)
+    }
+}
+
+/// "Mixer / LR Mix" title. Tap it for the desk menu.
 struct ConsoleMenu: View {
     let app: AppModel
 
     var body: some View {
+        let mix: String = {
+            guard let bus = app.sendsBus, app.layer.supportsBusSends else { return "LR Mix" }
+            let name = app.param(StripID(.bus, bus).namePath).string
+            return name.isEmpty ? "Mix \(bus)" : "Mix \(bus) · \(name)"
+        }()
+        let mixColor: Color = app.sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) } ?? Theme.secondary
         Menu {
             Section(app.connectedName + (app.isDemo ? "" : " · " + app.connectedAddress)) {
-                Button {
-                    app.loadScenes()
-                    app.sheet = .scenes
-                } label: {
-                    Label("Scenes", systemImage: "square.stack.3d.up")
-                }
                 Button {
                     app.sheet = .modes
                 } label: {
@@ -346,35 +208,20 @@ struct ConsoleMenu: View {
         } label: {
             HStack(spacing: 8) {
                 Circle()
-                    .fill(app.linkLost ? Theme.mute : (app.isDemo ? Theme.accent : Theme.on))
-                    .frame(width: 9, height: 9)
-                Text(app.connectedName)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
-            }
-            .barChip()
-        }
-    }
-}
-
-struct LayerButtons: View {
-    let app: AppModel
-
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(MixerLayer.allCases) { layer in
-                Button {
-                    app.selectLayer(layer)
-                } label: {
-                    Text(layer.title)
+                    .fill(app.linkLost ? Theme.mute : (app.isDemo ? Theme.solo : Theme.on))
+                    .frame(width: 8, height: 8)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Mixer")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.text)
+                    Text(mix)
+                        .font(.system(size: 12))
+                        .foregroundStyle(app.sendsBus == nil ? Theme.secondary : mixColor)
                         .lineLimit(1)
-                        .fixedSize()
-                        .barChip(active: app.layer == layer)
                 }
-                .buttonStyle(.plain)
             }
+            .frame(minWidth: 90, alignment: .leading)
+            .contentShape(Rectangle())
         }
     }
 }
@@ -396,12 +243,58 @@ struct LayerMenu: View {
                 }
             }
         } label: {
-            HStack(spacing: 6) {
-                Text(app.layer.title)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .bold))
+            Text(app.layer.title)
+                .lineLimit(1)
+                .fixedSize()
+                .barChip(active: true)
+        }
+    }
+}
+
+struct SendsMenu: View {
+    let app: AppModel
+
+    var body: some View {
+        let label: String = app.sendsBus.map { "Mix \($0)" } ?? "LR"
+        Menu {
+            Button {
+                app.selectSendsBus(nil)
+            } label: {
+                if app.sendsBus == nil {
+                    Label("LR Mix", systemImage: "checkmark")
+                } else {
+                    Text("LR Mix")
+                }
             }
-            .barChip(active: true)
+            Section("Sends on faders") {
+                ForEach(1...16, id: \.self) { bus in
+                    SendsMenuItem(app: app, bus: bus)
+                }
+            }
+        } label: {
+            Text(label)
+                .lineLimit(1)
+                .fixedSize()
+                .barChip(active: app.sendsBus != nil)
+        }
+    }
+}
+
+private struct SendsMenuItem: View {
+    let app: AppModel
+    let bus: Int
+
+    var body: some View {
+        let name = app.param(StripID(.bus, bus).namePath).string
+        let title = name.isEmpty ? "Mix \(bus)" : "Mix \(bus) · \(name)"
+        Button {
+            app.selectSendsBus(bus)
+        } label: {
+            if app.sendsBus == bus {
+                Label(title, systemImage: "checkmark")
+            } else {
+                Text(title)
+            }
         }
     }
 }
@@ -420,7 +313,7 @@ struct PageButtons: View {
                 } label: {
                     Text(label(p))
                         .fixedSize()
-                        .barChip(active: page == p, tint: Theme.text)
+                        .barChip(active: page == p)
                 }
                 .buttonStyle(.plain)
             }
@@ -430,145 +323,177 @@ struct PageButtons: View {
     private func label(_ p: Int) -> String {
         let first = p * perPage + 1
         let last = min(total, (p + 1) * perPage)
-        return first == last ? "\(first)" : "\(first)–\(last)"
+        return first == last ? "\(first)" : "\(first)-\(last)"
     }
 }
 
-struct SendsMenu: View {
+private struct MuteGroupsPopover: View {
     let app: AppModel
 
     var body: some View {
-        let label: String = {
-            guard let bus = app.sendsBus else { return "Main mix" }
-            let name = app.param(StripID(.bus, bus).namePath).string
-            return name.isEmpty ? "Bus \(bus)" : "\(bus) · \(name)"
-        }()
-        let busColor = app.sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) } ?? Theme.accent
-        Menu {
-            Button {
-                app.selectSendsBus(nil)
-            } label: {
-                if app.sendsBus == nil {
-                    Label("Main mix", systemImage: "checkmark")
-                } else {
-                    Text("Main mix")
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Mute groups")
+                .font(.system(size: 15))
+                .foregroundStyle(Theme.text)
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(84), spacing: 8), count: 3), spacing: 8) {
+                ForEach(1...6, id: \.self) { n in
+                    MuteGroupButton(app: app, group: n, height: 52)
                 }
             }
-            Section("Sends on faders") {
-                ForEach(1...16, id: \.self) { bus in
-                    SendsMenuItem(app: app, bus: bus)
-                }
-            }
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: app.sendsBus == nil ? "slider.vertical.3" : "arrow.turn.down.right")
-                Text(label)
-                    .lineLimit(1)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 10, weight: .bold))
-            }
-            .barChip(active: app.sendsBus != nil, tint: busColor)
         }
+        .padding(16)
+        .background(Theme.panel)
+        .presentationCompactAdaptation(.popover)
+        .preferredColorScheme(.dark)
     }
 }
 
-private struct SendsMenuItem: View {
-    let app: AppModel
-    let bus: Int
-
-    var body: some View {
-        let name = app.param(StripID(.bus, bus).namePath).string
-        let title = name.isEmpty ? "Bus \(bus)" : "Bus \(bus) · \(name)"
-        Button {
-            app.selectSendsBus(bus)
-        } label: {
-            if app.sendsBus == bus {
-                Label(title, systemImage: "checkmark")
-            } else {
-                Text(title)
-            }
-        }
-    }
-}
-
-struct MuteGroupBar: View {
-    let app: AppModel
-
-    var body: some View {
-        HStack(spacing: 5) {
-            Text("MUTE\nGROUPS")
-                .font(.system(size: 8, weight: .heavy))
-                .foregroundStyle(Theme.tertiary)
-                .multilineTextAlignment(.trailing)
-            ForEach(1...6, id: \.self) { n in
-                MuteGroupButton(app: app, group: n)
-            }
-        }
-    }
-}
-
-private struct MuteGroupButton: View {
+struct MuteGroupButton: View {
     let app: AppModel
     let group: Int
-    var height: CGFloat = 30
+    var height: CGFloat = 40
 
     var body: some View {
         let address = "/config/mute/\(group)"
         let on = app.param(address).bool
-        LitButton(title: "\(group)", isOn: on, color: Theme.mute, height: height, fontSize: 14) {
+        LitButton(title: "MG \(group)", isOn: on, color: Theme.mute, height: height, fontSize: 13, offColor: Theme.muteOff) {
             app.setBool(address, !on)
         }
-        .frame(minWidth: 40)
     }
 }
 
-struct ClearSoloButton: View {
+// MARK: - Sidebar
+
+/// Two columns: Fine / Mute Enable / sends-on-fader list on the left,
+/// layers, mute groups and clear-solo on the right.
+struct MixerSidebar: View {
     let app: AppModel
-    var fullWidth = false
+    let column: CGFloat
+    @Binding var page: Int
+    let pageCount: Int
+    let perPage: Int
+    let total: Int
 
     var body: some View {
-        let anySolo = app.param("/-stat/solo").bool
-        if fullWidth {
-            LitButton(title: anySolo ? "CLEAR SOLO" : "NO SOLO", isOn: anySolo, color: Theme.solo, height: 36, fontSize: 12) {
-                app.clearSolo()
+        HStack(alignment: .top, spacing: 4) {
+            VStack(spacing: 4) {
+                SideButton(title: "Fine", active: app.fineMode, style: .outline) {
+                    app.fineMode.toggle()
+                    Haptics.click()
+                }
+                SideButton(title: "Mute Enable", active: app.muteEnabled, style: .red) {
+                    app.muteEnabled.toggle()
+                    Haptics.click()
+                }
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 4) {
+                        SideButton(title: "LR Mix", active: app.sendsBus == nil, stripe: Theme.solo) {
+                            app.selectSendsBus(nil)
+                        }
+                        ForEach(1...16, id: \.self) { bus in
+                            SoFButton(app: app, bus: bus)
+                        }
+                    }
+                }
             }
-            .disabled(!anySolo)
-        } else {
-            Button {
-                app.clearSolo()
-            } label: {
-                Text(anySolo ? "Clear solo" : "No solo")
-                    .barChip(active: anySolo, tint: Theme.solo)
+            .frame(width: column)
+            VStack(spacing: 4) {
+                ForEach(MixerLayer.allCases) { layer in
+                    SideButton(title: layer.title, active: app.layer == layer, stripe: MixerSidebar.stripe(layer)) {
+                        app.selectLayer(layer)
+                    }
+                }
+                if pageCount > 1 {
+                    HStack(spacing: 4) {
+                        ForEach(0..<pageCount, id: \.self) { p in
+                            SideButton(title: pageLabel(p), active: min(page, pageCount - 1) == p, height: 36) {
+                                page = p
+                            }
+                        }
+                    }
+                }
+                Spacer(minLength: 8)
+                Text("Mute groups")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondary)
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 4), GridItem(.flexible(), spacing: 4)], spacing: 4) {
+                    ForEach(1...6, id: \.self) { n in
+                        MuteGroupButton(app: app, group: n, height: 34)
+                    }
+                }
+                ClearSoloButton(app: app)
             }
-            .buttonStyle(.plain)
-            .disabled(!anySolo)
+            .frame(width: column)
+        }
+        .padding(4)
+        .frame(maxHeight: .infinity, alignment: .top)
+        .background(Theme.background)
+    }
+
+    static func stripe(_ layer: MixerLayer) -> Color {
+        switch layer {
+        case .inputs1, .inputs2: return Theme.on
+        case .aux: return Color(red: 0.96, green: 0.62, blue: 0.22)
+        case .buses: return Theme.scribble(6)
+        case .matrix: return Theme.scribble(5)
+        case .dca: return Theme.mute
         }
     }
+
+    private func pageLabel(_ p: Int) -> String {
+        let first = p * perPage + 1
+        let last = min(total, (p + 1) * perPage)
+        return "\(first)-\(last)"
+    }
 }
 
-struct SceneButton: View {
-    let app: AppModel
+/// A sidebar button: dark, optional colour stripe on the left, green rim when selected.
+struct SideButton: View {
+    enum Style { case select, outline, red }
+
+    let title: String
+    let active: Bool
+    var stripe: Color? = nil
+    var style: Style = .select
+    var height: CGFloat = 46
+    let action: () -> Void
 
     var body: some View {
-        let current = app.param("/-show/prepos/current").int
-        let name = app.param(String(format: "/-show/showfile/scene/%03d/name", max(0, current))).string
-        Button {
-            app.loadScenes()
-            app.sheet = .scenes
-        } label: {
-            HStack(spacing: 6) {
-                Image(systemName: "square.stack.3d.up")
-                Text(name.isEmpty ? String(format: "Scene %02d", max(0, current)) : String(format: "%02d %@", max(0, current), name))
-                    .lineLimit(1)
+        Button(action: action) {
+            HStack(spacing: 0) {
+                if let stripe {
+                    Rectangle().fill(stripe).frame(width: 9)
+                }
+                Text(title)
+                    .font(.system(size: 13))
+                    .foregroundStyle(style == .red && active ? Color.white : Theme.text)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.65)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 3)
+                    .frame(maxWidth: .infinity)
             }
-            .barChip()
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .background(fill)
+            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .strokeBorder(rim ? Theme.on : Color.white.opacity(0.07), lineWidth: rim ? 2 : 1)
+            )
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
+
+    private var rim: Bool { active && style != .red }
+
+    private var fill: Color {
+        if style == .red && active { return Theme.mute }
+        return active ? Theme.raised2 : Theme.raised
+    }
 }
 
-/// Coloured banner shown while faders control sends to a mix bus.
-struct SendsBanner: View {
+private struct SoFButton: View {
     let app: AppModel
     let bus: Int
 
@@ -576,370 +501,413 @@ struct SendsBanner: View {
         let strip = StripID(.bus, bus)
         let name = app.param(strip.namePath).string
         let color = Theme.scribble(app.param(strip.colorPath).int)
-        HStack(spacing: 10) {
-            Image(systemName: "arrow.turn.down.right")
-            Text("Faders are sends to")
-                .foregroundStyle(Color.black.opacity(0.7))
-            Text(name.isEmpty ? "Bus \(bus)" : "Bus \(bus) · \(name)")
-                .fontWeight(.bold)
-            Spacer()
-            Button {
-                app.selectSendsBus(nil)
-            } label: {
-                Text("Back to main mix")
-                    .font(.system(size: 13, weight: .bold))
-                    .padding(.horizontal, 12)
-                    .frame(height: 28)
-                    .background(Capsule().fill(Color.black.opacity(0.25)))
-            }
-            .buttonStyle(.plain)
+        SideButton(title: name.isEmpty ? "Mix \(bus)" : name, active: app.sendsBus == bus, stripe: color) {
+            app.selectSendsBus(app.sendsBus == bus ? nil : bus)
         }
-        .font(.system(size: 14, weight: .semibold))
-        .foregroundStyle(Color.black.opacity(0.85))
-        .padding(.horizontal, 14)
-        .frame(height: 38)
-        .background(color.opacity(0.9))
     }
 }
 
-// MARK: - Strips
+struct ClearSoloButton: View {
+    let app: AppModel
+
+    var body: some View {
+        let anySolo = app.param("/-stat/solo").bool
+        LitButton(title: anySolo ? "Clear Solo" : "No Solo", isOn: anySolo, color: Theme.solo, height: 40, fontSize: 13, offColor: Theme.raised) {
+            app.clearSolo()
+        }
+        .disabled(!anySolo)
+    }
+}
+
+/// Makes every fader, pan and slider move 4x more slowly under your finger.
+struct FineButton: View {
+    let app: AppModel
+    var height: CGFloat = 36
+
+    var body: some View {
+        LitButton(title: "Fine", isOn: app.fineMode, height: height, fontSize: 13, style: .outline) {
+            app.fineMode.toggle()
+            Haptics.click()
+        }
+    }
+}
+
+// MARK: - Strip
 
 struct StripView: View {
     let app: AppModel
     let strip: StripID
     let sendsBus: Int?
-    var overview: Bool = true
-    var meterStereo: Bool = false
-    var caption: String? = nil
-    var tintOverride: Color? = nil
+    var detail: StripDetail = .full
+    var tallThumbs = false
+    var isMaster = false
 
     var body: some View {
-        let busTint: Color? = sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) }
-        let tint = tintOverride ?? busTint ?? Theme.accent
+        let selected = app.selectedStrip == strip
+        let busColor: Color? = sendsBus.map { Theme.scribble(app.param(StripID(.bus, $0).colorPath).int) }
         let faderAddress = sendsBus.map { strip.sendLevelPath($0) } ?? strip.faderPath
-        VStack(spacing: 5) {
-            if overview {
-                StripOverview(app: app, strip: strip, caption: caption)
+        let thumb: CGFloat = tallThumbs ? 62 : 46
+        VStack(spacing: 3) {
+            if detail >= .medium {
+                SourceChip(app: app, strip: strip, isMaster: isMaster)
+                    .frame(height: 20)
+                GainCell(app: app, strip: strip)
+                    .frame(height: 30)
+                StripLights(app: app, strip: strip)
+                    .frame(height: 29)
             }
-            StripScribble(app: app, strip: strip)
-            MuteButton(app: app, strip: strip, height: 34)
-            if let bus = sendsBus {
-                SendOnButton(app: app, strip: strip, bus: bus)
-            } else if let panPath = strip.panPath {
-                StripPan(app: app, address: panPath)
-            } else {
-                Color.clear.frame(height: 36)
+            if detail == .full {
+                StripThumbs(app: app, strip: strip, height: thumb)
             }
-            HStack(spacing: 3) {
-                ParamFader(app: app, address: faderAddress, steps: sendsBus == nil ? 1023 : 160, tint: tint, label: sendsBus == nil ? nil : "SEND")
-                if strip.kind != .dca {
-                    MeterView(meter: app.meters.meter(strip), stereo: meterStereo)
-                        .frame(width: meterStereo ? 14 : 8)
-                        .padding(.vertical, 18)
-                }
-            }
+            StripName(app: app, strip: strip)
+            MuteButton(app: app, strip: strip, height: 28)
+            SoloButton(app: app, strip: strip, height: 28)
+            StripPanSlot(app: app, strip: strip, sendsBus: sendsBus)
+                .frame(height: 22)
             FaderReadout(app: app, address: faderAddress)
-            SoloButton(app: app, strip: strip, height: 30)
-        }
-        .frame(maxWidth: .infinity)
-    }
-}
-
-/// Gain, processing lights and the little EQ / compressor pictures at the top of a strip.
-/// Each part opens the matching channel page.
-struct StripOverview: View {
-    let app: AppModel
-    let strip: StripID
-    var caption: String? = nil
-
-    var body: some View {
-        VStack(spacing: 4) {
-            if let caption {
-                Text(caption)
-                    .font(.system(size: 10, weight: .heavy))
-                    .foregroundStyle(Theme.tertiary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 34)
-            } else {
-                StripGainCell(app: app, strip: strip)
-                    .frame(height: 34)
-                    .contentShape(Rectangle())
-                    .onTapGesture { open(.input) }
-            }
-            StripLights(app: app, strip: strip)
-                .frame(height: 16)
-            Group {
-                if strip.hasEQ {
-                    StripEQThumb(app: app, strip: strip)
-                        .contentShape(Rectangle())
-                        .onTapGesture { open(.eq) }
-                } else {
-                    ThumbPlaceholder()
-                }
-            }
-            .frame(height: 30)
-            Group {
-                if strip.hasDynamics || strip.hasGate {
-                    StripDynThumb(app: app, strip: strip)
-                        .contentShape(Rectangle())
-                        .onTapGesture { open(.dynamics) }
-                } else {
-                    ThumbPlaceholder()
-                }
-            }
-            .frame(height: 24)
-        }
-    }
-
-    private func open(_ tab: DetailTab) {
-        let tabs = DetailTab.available(for: strip)
-        guard tabs.contains(tab) else { return }
-        app.detailTab = tab
-        app.openDetail(strip)
-        app.detailTab = tab
-    }
-}
-
-private struct ThumbPlaceholder: View {
-    var body: some View {
-        RoundedRectangle(cornerRadius: 5, style: .continuous)
-            .fill(Color.black.opacity(0.18))
-    }
-}
-
-/// Where the input comes from and its preamp gain, with a thin bar.
-struct StripGainCell: View {
-    let app: AppModel
-    let strip: StripID
-
-    var body: some View {
-        let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
-        let hasHeadamp = ha >= 0 && ha < 128
-        let gain = hasHeadamp ? app.param(StripID.headampGainPath(ha)) : nil
-        let norm = gain?.float(or: 0) ?? 0
-        VStack(spacing: 2) {
-            HStack(spacing: 2) {
-                Text(hasHeadamp ? StripGainCell.sourceLabel(ha) : (strip.hasTrim ? "TRIM" : ""))
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Theme.tertiary)
-                    .lineLimit(1)
-                Spacer(minLength: 0)
-            }
-            Text(valueText(hasHeadamp: hasHeadamp, gain: gain))
-                .font(Theme.mono(12, .semibold))
-                .foregroundStyle(Theme.text)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Theme.raised2)
-                    if hasHeadamp {
-                        Capsule().fill(Theme.accent.opacity(0.85))
-                            .frame(width: max(3, geo.size.width * CGFloat(min(max(norm, 0), 1))))
-                    }
-                }
-            }
-            .frame(height: 4)
-        }
-        .padding(.horizontal, 4)
-        .padding(.vertical, 3)
-        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(Color.black.opacity(0.25)))
-        .opacity(strip.hasInputPage ? 1 : 0.35)
-    }
-
-    private func valueText(hasHeadamp: Bool, gain: Param?) -> String {
-        if hasHeadamp, let gain, gain.isKnown {
-            return Specs.headampGain.display(gain.float)
-        }
-        if strip.hasTrim {
-            let trim = app.param(strip.preampPath("trim"))
-            return trim.isKnown ? Specs.trim.display(trim.float) : "—"
-        }
-        return ""
-    }
-
-    /// Headamps 0-31 are the local inputs, 32-79 AES50 A, 80-127 AES50 B.
-    static func sourceLabel(_ ha: Int) -> String {
-        switch ha {
-        case 0..<32: return "IN \(ha + 1)"
-        case 32..<80: return "A\(ha - 31)"
-        default: return "B\(ha - 79)"
-        }
-    }
-}
-
-/// +48 / gate / EQ / compressor status lights.
-struct StripLights: View {
-    let app: AppModel
-    let strip: StripID
-
-    var body: some View {
-        let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
-        let phantom = ha >= 0 && ha < 128 && app.param(StripID.headampPhantomPath(ha)).bool
-        HStack(spacing: 2) {
-            Light(text: "48", on: phantom, color: Theme.mute, present: ha >= 0 && ha < 128)
-            Light(text: "G", on: strip.hasGate && app.param(strip.gatePath("on")).bool, color: Theme.on, present: strip.hasGate)
-            Light(text: "EQ", on: strip.hasEQ && app.param(strip.eqOnPath).bool, color: Theme.accent, present: strip.hasEQ)
-            Light(text: "C", on: strip.hasDynamics && app.param(strip.dynPath("on")).bool, color: Theme.accent, present: strip.hasDynamics)
-        }
-    }
-
-    private struct Light: View {
-        let text: String
-        let on: Bool
-        let color: Color
-        let present: Bool
-
-        var body: some View {
-            Text(present ? text : "")
-                .font(.system(size: 8, weight: .heavy))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-                .foregroundStyle(on ? Color.black.opacity(0.85) : Theme.tertiary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: 3, style: .continuous)
-                        .fill(on ? color : Theme.raised.opacity(present ? 1 : 0.4))
-                )
-        }
-    }
-}
-
-/// A tiny drawing of the channel's EQ curve (including the low cut).
-struct StripEQThumb: View {
-    let app: AppModel
-    let strip: StripID
-
-    var body: some View {
-        let eqOn = app.param(strip.eqOnPath).bool
-        let bands: [EQBandValues] = (1...max(strip.eqBandCount, 1)).map { band in
-            EQBandValues(
-                band: band,
-                type: app.param(strip.eqPath(band, "type")).int(or: 2),
-                freqNorm: app.param(strip.eqPath(band, "f")).float(or: 0.5),
-                gainNorm: app.param(strip.eqPath(band, "g")).float(or: 0.5),
-                qNorm: app.param(strip.eqPath(band, "q")).float(or: 0.5)
-            )
-        }
-        let lowCut: (Double, Int)? = strip.hasHighPass && app.param(strip.preampPath("hpon")).bool
-            ? (Double(Specs.hpf.value(app.param(strip.preampPath("hpf")).float(or: 0))), app.param(strip.preampPath("hpslope")).int)
-            : nil
-        let bandCount = strip.eqBandCount
-        Canvas { ctx, size in
-            ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 5), with: .color(Color.black.opacity(0.35)))
-            var zero = Path()
-            zero.move(to: CGPoint(x: 0, y: size.height / 2))
-            zero.addLine(to: CGPoint(x: size.width, y: size.height / 2))
-            ctx.stroke(zero, with: .color(Color.white.opacity(0.1)), lineWidth: 1)
-            let steps = 36
-            var curve = Path()
-            for i in 0..<steps {
-                let norm = Double(i) / Double(steps - 1)
-                let f = 20 * pow(1000, norm)
-                var db: Double = 0
-                if eqOn {
-                    for b in bands {
-                        db += EQMath.bandDB(type: b.type, band: b.band, bandCount: bandCount, freq: Double(b.freq), gain: Double(b.gain), q: Double(b.q), at: f)
-                    }
-                }
-                if let lc = lowCut {
-                    db += EQMath.lowCutDB(freq: lc.0, slope: lc.1, at: f)
-                }
-                let clamped = max(min(db, 18), -18)
-                let point = CGPoint(x: CGFloat(norm) * size.width, y: size.height / 2 - CGFloat(clamped / 18) * (size.height / 2 - 2))
-                if i == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
-            }
-            ctx.stroke(curve, with: .color(eqOn || lowCut != nil ? Theme.accent : Theme.tertiary), lineWidth: 1.5)
-        }
-        .accessibilityLabel("EQ")
-        .accessibilityAddTraits(.isButton)
-    }
-}
-
-/// A tiny compressor transfer curve with a gain-reduction bar.
-struct StripDynThumb: View {
-    let app: AppModel
-    let strip: StripID
-
-    var body: some View {
-        let on = strip.hasDynamics && app.param(strip.dynPath("on")).bool
-        let threshold = strip.hasDynamics ? Double(Specs.dynThreshold.value(app.param(strip.dynPath("thr")).float(or: 1))) : 0
-        let ratioIndex = min(max(app.param(strip.dynPath("ratio")).int(or: 3), 0), X32Enums.ratioValues.count - 1)
-        let ratio = Double(X32Enums.ratioValues[ratioIndex])
-        let reduction = Double(app.meters.meter(strip).dynReduction)
-        Canvas { ctx, size in
-            ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 5), with: .color(Color.black.opacity(0.35)))
-            let barWidth: CGFloat = 5
-            let plot = CGRect(x: 3, y: 2, width: size.width - barWidth - 8, height: size.height - 4)
-            let range: Double = 60
-            func x(_ db: Double) -> CGFloat { plot.minX + CGFloat((db + range) / range) * plot.width }
-            func y(_ db: Double) -> CGFloat { plot.maxY - CGFloat((db + range) / range) * plot.height }
-            var curve = Path()
-            curve.move(to: CGPoint(x: x(-range), y: y(-range)))
-            if on && threshold > -range {
-                curve.addLine(to: CGPoint(x: x(threshold), y: y(threshold)))
-                curve.addLine(to: CGPoint(x: x(0), y: y(threshold + (0 - threshold) / ratio)))
-            } else {
-                curve.addLine(to: CGPoint(x: x(0), y: y(0)))
-            }
-            ctx.stroke(curve, with: .color(on ? Theme.accent : Theme.tertiary), lineWidth: 1.5)
-            let track = CGRect(x: size.width - barWidth - 3, y: 2, width: barWidth, height: size.height - 4)
-            ctx.fill(Path(roundedRect: track, cornerRadius: 1.5), with: .color(Theme.raised2))
-            if on && reduction > 0.2 {
-                let h = track.height * CGFloat(min(reduction, 24) / 24)
-                ctx.fill(Path(roundedRect: CGRect(x: track.minX, y: track.minY, width: barWidth, height: h), cornerRadius: 1.5), with: .color(Theme.solo))
-            }
-        }
-        .accessibilityLabel("Dynamics")
-        .accessibilityAddTraits(.isButton)
-    }
-}
-
-/// Pan control with its value underneath.
-struct StripPan: View {
-    let app: AppModel
-    let address: String
-
-    var body: some View {
-        VStack(spacing: 2) {
-            ParamPan(app: app, address: address)
-            Text(panText(app.param(address).float(or: 0.5)))
-                .font(Theme.mono(10))
-                .foregroundStyle(Theme.secondary)
+            StripFader(app: app, strip: strip, address: faderAddress, steps: sendsBus == nil ? 1023 : 160, capTint: busColor)
+            Text(strip.footLabel)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.text.opacity(0.8))
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                .frame(height: 12)
+                .frame(height: 14)
         }
-        .frame(height: 36)
+        .padding(.horizontal, 3)
+        .padding(.vertical, 4)
+        .frame(maxWidth: .infinity)
+        .background(Theme.panel)
+        .overlay(
+            Rectangle().strokeBorder(selected ? Theme.on : Color.clear, lineWidth: 1.5)
+        )
     }
 }
 
-struct StripScribble: View {
+private struct StripName: View {
     let app: AppModel
     let strip: StripID
 
     var body: some View {
         let name = app.param(strip.namePath).string
-        let color = app.param(strip.colorPath).int
-        ScribbleView(name: name, colorIndex: color, number: strip.numberLabel, placeholder: strip.defaultName)
+        ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 32, fontSize: 11)
             .onTapGesture {
-                app.openDetail(strip)
+                app.openDetail(strip, tab: strip.kind == .dca ? .setup : .overview)
             }
             .accessibilityLabel("\(strip.shortLabel) \(name)")
             .accessibilityAddTraits(.isButton)
     }
 }
 
+private struct StripPanSlot: View {
+    let app: AppModel
+    let strip: StripID
+    let sendsBus: Int?
+
+    var body: some View {
+        if let bus = sendsBus {
+            SendOnButton(app: app, strip: strip, bus: bus)
+        } else if let panPath = strip.panPath {
+            ParamPan(app: app, address: panPath)
+        } else {
+            Color.clear
+        }
+    }
+}
+
+private struct StripFader: View {
+    let app: AppModel
+    let strip: StripID
+    let address: String
+    let steps: Int
+    let capTint: Color?
+
+    var body: some View {
+        HStack(spacing: 2) {
+            ParamFader(app: app, address: address, steps: steps, capTint: capTint)
+            if strip.kind != .dca {
+                MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
+                    .frame(width: strip.kind == .main ? 11 : 6)
+                    .padding(.vertical, 14)
+                if strip.hasDynamics {
+                    GRBar(reduction: app.meters.meter(strip).dynReduction)
+                        .frame(width: 3)
+                        .padding(.vertical, 14)
+                }
+            }
+        }
+    }
+}
+
+/// Where the channel's signal comes from ("Loc 01", "A 05"), in the channel colour.
+private struct SourceChip: View {
+    let app: AppModel
+    let strip: StripID
+    let isMaster: Bool
+
+    var body: some View {
+        let style = ScribbleStyle(colorIndex: app.param(strip.colorPath).int)
+        Text(label)
+            .font(.system(size: 11))
+            .lineLimit(1)
+            .minimumScaleFactor(0.6)
+            .foregroundStyle(style.text)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Rectangle().fill(style.fill))
+    }
+
+    private var label: String {
+        if isMaster { return strip.kind == .main ? "Main" : "Bus master" }
+        if let path = strip.headampIndexPath {
+            let ha = app.param(path).int(or: -1)
+            if ha >= 0 && ha < 128 {
+                return StripSource.headampLabel(ha)
+            }
+            if strip.kind == .channel {
+                let src = app.param(strip.sourcePath)
+                return src.isKnown ? X32Enums.sourceName(src.int) : ""
+            }
+        }
+        return strip.footLabel
+    }
+}
+
+enum StripSource {
+    /// Headamps 0-31 are the local inputs, 32-79 AES50 A, 80-127 AES50 B.
+    static func headampLabel(_ ha: Int) -> String {
+        switch ha {
+        case 0..<32: return String(format: "Loc %02d", ha + 1)
+        case 32..<80: return String(format: "A %02d", ha - 31)
+        default: return String(format: "B %02d", ha - 79)
+        }
+    }
+}
+
+/// Preamp gain (or trim) with a small bar. Drag sideways to change it.
+private struct GainCell: View {
+    let app: AppModel
+    let strip: StripID
+    @State private var drag = DragTarget()
+
+    var body: some View {
+        let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
+        if ha >= 0 && ha < 128 {
+            let address = StripID.headampGainPath(ha)
+            let p = app.param(address)
+            MiniSlider(
+                value: p.float(or: 0),
+                display: p.isKnown ? Specs.headampGain.display(p.float) : "—",
+                fine: app.fineMode,
+                onChange: { v in app.dragSet(address, drag, v, steps: Specs.headampGain.steps) },
+                onTouch: { began in
+                    if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+                }
+            )
+        } else if strip.hasTrim {
+            let address = strip.preampPath("trim")
+            let p = app.param(address)
+            MiniSlider(
+                value: p.float(or: 0.5),
+                display: p.isKnown ? Specs.trim.display(p.float) : "—",
+                bipolar: true,
+                fine: app.fineMode,
+                onChange: { v in app.dragSet(address, drag, v, steps: Specs.trim.steps) },
+                onTouch: { began in
+                    if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+                }
+            )
+        } else {
+            Color.clear
+        }
+    }
+}
+
+/// A tiny value-over-bar slider for the strip's gain.
+struct MiniSlider: View {
+    let value: Float
+    let display: String
+    var bipolar = false
+    var fine = false
+    let onChange: (Float) -> Void
+    var onTouch: (Bool) -> Void = { _ in }
+
+    @State private var dragValue: Float = 0
+    @State private var lastPoint: CGPoint = .zero
+    @State private var touching = false
+
+    var body: some View {
+        GeometryReader { geo in
+            let width = geo.size.width
+            VStack(spacing: 2) {
+                Text(display)
+                    .font(Theme.mono(10))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                MiniBar(value: value, bipolar: bipolar, touching: touching)
+                    .frame(height: 10)
+            }
+            .padding(.horizontal, 2)
+            .frame(width: width, height: geo.size.height)
+            .overlay(
+                TouchSurface(
+                    axis: .horizontal,
+                    onBegin: { p in
+                        touching = true
+                        dragValue = value
+                        lastPoint = p
+                        onTouch(true)
+                    },
+                    onMove: { p in
+                        let dx = p.x - lastPoint.x
+                        lastPoint = p
+                        var next = dragValue + Float(dx / 240) * (fine ? 0.25 : 1)
+                        next = min(max(next, 0), 1)
+                        dragValue = next
+                        onChange(next)
+                    },
+                    onEnd: { _, _ in
+                        touching = false
+                        onTouch(false)
+                    }
+                )
+            )
+        }
+        .onDisappear {
+            if touching {
+                touching = false
+                onTouch(false)
+            }
+        }
+    }
+}
+
+private struct MiniBar: View {
+    let value: Float
+    let bipolar: Bool
+    let touching: Bool
+
+    var body: some View {
+        Canvas { ctx, size in
+            let rect = CGRect(origin: .zero, size: size)
+            ctx.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.black.opacity(0.35)))
+            let v = CGFloat(min(max(value, 0), 1))
+            let start = bipolar ? min(v, 0.5) : 0
+            let end = bipolar ? max(v, 0.5) : v
+            let fill = CGRect(x: 1 + start * (size.width - 2), y: 1, width: max(2, (end - start) * (size.width - 2)), height: size.height - 2)
+            ctx.fill(Path(roundedRect: fill, cornerRadius: 1.5), with: .color(Theme.accent))
+            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 2), with: .color(touching ? Theme.text : Color.white.opacity(0.14)), lineWidth: 1)
+        }
+    }
+}
+
+/// +48 / G / EQ / C. Gate, EQ and compressor toggle on tap; +48 opens the input page instead
+/// (phantom power is never switched from the mixer by accident).
+private struct StripLights: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
+        let hasHeadamp = ha >= 0 && ha < 128
+        let phantom = hasHeadamp && app.param(StripID.headampPhantomPath(ha)).bool
+        VStack(spacing: 2) {
+            HStack(spacing: 2) {
+                StripLight(text: "+48", on: phantom, color: Theme.mute, off: Theme.phantomOff, present: hasHeadamp) {
+                    app.openDetail(strip, tab: .input)
+                }
+                StripLight(text: "G", on: strip.hasGate && app.param(strip.gatePath("on")).bool, color: Theme.on, off: Theme.raised2, present: strip.hasGate) {
+                    toggle(strip.gatePath("on"))
+                }
+            }
+            HStack(spacing: 2) {
+                StripLight(text: "EQ", on: strip.hasEQ && app.param(strip.eqOnPath).bool, color: Theme.on, off: Theme.raised2, present: strip.hasEQ) {
+                    toggle(strip.eqOnPath)
+                }
+                StripLight(text: "C", on: strip.hasDynamics && app.param(strip.dynPath("on")).bool, color: Theme.on, off: Theme.raised2, present: strip.hasDynamics) {
+                    toggle(strip.dynPath("on"))
+                }
+            }
+        }
+    }
+
+    private func toggle(_ address: String) {
+        let p = app.param(address)
+        guard p.isKnown else { return }
+        app.setBool(address, !p.bool)
+    }
+}
+
+private struct StripLight: View {
+    let text: String
+    let on: Bool
+    let color: Color
+    let off: Color
+    let present: Bool
+    let action: () -> Void
+
+    var body: some View {
+        if present {
+            LitButton(title: text, isOn: on, color: color, height: 13.5, fontSize: 9, offColor: off, action: action)
+        } else {
+            Color.black.opacity(0.2)
+                .frame(maxWidth: .infinity)
+                .frame(height: 13.5)
+        }
+    }
+}
+
+/// Gate, EQ and compressor pictures. Tap one to open that page.
+private struct StripThumbs: View {
+    let app: AppModel
+    let strip: StripID
+    let height: CGFloat
+
+    var body: some View {
+        VStack(spacing: 2) {
+            ThumbSlot(app: app, strip: strip, tab: .gate, present: strip.hasGate, height: height) {
+                GateGraph(app: app, strip: strip)
+            }
+            ThumbSlot(app: app, strip: strip, tab: .eq, present: strip.hasEQ, height: height) {
+                EQThumb(app: app, strip: strip)
+            }
+            ThumbSlot(app: app, strip: strip, tab: .comp, present: strip.hasDynamics, height: height) {
+                CompGraph(app: app, strip: strip)
+            }
+        }
+    }
+}
+
+private struct ThumbSlot<Content: View>: View {
+    let app: AppModel
+    let strip: StripID
+    let tab: DetailTab
+    let present: Bool
+    let height: CGFloat
+    @ViewBuilder var content: Content
+
+    var body: some View {
+        if present {
+            content
+                .frame(height: height)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    app.openDetail(strip, tab: tab)
+                }
+        } else {
+            Theme.graphBack.opacity(0.4)
+                .frame(height: height)
+        }
+    }
+}
+
 struct MuteButton: View {
     let app: AppModel
     let strip: StripID
-    var height: CGFloat = 32
+    var height: CGFloat = 30
 
     var body: some View {
         let muted = app.param(strip.onPath).int(or: 1) == 0
-        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height) {
+        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: 12, offColor: Theme.muteOff, enabled: app.muteEnabled) {
             app.toggleMute(strip)
         }
     }
@@ -948,11 +916,11 @@ struct MuteButton: View {
 struct SoloButton: View {
     let app: AppModel
     let strip: StripID
-    var height: CGFloat = 26
+    var height: CGFloat = 30
 
     var body: some View {
         let solo = app.param(strip.soloPath).bool
-        LitButton(title: "SOLO", isOn: solo, color: Theme.solo, height: height) {
+        LitButton(title: "SOLO", isOn: solo, color: Theme.solo, height: height, fontSize: 12, offColor: Theme.soloOff) {
             app.toggleSolo(strip)
         }
     }
@@ -966,7 +934,7 @@ struct SendOnButton: View {
     var body: some View {
         let address = strip.sendOnPath(bus)
         let on = app.param(address).int(or: 1) != 0
-        LitButton(title: on ? "SEND ON" : "SEND OFF", isOn: on, color: Theme.on, height: 36, fontSize: 9) {
+        LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 22, fontSize: 10, offColor: Theme.raised) {
             app.setBool(address, !on)
         }
     }
@@ -975,12 +943,14 @@ struct SendOnButton: View {
 struct ParamPan: View {
     let app: AppModel
     let address: String
+    var height: CGFloat = 22
     @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
         PanControl(
             value: p.float(or: 0.5),
+            height: height,
             fine: app.fineMode,
             onChange: { v in app.dragSet(address, drag, v, steps: 100) },
             onTouch: { began in
@@ -995,21 +965,21 @@ struct ParamFader: View {
     let app: AppModel
     let address: String
     let steps: Int
-    var tint: Color = Theme.accent
     var label: String? = nil
     var maxValue: Float = 1
+    var capTint: Color? = nil
     @State private var drag = DragTarget()
 
     var body: some View {
         let p = app.param(address)
         FaderView(
             value: p.float,
-            tint: tint,
             maxValue: maxValue,
             showScale: app.settings.showFaderScale,
             hapticAtUnity: app.settings.hapticAtUnity,
             capLabel: label,
             fine: app.fineMode,
+            capTint: capTint,
             onChange: { v in app.dragSet(address, drag, v, steps: steps) },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -1021,31 +991,16 @@ struct ParamFader: View {
 struct FaderReadout: View {
     let app: AppModel
     let address: String
+    var size: CGFloat = 11
 
     var body: some View {
         let p = app.param(address)
         Text(p.isKnown ? X32Math.formatFader(p.float) : "—")
-            .font(Theme.mono(12, .semibold))
+            .font(Theme.mono(size))
             .foregroundStyle(Theme.text)
             .lineLimit(1)
             .minimumScaleFactor(0.7)
             .frame(maxWidth: .infinity)
-            .frame(height: 18)
-    }
-}
-
-/// The right-hand master: Main LR normally, or the selected bus while in sends-on-faders.
-struct MasterStrip: View {
-    let app: AppModel
-    var overview: Bool = true
-
-    var body: some View {
-        if let bus = app.sendsBus, app.layer.supportsBusSends {
-            let strip = StripID(.bus, bus)
-            StripView(app: app, strip: strip, sendsBus: nil, overview: overview, caption: "BUS \(bus)\nMASTER",
-                      tintOverride: Theme.scribble(app.param(strip.colorPath).int))
-        } else {
-            StripView(app: app, strip: StripID.mainLR, sendsBus: nil, overview: overview, meterStereo: true, caption: "MAIN\nLR")
-        }
+            .frame(height: 14)
     }
 }

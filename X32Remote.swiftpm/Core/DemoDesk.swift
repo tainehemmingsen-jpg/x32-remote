@@ -352,6 +352,41 @@ final class DemoTransport: X32Transport {
         values[kick.dynPath("thr")] = .float(X32Math.linInverse(-14, -60, 0))
         values[kick.dynPath("ratio")] = .int(5)
 
+        // Typical processing elsewhere, so every strip's pictures look like a real show.
+        let compOn: [Int] = [2, 4, 5, 8, 9, 10, 11, 12, 15, 17, 18, 19, 20, 21, 22]
+        for n in compOn {
+            let s = StripID(.channel, n)
+            values[s.dynPath("on")] = .int(1)
+            values[s.dynPath("thr")] = .float(X32Math.linInverse(Float(-12 - (n * 7) % 18), -60, 0))
+            values[s.dynPath("ratio")] = .int(Int32(3 + n % 4))
+        }
+        for n in [2, 4, 5, 9] {
+            let s = StripID(.channel, n)
+            values[s.gatePath("on")] = .int(1)
+            values[s.gatePath("thr")] = .float(X32Math.linInverse(Float(-34 - n * 2), -80, 0))
+            values[s.gatePath("range")] = .float(X32Math.linInverse(Float(20 + n * 4), 3, 60))
+        }
+        let eqShapes: [Int: [(Int, Float, Float)]] = [
+            2: [(2, 220, 3), (3, 900, -4), (4, 6000, 3)],
+            3: [(2, 600, -3), (4, 10000, 4)],
+            4: [(2, 120, 4), (3, 600, -6)],
+            5: [(2, 90, 4), (3, 500, -6)],
+            8: [(2, 80, 3), (3, 700, -3)],
+            10: [(2, 300, -3), (3, 2500, 3)],
+            11: [(2, 350, -2), (3, 3000, 2)],
+            12: [(2, 250, -4), (4, 9000, 3)],
+            13: [(3, 1500, -2)],
+            15: [(2, 400, -3), (3, 5000, 2)]
+        ]
+        for (n, bands) in eqShapes {
+            let s = StripID(.channel, n)
+            values[s.eqOnPath] = .int(1)
+            for (band, freq, gain) in bands {
+                values[s.eqPath(band, "f")] = .float(X32Math.logInverse(freq, 20, 20000))
+                values[s.eqPath(band, "g")] = .float(X32Math.linInverse(gain, -15, 15))
+            }
+        }
+
         let aux: [(String, Int)] = [("Walk-in L", 14), ("Walk-in R", 14), ("Video L", 6), ("Video R", 6), ("", 0), ("", 0), ("USB L", 15), ("USB R", 15)]
         for (i, a) in aux.enumerated() {
             let s = StripID(.auxIn, i + 1)

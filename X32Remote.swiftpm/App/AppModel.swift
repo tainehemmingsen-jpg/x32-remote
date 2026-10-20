@@ -40,9 +40,13 @@ final class AppModel {
     var sendsBus: Int?
     var detailStrip: StripID?
     var sheet: Sheet?
-    var detailTab: DetailTab = .eq
+    var detailTab: DetailTab = .overview
     /// Fine mode: every fader, slider and pan moves 4x more slowly.
     var fineMode = false
+    /// When off, the mute buttons on the strips can't be pressed (a safety catch mid-show).
+    var muteEnabled = true
+    /// The last channel opened, outlined on the mixer.
+    var selectedStrip: StripID?
     /// The channel the open channel page is showing now (it can step prev/next).
     @ObservationIgnored var visibleDetailStrip: StripID?
 
@@ -343,7 +347,11 @@ final class AppModel {
                 a.append(s.preampPath("hpf"))
                 a.append(s.preampPath("hpslope"))
             }
-            if s.hasGate { a.append(s.gatePath("on")) }
+            if s.hasGate {
+                for field in ["on", "mode", "thr", "range"] {
+                    a.append(s.gatePath(field))
+                }
+            }
             if s.hasEQ {
                 a.append(s.eqOnPath)
                 for band in 1...s.eqBandCount {
@@ -353,7 +361,7 @@ final class AppModel {
                 }
             }
             if s.hasDynamics {
-                for field in ["on", "mode", "thr", "ratio", "knee"] {
+                for field in ["on", "mode", "thr", "ratio", "knee", "mgain"] {
                     a.append(s.dynPath(field))
                 }
             }
@@ -553,11 +561,15 @@ final class AppModel {
 
     // MARK: - Navigation
 
-    func openDetail(_ strip: StripID) {
-        if !strip.hasEQ && detailTab == .eq {
-            detailTab = .setup
+    func openDetail(_ strip: StripID, tab: DetailTab? = nil) {
+        if let tab {
+            detailTab = tab
+        }
+        if !DetailTab.available(for: strip).contains(detailTab) {
+            detailTab = DetailTab.available(for: strip).first ?? .setup
         }
         loadDetail(strip)
+        selectedStrip = strip
         detailStrip = strip
     }
 
@@ -631,7 +643,7 @@ final class AppModel {
             let bus = d.integer(forKey: "autoSends")
             selectSendsBus(bus >= 1 && bus <= 16 ? bus : nil)
         }
-        if let tabName = d.string(forKey: "autoTab"), let t = DetailTab(rawValue: tabName) {
+        if let tabName = d.string(forKey: "autoTab"), let t = DetailTab(rawValue: tabName == "dynamics" ? "comp" : tabName) {
             detailTab = t
         }
         if let detail = d.string(forKey: "autoDetail") {
@@ -676,27 +688,31 @@ final class DragTarget {
     var blocked = false
 }
 
-/// Tabs on the channel page.
+/// Pages of the channel view, one per processing block.
 enum DetailTab: String, CaseIterable, Identifiable {
-    case input, eq, dynamics, sends, setup
+    case overview, input, gate, eq, comp, sends, setup
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
+        case .overview: return "Overview"
         case .input: return "Input"
+        case .gate: return "Gate"
         case .eq: return "EQ"
-        case .dynamics: return "Dynamics"
+        case .comp: return "Compressor"
         case .sends: return "Sends"
-        case .setup: return "Setup"
+        case .setup: return "Config"
         }
     }
 
     static func available(for strip: StripID) -> [DetailTab] {
-        var tabs: [DetailTab] = []
+        if strip.kind == .dca { return [.setup] }
+        var tabs: [DetailTab] = [.overview]
         if strip.hasInputPage { tabs.append(.input) }
+        if strip.hasGate { tabs.append(.gate) }
         if strip.hasEQ { tabs.append(.eq) }
-        if strip.hasGate || strip.hasDynamics { tabs.append(.dynamics) }
+        if strip.hasDynamics { tabs.append(.comp) }
         if strip.hasSendsPage { tabs.append(.sends) }
         tabs.append(.setup)
         return tabs

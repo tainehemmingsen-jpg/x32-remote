@@ -8,35 +8,46 @@ struct InputPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 2) {
                 ViewThatFits(in: .horizontal) {
-                    HStack(alignment: .top, spacing: 14) {
-                        Panel(title: "Preamp") {
+                    HStack(alignment: .top, spacing: 2) {
+                        Cell {
                             PreampControls(app: app, strip: strip)
+                                .padding(14)
                         }
                         if strip.hasHighPass {
-                            Panel(title: "Low cut") {
+                            Cell {
                                 LowCutControls(app: app, strip: strip)
+                                    .padding(14)
                             }
                         }
                     }
-                    VStack(spacing: 14) {
-                        Panel(title: "Preamp") {
+                    .frame(minWidth: 620)
+                    VStack(spacing: 2) {
+                        Cell {
                             PreampControls(app: app, strip: strip)
+                                .padding(14)
                         }
                         if strip.hasHighPass {
-                            Panel(title: "Low cut") {
+                            Cell {
                                 LowCutControls(app: app, strip: strip)
+                                    .padding(14)
                             }
                         }
                     }
                 }
-                Panel(title: "Input level") {
-                    InputMeterRow(app: app, strip: strip)
+                Cell {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Input level")
+                            .font(.system(size: 13))
+                            .foregroundStyle(Theme.secondary)
+                        InputMeterRow(app: app, strip: strip)
+                        SourceNote(app: app, strip: strip)
+                    }
+                    .padding(14)
                 }
-                SourceNote(app: app, strip: strip)
             }
-            .padding(16)
+            .padding(2)
         }
     }
 }
@@ -50,7 +61,18 @@ private struct PreampControls: View {
         let haIndex = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
         let hasHeadamp = haIndex >= 0 && haIndex < 128
         let phantomOn = hasHeadamp && app.param(StripID.headampPhantomPath(haIndex)).bool
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Preamp")
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.secondary)
+                Spacer()
+                if hasHeadamp {
+                    Text(StripSource.headampLabel(haIndex))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Theme.secondary)
+                }
+            }
             if hasHeadamp {
                 ParamKnob(app: app, address: StripID.headampGainPath(haIndex), spec: Specs.headampGain, title: "Gain")
             } else {
@@ -61,50 +83,22 @@ private struct PreampControls: View {
             if strip.hasTrim {
                 ParamKnob(app: app, address: strip.preampPath("trim"), spec: Specs.trim, title: "Trim", bipolar: true, resettable: true)
             }
-            HStack(alignment: .top, spacing: 18) {
+            HStack(spacing: 10) {
                 if hasHeadamp {
-                    PhantomSwitch(app: app, address: StripID.headampPhantomPath(haIndex), confirm: $confirmPhantom)
+                    LitButton(title: "+48V", isOn: phantomOn, color: Theme.mute, height: 44, fontSize: 13, offColor: Theme.phantomOff) {
+                        confirmPhantom = true
+                    }
+                    .frame(width: 100)
                 }
                 if strip.hasPolarity {
-                    VStack(spacing: 6) {
-                        Text("POLARITY")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(Theme.secondary)
-                        OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø", color: Theme.accent, width: 56)
-                    }
+                    OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø Invert", width: 100)
                 }
             }
         }
-        .alert(phantomOn ? "Turn off 48V phantom power?" : "Turn on 48V phantom power?", isPresented: $confirmPhantom) {
-            Button(phantomOn ? "Turn off 48V" : "Turn on 48V", role: .destructive) {
-                if hasHeadamp {
-                    app.setBool(StripID.headampPhantomPath(haIndex), !phantomOn)
-                }
+        .phantomConfirm(isPresented: $confirmPhantom, on: phantomOn) {
+            if hasHeadamp {
+                app.setBool(StripID.headampPhantomPath(haIndex), !phantomOn)
             }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text(phantomOn
-                 ? "Condenser mics and DI boxes on this input will go silent."
-                 : "Phantom power can damage ribbon mics and some line-level gear. Pull the channel down first.")
-        }
-    }
-}
-
-private struct PhantomSwitch: View {
-    let app: AppModel
-    let address: String
-    @Binding var confirm: Bool
-
-    var body: some View {
-        let on = app.param(address).bool
-        VStack(spacing: 6) {
-            Text("PHANTOM")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Theme.secondary)
-            LitButton(title: "48V", isOn: on, color: Theme.mute, height: 32) {
-                confirm = true
-            }
-            .frame(width: 64)
         }
     }
 }
@@ -114,12 +108,12 @@ private struct LowCutControls: View {
     let strip: StripID
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
-                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "LOW CUT", width: 96)
-                Text("SLOPE")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Low cut")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.secondary)
+            HStack(spacing: 10) {
+                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)
                 EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
             }
             ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Frequency", enabled: app.param(strip.preampPath("hpon")).bool)
@@ -199,113 +193,105 @@ private struct SourceNote: View {
 
 // MARK: - Sends
 
+/// Every send of the channel as its own fader, with tap point and on/off underneath.
 struct SendsPage: View {
     let app: AppModel
     let strip: StripID
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 8) {
-                if strip.sendCount > 0 {
-                    ForEach(1...strip.sendCount, id: \.self) { n in
-                        SendRow(app: app, strip: strip, n: n)
+        GeometryReader { geo in
+            let count = max(strip.sendCount, 1)
+            let columnWidth = max(64, (geo.size.width - 4) / CGFloat(count))
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 1) {
+                    ForEach(1...count, id: \.self) { n in
+                        SendColumn(app: app, strip: strip, n: n)
+                            .frame(width: columnWidth - 1)
                     }
                 }
-                Text(strip.sendsFeedMatrix ? "Sends from this bus to the six matrix outputs." : "Tap a bus name to put its sends on the faders.")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Theme.tertiary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 6)
+                .frame(height: geo.size.height - 4)
+                .padding(2)
             }
-            .padding(16)
+            .scrollDisabled(columnWidth * CGFloat(count) <= geo.size.width)
         }
+        .background(Color.black)
     }
 }
 
-private struct SendRow: View {
+private struct SendColumn: View {
     let app: AppModel
     let strip: StripID
     let n: Int
     @Environment(\.dismiss) private var dismiss
-    @State private var drag = DragTarget()
 
     var body: some View {
         let target = strip.sendsFeedMatrix ? StripID(.matrix, n) : StripID(.bus, n)
         let name = app.param(target.namePath).string
-        let color = Theme.scribble(app.param(target.colorPath).int)
+        let colorIndex = app.param(target.colorPath).int
         let levelAddress = strip.sendLevelPath(n)
         let onAddress = strip.sendOnPath(n)
-        let level = app.param(levelAddress)
         let on = app.param(onAddress).int(or: 1) != 0
         let tap = app.param(strip.sendTypePath(n))
-        let nameButton = Button {
-            guard target.kind == .bus else { return }
-            app.selectSendsBus(n)
-            dismiss()
+        VStack(spacing: 4) {
+            ScribbleView(name: name, colorIndex: colorIndex, placeholder: target.footLabel, height: 30, fontSize: 11)
+                .onTapGesture {
+                    // Put this mix's sends on the faders.
+                    guard target.kind == .bus else { return }
+                    app.selectSendsBus(n)
+                    dismiss()
+                }
+            FaderReadout(app: app, address: levelAddress)
+            ParamFader(app: app, address: levelAddress, steps: 160)
+                .opacity(on ? 1 : 0.5)
+            Text(target.footLabel)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.text.opacity(0.8))
+            if n % 2 == 1 || strip.sendsFeedMatrix {
+                TapMenu(app: app, address: strip.sendTypePath(n), current: tap.isKnown ? tap.int : -1)
+            } else {
+                Text(tap.isKnown && tap.int >= 0 && tap.int < X32Enums.sendTaps.count ? X32Enums.sendTaps[tap.int] : "")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.tertiary)
+                    .frame(height: 36)
+            }
+            LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 36, fontSize: 12, style: .outline) {
+                app.setBool(onAddress, !on)
+            }
+        }
+        .padding(4)
+        .background(Theme.panel)
+    }
+}
+
+/// Where the send is taken from (pre/post fader…). Shared by each odd/even pair on the X32.
+private struct TapMenu: View {
+    let app: AppModel
+    let address: String
+    let current: Int
+
+    var body: some View {
+        Menu {
+            ForEach(0..<X32Enums.sendTaps.count, id: \.self) { i in
+                Button {
+                    app.setInt(address, i)
+                } label: {
+                    if i == current {
+                        Label(X32Enums.sendTaps[i], systemImage: "checkmark")
+                    } else {
+                        Text(X32Enums.sendTaps[i])
+                    }
+                }
+            }
         } label: {
-            HStack(spacing: 8) {
-                RoundedRectangle(cornerRadius: 3)
-                    .fill(color)
-                    .frame(width: 6, height: 30)
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(target.shortLabel.uppercased())
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.secondary)
-                    Text(name.isEmpty ? target.shortLabel : name)
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                }
-            }
-            .contentShape(Rectangle())
+            Text(current >= 0 && current < X32Enums.sendTaps.count ? X32Enums.sendTaps[current] : "—")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.text)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .frame(maxWidth: .infinity, minHeight: 36)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised))
+                .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Theme.on.opacity(0.7), lineWidth: 1))
         }
-        .buttonStyle(.plain)
-        let fader = HFader(
-            value: level.float,
-            tint: color,
-            hapticAtUnity: app.settings.hapticAtUnity,
-            fine: app.fineMode,
-            onChange: { v in app.dragSet(levelAddress, drag, v, steps: 160) },
-            onTouch: { began in
-                if began { app.beginDrag(levelAddress, drag) } else { app.endDrag(drag) }
-            }
-        )
-        .frame(height: 40)
-        .opacity(on ? 1 : 0.45)
-        let readout = Text(level.isKnown ? X32Math.formatFader(level.float) : "—")
-            .font(Theme.mono(13, .semibold))
-            .frame(width: 52, alignment: .trailing)
-        let tapText = (tap.isKnown && tap.int >= 0 && tap.int < X32Enums.sendTaps.count) ? X32Enums.sendTaps[tap.int] : ""
-        let tapLabel = Text(tapText)
-            .font(.system(size: 10, weight: .bold))
-            .foregroundStyle(Theme.secondary)
-            .frame(width: 44)
-        let onButton = LitButton(title: on ? "ON" : "OFF", isOn: on, color: Theme.on, height: 34) {
-            app.setBool(onAddress, !on)
-        }
-        .frame(width: 56)
-        ViewThatFits(in: .horizontal) {
-            HStack(spacing: 12) {
-                nameButton.frame(width: 140, alignment: .leading)
-                fader.frame(minWidth: 180)
-                readout
-                tapLabel
-                onButton
-            }
-            VStack(spacing: 6) {
-                HStack(spacing: 10) {
-                    nameButton
-                    Spacer(minLength: 4)
-                    tapLabel
-                    readout
-                    onButton
-                }
-                fader
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
     }
 }
 
@@ -317,7 +303,7 @@ struct SetupPage: View {
 
     var body: some View {
         ScrollView {
-            VStack(spacing: 14) {
+            VStack(spacing: 8) {
                 Panel(title: "Name") {
                     NameEditor(app: app, strip: strip)
                 }

@@ -101,11 +101,12 @@ enum Haptics {
 
 /// dB marks drawn beside faders.
 private let faderMarks: [(Float, String)] = [
-    (10, "+10"), (5, "+5"), (0, "0"), (-5, "-5"), (-10, "-10"),
-    (-20, "-20"), (-30, "-30"), (-40, "-40"), (-60, "-60")
+    (10, "10"), (5, "5"), (0, "0"), (-5, "-5"), (-10, "-10"),
+    (-20, "-20"), (-30, "-30"), (-50, "-50")
 ]
 
-/// A desk-style vertical fader. Drag anywhere on it (no jump); slide sideways off the strip for fine control.
+/// A console fader: a scale on the left, a thin slot, and a grey cap. Drag anywhere on it (the cap
+/// never jumps to your finger). Slide sideways off the strip for extra-fine control.
 struct FaderView: View {
     let value: Float
     var tint: Color = Theme.accent
@@ -115,6 +116,8 @@ struct FaderView: View {
     var capLabel: String? = nil
     /// Fine mode: 4x slower.
     var fine: Bool = false
+    /// Red cap, e.g. for gain-on-fader or sends.
+    var capTint: Color? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -126,16 +129,18 @@ struct FaderView: View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
-            let capHeight = min(48, max(30, height * 0.085))
+            let scaleWidth: CGFloat = showScale && width >= 34 ? min(18, width * 0.34) : 0
+            let capHeight = min(44, max(26, height * 0.095))
             let travel = max(1, height - capHeight)
             let clamped = CGFloat(min(max(value, 0), 1))
             let capCenterY = (1 - clamped) * travel + capHeight / 2
-            let capWidth = min(width - 6, 56)
+            let trackX = scaleWidth + (width - scaleWidth) / 2
+            let capWidth = max(18, min(width - scaleWidth - 4, 46))
             ZStack {
-                FaderTrack(value: value, tint: tint, capHeight: capHeight, showScale: showScale && width >= 54, maxValue: maxValue)
-                FaderCap(touching: touching, tint: tint, label: capLabel)
+                FaderTrack(capHeight: capHeight, scaleWidth: scaleWidth, trackX: trackX, maxValue: maxValue)
+                FaderCap(touching: touching, tint: capTint, label: capLabel)
                     .frame(width: capWidth, height: capHeight)
-                    .position(x: width / 2, y: capCenterY)
+                    .position(x: trackX, y: capCenterY)
             }
             .frame(width: width, height: height)
             .overlay(
@@ -179,54 +184,43 @@ struct FaderView: View {
 }
 
 private struct FaderTrack: View {
-    let value: Float
-    let tint: Color
     let capHeight: CGFloat
-    let showScale: Bool
+    let scaleWidth: CGFloat
+    let trackX: CGFloat
     let maxValue: Float
 
     var body: some View {
-        let v = CGFloat(min(max(value, 0), 1))
         let limit = CGFloat(maxValue)
         Canvas { ctx, size in
             let travel = max(1, size.height - capHeight)
             let top = capHeight / 2
-            let midX = size.width / 2
             func y(_ f: CGFloat) -> CGFloat { top + (1 - f) * travel }
 
-            // groove
-            let groove = CGRect(x: midX - 3, y: top - 2, width: 6, height: travel + 4)
-            ctx.fill(Path(roundedRect: groove, cornerRadius: 3), with: .color(Color.black.opacity(0.65)))
-            // level fill
-            let fillRect = CGRect(x: midX - 3, y: y(v), width: 6, height: max(0, y(0) - y(v)))
-            ctx.fill(Path(roundedRect: fillRect, cornerRadius: 3), with: .color(tint.opacity(0.55)))
+            // marks
+            for mark in faderMarks {
+                let my = y(CGFloat(X32Math.dbToFader(mark.0)))
+                let isUnity = mark.0 == 0
+                var tick = Path()
+                tick.move(to: CGPoint(x: trackX - (isUnity ? 13 : 10), y: my))
+                tick.addLine(to: CGPoint(x: trackX + (isUnity ? 13 : 10), y: my))
+                ctx.stroke(tick, with: .color(isUnity ? Color.white.opacity(0.85) : Color.white.opacity(0.32)), lineWidth: isUnity ? 1.5 : 1)
+                if scaleWidth > 0 {
+                    let text = Text(mark.1)
+                        .font(.system(size: 8).monospacedDigit())
+                        .foregroundColor(Color.white.opacity(0.5))
+                    ctx.draw(text, at: CGPoint(x: scaleWidth - 1, y: my), anchor: .trailing)
+                }
+            }
+            // slot
+            let slot = CGRect(x: trackX - 2.5, y: top - 2, width: 5, height: travel + 4)
+            ctx.fill(Path(roundedRect: slot, cornerRadius: 2.5), with: .color(Color.black))
 
-            // limit marker (simple mode caps)
             if limit < 1 {
                 let ly = y(limit)
                 var p = Path()
-                p.move(to: CGPoint(x: midX - 16, y: ly))
-                p.addLine(to: CGPoint(x: midX + 16, y: ly))
-                ctx.stroke(p, with: .color(Theme.mute.opacity(0.8)), style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
-            }
-
-            // scale
-            for mark in faderMarks {
-                let f = CGFloat(X32Math.dbToFader(mark.0))
-                let my = y(f)
-                let isUnity = mark.0 == 0
-                var tick = Path()
-                tick.move(to: CGPoint(x: midX - (isUnity ? 14 : 9), y: my))
-                tick.addLine(to: CGPoint(x: midX - 5, y: my))
-                tick.move(to: CGPoint(x: midX + 5, y: my))
-                tick.addLine(to: CGPoint(x: midX + (isUnity ? 14 : 9), y: my))
-                ctx.stroke(tick, with: .color(isUnity ? Color.white.opacity(0.7) : Color.white.opacity(0.25)), lineWidth: 1)
-                if showScale {
-                    let text = Text(mark.1)
-                        .font(.system(size: 8, weight: isUnity ? .bold : .regular).monospacedDigit())
-                        .foregroundColor(isUnity ? Color.white.opacity(0.85) : Color.white.opacity(0.35))
-                    ctx.draw(text, at: CGPoint(x: 2, y: my), anchor: .leading)
-                }
+                p.move(to: CGPoint(x: trackX - 16, y: ly))
+                p.addLine(to: CGPoint(x: trackX + 16, y: ly))
+                ctx.stroke(p, with: .color(Theme.mute.opacity(0.9)), style: StrokeStyle(lineWidth: 2, dash: [3, 3]))
             }
         }
     }
@@ -234,35 +228,37 @@ private struct FaderTrack: View {
 
 private struct FaderCap: View {
     let touching: Bool
-    let tint: Color
+    let tint: Color?
     let label: String?
 
     var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [Color(white: touching ? 0.80 : 0.72), Color(white: touching ? 0.60 : 0.50), Color(white: touching ? 0.74 : 0.64)],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-                .shadow(color: .black.opacity(0.6), radius: 4, y: 3)
-            RoundedRectangle(cornerRadius: 1)
-                .fill(touching ? tint : Color.black.opacity(0.75))
-                .frame(height: 3)
-                .padding(.horizontal, 5)
-            if let label = label {
-                Text(label)
-                    .font(.system(size: 8, weight: .heavy))
-                    .foregroundStyle(Color.black.opacity(0.6))
-                    .offset(y: -11)
+        Canvas { ctx, size in
+            let rect = CGRect(origin: .zero, size: size)
+            let base = tint
+            let shades: [Color] = base.map { c in [c.opacity(0.95), c.opacity(0.7), c.opacity(0.95)] }
+                ?? [Color(white: touching ? 0.86 : 0.78), Color(white: touching ? 0.62 : 0.52), Color(white: touching ? 0.80 : 0.70)]
+            ctx.fill(
+                Path(roundedRect: rect, cornerRadius: 3),
+                with: .linearGradient(Gradient(colors: shades), startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: size.height))
+            )
+            // grip grooves
+            let grooves = 6
+            for i in 0..<grooves {
+                let gy = size.height * (CGFloat(i) + 0.5) / CGFloat(grooves)
+                if abs(gy - size.height / 2) < 3 { continue }
+                var g = Path()
+                g.move(to: CGPoint(x: 2, y: gy))
+                g.addLine(to: CGPoint(x: size.width - 2, y: gy))
+                ctx.stroke(g, with: .color(Color.black.opacity(0.22)), lineWidth: 1)
+            }
+            // centre line
+            ctx.fill(Path(CGRect(x: 2, y: size.height / 2 - 1, width: size.width - 4, height: 2)), with: .color(touching ? Theme.accent : Color.white))
+            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3), with: .color(Color.black.opacity(0.5)), lineWidth: 1)
+            if let label {
+                ctx.draw(Text(label).font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.6)), at: CGPoint(x: size.width / 2, y: size.height * 0.22))
             }
         }
-        .overlay(
-            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .strokeBorder(touching ? tint : Color.white.opacity(0.25), lineWidth: touching ? 2 : 1)
-        )
+        .shadow(color: .black.opacity(0.55), radius: 3, y: 2)
     }
 }
 
@@ -372,115 +368,6 @@ struct HFader: View {
     }
 }
 
-// MARK: - Knob
-
-private struct KnobArc: Shape {
-    var from: Double
-    var to: Double
-
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        let radius = min(rect.width, rect.height) / 2 - 3
-        p.addArc(
-            center: CGPoint(x: rect.midX, y: rect.midY),
-            radius: radius,
-            startAngle: .degrees(135 + 270 * from),
-            endAngle: .degrees(135 + 270 * to),
-            clockwise: false
-        )
-        return p
-    }
-}
-
-/// A rotary control: drag up/down to turn, double-tap to reset.
-struct Knob: View {
-    let title: String
-    let value: Float
-    let display: String
-    var tint: Color = Theme.accent
-    var bipolar: Bool = false
-    var defaultValue: Float? = nil
-    var enabled: Bool = true
-    var size: CGFloat = 54
-    let onChange: (Float) -> Void
-    var onTouch: (Bool) -> Void = { _ in }
-
-    @State private var dragValue: Float = 0
-    @State private var lastPoint: CGPoint = .zero
-    @State private var touching = false
-
-    var body: some View {
-        let v = Double(min(max(value, 0), 1))
-        let arcFrom = bipolar ? min(0.5, v) : 0
-        let arcTo = bipolar ? max(0.5, v) : v
-        let pointerRotation = Angle.degrees(225 + 270 * v)
-        VStack(spacing: 5) {
-            Text(title.uppercased())
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Theme.secondary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(colors: [Theme.raised2, Theme.raised], center: .center, startRadius: 2, endRadius: size / 2)
-                    )
-                    .padding(8)
-                KnobArc(from: 0, to: 1)
-                    .stroke(Color.black.opacity(0.55), style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                KnobArc(from: arcFrom, to: arcTo)
-                    .stroke(enabled ? tint : Theme.tertiary, style: StrokeStyle(lineWidth: 4, lineCap: .round))
-                Capsule()
-                    .fill(touching ? tint : Theme.text)
-                    .frame(width: 3, height: size * 0.2)
-                    .offset(y: -size * 0.2)
-                    .rotationEffect(pointerRotation)
-            }
-            .frame(width: size, height: size)
-            .contentShape(Circle())
-            .overlay(
-                TouchSurface(
-                    axis: .vertical,
-                    onBegin: { p in
-                        touching = true
-                        dragValue = value
-                        lastPoint = p
-                        onTouch(true)
-                    },
-                    onMove: { p in
-                        let dy = lastPoint.y - p.y
-                        lastPoint = p
-                        var next = dragValue + Float(dy / 220)
-                        next = min(max(next, 0), 1)
-                        dragValue = next
-                        onChange(next)
-                    },
-                    onEnd: { moved, taps in
-                        touching = false
-                        onTouch(false)
-                        if !moved && taps >= 2, let d = defaultValue {
-                            onChange(d)
-                        }
-                    }
-                )
-            )
-            Text(display)
-                .font(Theme.mono(12))
-                .foregroundStyle(enabled ? Theme.text : Theme.tertiary)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-        }
-        .frame(minWidth: size + 10)
-        .opacity(enabled ? 1 : 0.55)
-        .onDisappear {
-            if touching {
-                touching = false
-                onTouch(false)
-            }
-        }
-    }
-}
-
 // MARK: - Meters
 
 /// Maps dB to a 0...1 meter position.
@@ -492,9 +379,13 @@ enum MeterScale {
         let lin = (db + 60) / 60
         return CGFloat(powf(lin, 1.35))
     }
+
+    /// Green to yellow at +4 dBu (-14 dBFS on an X32), red just below clipping.
+    static let yellowFrom: Float = -14
+    static let redFrom: Float = -2
 }
 
-/// A vertical level meter (mono or stereo).
+/// A vertical level meter (mono or stereo): unlit segments show dimly, like LED bars.
 struct MeterView: View {
     let meter: MeterLevel
     var stereo: Bool = false
@@ -506,25 +397,39 @@ struct MeterView: View {
             let bars = stereo ? 2 : 1
             let gap: CGFloat = stereo ? 2 : 0
             let barWidth = (size.width - gap * CGFloat(bars - 1)) / CGFloat(bars)
+            let yellow = MeterScale.position(MeterScale.yellowFrom)
+            let red = MeterScale.position(MeterScale.redFrom)
+            let bands: [(CGFloat, CGFloat, Color)] = [(0, yellow, Theme.meterLow), (yellow, red, Theme.meterMid), (red, 1, Theme.meterHigh)]
             for i in 0..<bars {
                 let db = i == 0 ? left : right
                 let x = CGFloat(i) * (barWidth + gap)
-                let full = CGRect(x: x, y: 0, width: barWidth, height: size.height)
-                ctx.fill(Path(roundedRect: full, cornerRadius: 1.5), with: .color(Color.black.opacity(0.55)))
                 let pos = MeterScale.position(db)
-                if pos <= 0 { continue }
-                let yellowStart = MeterScale.position(-12)
-                let redStart = MeterScale.position(-3)
-                func band(_ from: CGFloat, _ to: CGFloat, _ color: Color) {
-                    let a = min(pos, from)
-                    let b = min(pos, to)
-                    guard b > a else { return }
-                    let rect = CGRect(x: x, y: size.height * (1 - b), width: barWidth, height: size.height * (b - a))
-                    ctx.fill(Path(rect), with: .color(color))
+                ctx.fill(Path(CGRect(x: x, y: 0, width: barWidth, height: size.height)), with: .color(Color.black))
+                for band in bands {
+                    let dim = CGRect(x: x, y: size.height * (1 - band.1), width: barWidth, height: size.height * (band.1 - band.0))
+                    ctx.fill(Path(dim), with: .color(band.2.opacity(0.17)))
+                    let a = min(pos, band.0)
+                    let b = min(pos, band.1)
+                    if b > a {
+                        let lit = CGRect(x: x, y: size.height * (1 - b), width: barWidth, height: size.height * (b - a))
+                        ctx.fill(Path(lit), with: .color(band.2))
+                    }
                 }
-                band(0, yellowStart, Theme.meterLow)
-                band(yellowStart, redStart, Theme.meterMid)
-                band(redStart, 1, Theme.meterHigh)
+            }
+        }
+    }
+}
+
+/// Gain reduction as a red bar growing down from the top.
+struct GRBar: View {
+    let reduction: Float
+
+    var body: some View {
+        Canvas { ctx, size in
+            ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.mute.opacity(0.14)))
+            let fraction = CGFloat(min(max(reduction, 0), 24) / 24)
+            if fraction > 0.01 {
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: size.height * fraction)), with: .color(Theme.mute))
             }
         }
     }
@@ -544,9 +449,9 @@ struct ReductionMeter: View {
             GeometryReader { geo in
                 let fraction = CGFloat(min(reduction, 30) / 30)
                 ZStack(alignment: .trailing) {
-                    RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.55))
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(gate ? Theme.on : Theme.accent)
+                    RoundedRectangle(cornerRadius: 2).fill(Color.black.opacity(0.55))
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Theme.mute)
                         .frame(width: geo.size.width * fraction)
                 }
             }
@@ -561,7 +466,8 @@ struct ReductionMeter: View {
 
 // MARK: - Pan
 
-/// A compact pan control: drag sideways, double-tap to centre.
+/// A pan box: white line at the position and a blue wedge from the centre. Drag sideways,
+/// double-tap to centre.
 struct PanControl: View {
     let value: Float
     var tint: Color = Theme.accent
@@ -578,20 +484,24 @@ struct PanControl: View {
         GeometryReader { geo in
             let width = geo.size.width
             let v = CGFloat(min(max(value, 0), 1))
-            ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.5))
-                Rectangle()
-                    .fill(tint.opacity(0.8))
-                    .frame(width: max(2, abs(v - 0.5) * width), height: height - 8)
-                    .offset(x: v >= 0.5 ? width / 2 : v * width)
-                Rectangle()
-                    .fill(Color.white.opacity(0.35))
-                    .frame(width: 1, height: height)
-                    .offset(x: width / 2)
-                Circle()
-                    .fill(Theme.text)
-                    .frame(width: 8, height: 8)
-                    .offset(x: v * (width - 8))
+            Canvas { ctx, size in
+                let rect = CGRect(origin: .zero, size: size)
+                ctx.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(Color.black.opacity(0.35)))
+                ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3), with: .color(touching ? tint : Color.white.opacity(0.16)), lineWidth: 1)
+                let inset: CGFloat = 4
+                let cx = size.width / 2
+                let px = inset + v * (size.width - inset * 2)
+                if abs(px - cx) > 1 {
+                    var wedge = Path()
+                    let h = size.height - 3
+                    let rise = h * min(1, abs(v - 0.5) * 2) * 0.85
+                    wedge.move(to: CGPoint(x: cx, y: h))
+                    wedge.addLine(to: CGPoint(x: px, y: h))
+                    wedge.addLine(to: CGPoint(x: px, y: h - rise))
+                    wedge.closeSubpath()
+                    ctx.fill(wedge, with: .color(tint))
+                }
+                ctx.fill(Path(CGRect(x: px - 1, y: 3, width: 2, height: size.height - 6)), with: .color(Color.white))
             }
             .frame(width: width, height: height)
             .overlay(
@@ -606,7 +516,7 @@ struct PanControl: View {
                     onMove: { p in
                         let dx = p.x - lastPoint.x
                         lastPoint = p
-                        var next = dragValue + Float(dx / max(60, width * 1.5) * (fine ? 0.25 : 1))
+                        var next = dragValue + Float(dx / max(90, width * 1.5) * (fine ? 0.25 : 1))
                         next = min(max(next, 0), 1)
                         if (dragValue < 0.5) != (next < 0.5) {
                             Haptics.tick()

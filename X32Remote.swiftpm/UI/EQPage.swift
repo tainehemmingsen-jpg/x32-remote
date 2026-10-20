@@ -176,79 +176,143 @@ enum EQColors {
 struct EQPage: View {
     let app: AppModel
     let strip: StripID
-    @State private var band = 2
+    var wide: Bool = true
+    @State private var band = 1
 
     var body: some View {
         let count = strip.eqBandCount
         let selected = min(max(band, 1), max(count, 1))
-        VStack(spacing: 12) {
-            ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 10) {
-                OnSwitch(app: app, address: strip.eqOnPath, title: "EQ ON", width: 80)
-                Spacer(minLength: 10)
-                ForEach(1...max(count, 1), id: \.self) { b in
-                    Button {
-                        band = b
-                    } label: {
-                        Text("\(b)")
-                            .font(.system(size: 14, weight: .bold))
-                            .frame(width: 40, height: 32)
-                            .foregroundStyle(b == selected ? Color.black.opacity(0.85) : EQColors.band(b))
-                            .background(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .fill(b == selected ? EQColors.band(b) : Theme.raised)
-                            )
+        if wide {
+            VStack(spacing: 2) {
+                HStack(spacing: 2) {
+                    Cell {
+                        EQSideControls(app: app, strip: strip)
+                            .padding(10)
                     }
-                    .buttonStyle(.plain)
+                    .frame(width: 150)
+                    Cell {
+                        EQGraph(app: app, strip: strip, selectedBand: $band)
+                            .padding(4)
+                    }
                 }
+                Cell {
+                    BandBar(app: app, strip: strip, band: $band, selected: selected, wide: true)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 6)
+                }
+                .frame(height: 70)
             }
-            .frame(minWidth: 0)
+            .padding(2)
+        } else {
+            ScrollView {
+                VStack(spacing: 10) {
+                    HStack(spacing: 8) {
+                        OnToggle(app: app, address: strip.eqOnPath)
+                        if strip.hasHighPass {
+                            OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 90)
+                        }
+                        Spacer()
+                    }
+                    EQGraph(app: app, strip: strip, selectedBand: $band)
+                        .frame(height: 240)
+                    BandBar(app: app, strip: strip, band: $band, selected: selected, wide: false)
+                }
+                .padding(10)
             }
-            EQGraph(app: app, strip: strip, selectedBand: $band)
-                .frame(minHeight: 140)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
-            BandControls(app: app, strip: strip, band: selected)
         }
-        .padding(16)
     }
 }
 
-private struct BandControls: View {
+private struct EQSideControls: View {
     let app: AppModel
     let strip: StripID
-    let band: Int
 
     var body: some View {
-        let typeAddress = strip.eqPath(band, "type")
+        VStack(spacing: 10) {
+            OnToggle(app: app, address: strip.eqOnPath)
+            if strip.hasHighPass {
+                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)
+                ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Freq", enabled: app.param(strip.preampPath("hpon")).bool)
+                EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
+            }
+            Spacer(minLength: 0)
+            Button {
+                for b in 1...max(strip.eqBandCount, 1) {
+                    app.setFloat(strip.eqPath(b, "g"), 0.5, steps: Specs.eqGain.steps)
+                }
+            } label: {
+                Text("Flatten")
+                    .frame(maxWidth: .infinity)
+                    .barChip()
+            }
+            .buttonStyle(.plain)
+        }
+    }
+}
+
+/// "< Band 2 >" with type, frequency, gain and Q for the selected band.
+private struct BandBar: View {
+    let app: AppModel
+    let strip: StripID
+    @Binding var band: Int
+    let selected: Int
+    let wide: Bool
+
+    var body: some View {
+        let count = max(strip.eqBandCount, 1)
+        let typeAddress = strip.eqPath(selected, "type")
         let type = app.param(typeAddress).int(or: 2)
-        let extended = strip.eqBandCount == 6 && (band == 1 || band == 6)
+        let extended = strip.eqBandCount == 6 && (selected == 1 || selected == 6)
         let options = extended ? X32Enums.eqTypes + X32Enums.busEqExtraTypes : X32Enums.eqTypes
-        let tint = EQColors.band(band)
+        let tint = EQColors.band(selected)
         let usesGain = type >= 1 && type <= 4
         let usesQ = type == 2 || type == 3
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(spacing: 10) {
-                Text("BAND \(band) TYPE")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
-                EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
-                Spacer(minLength: 8)
-                Button {
-                    app.setFloat(strip.eqPath(band, "g"), 0.5, steps: Specs.eqGain.steps)
-                } label: {
-                    Text("Flatten band")
-                        .barChip()
-                }
-                .buttonStyle(.plain)
+        let picker = HStack(spacing: 6) {
+            BandArrow(symbol: "chevron.left") {
+                band = selected <= 1 ? count : selected - 1
             }
-            ControlGrid(minimumWidth: 230) {
-                ParamKnob(app: app, address: strip.eqPath(band, "f"), spec: Specs.eqFreq, title: "Freq", tint: tint)
-                ParamKnob(app: app, address: strip.eqPath(band, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain, resettable: true)
-                ParamKnob(app: app, address: strip.eqPath(band, "q"), spec: Specs.eqQ, title: "Q", tint: tint, enabled: usesQ)
+            Text("Band \(selected)")
+                .font(.system(size: 13))
+                .foregroundStyle(Color.black.opacity(0.85))
+                .frame(width: 70, height: 40)
+                .background(RoundedRectangle(cornerRadius: 4).fill(tint))
+            BandArrow(symbol: "chevron.right") {
+                band = selected >= count ? 1 : selected + 1
+            }
+            EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
+        }
+        let sliders = Group {
+            ParamKnob(app: app, address: strip.eqPath(selected, "f"), spec: Specs.eqFreq, title: "Freq", tint: tint)
+            ParamKnob(app: app, address: strip.eqPath(selected, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain, resettable: true)
+            ParamKnob(app: app, address: strip.eqPath(selected, "q"), spec: Specs.eqQ, title: "Q", tint: tint, enabled: usesQ)
+        }
+        if wide {
+            HStack(spacing: 16) {
+                picker
+                sliders
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                picker
+                sliders
             }
         }
-        .padding(.horizontal, 4)
+    }
+}
+
+private struct BandArrow: View {
+    let symbol: String
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: 18))
+                .foregroundStyle(Theme.text)
+                .frame(width: 40, height: 40)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -257,6 +321,7 @@ struct EQGraph: View {
     let app: AppModel
     let strip: StripID
     @Binding var selectedBand: Int
+    var interactive = true
 
     @GestureState private var gestureActive = false
     @State private var dragBand: Int?
@@ -298,8 +363,9 @@ struct EQGraph: View {
                 EQGraph.drawCurves(&ctx, sz, bands: bands, eqOn: eqOn, selected: selected, lowCut: lowCutOn ? (lowCutFreq, lowCutSlope) : nil, bandCount: count)
                 EQGraph.drawHandles(&ctx, sz, bands: bands, eqOn: eqOn, selected: selected)
             }
-            .background(Theme.panel)
+            .background(Theme.graphBack)
             .contentShape(Rectangle())
+            .allowsHitTesting(interactive)
             .gesture(
                 DragGesture(minimumDistance: 0)
                     .updating($gestureActive) { _, state, _ in
@@ -384,7 +450,7 @@ struct EQGraph: View {
             var p = Path()
             p.move(to: CGPoint(x: x, y: 0))
             p.addLine(to: CGPoint(x: x, y: size.height))
-            ctx.stroke(p, with: .color(Color.white.opacity(0.07)), lineWidth: 1)
+            ctx.stroke(p, with: .color(Theme.graphGrid), lineWidth: 1)
             let label = f >= 1000 ? "\(Int(f / 1000))k" : "\(Int(f))"
             ctx.draw(Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(Color.white.opacity(0.35)), at: CGPoint(x: x + 3, y: size.height - 8), anchor: .leading)
         }
@@ -393,27 +459,25 @@ struct EQGraph: View {
             var p = Path()
             p.move(to: CGPoint(x: 0, y: y))
             p.addLine(to: CGPoint(x: size.width, y: y))
-            ctx.stroke(p, with: .color(Color.white.opacity(db == 0 ? 0.18 : 0.07)), lineWidth: 1)
+            ctx.stroke(p, with: .color(db == 0 ? Color.white.opacity(0.3) : Theme.graphGrid), lineWidth: 1)
             let label = db > 0 ? "+\(Int(db))" : "\(Int(db))"
             ctx.draw(Text(label).font(.system(size: 9, weight: .medium)).foregroundColor(Color.white.opacity(0.35)), at: CGPoint(x: 4, y: y - 7), anchor: .leading)
         }
     }
 
     static func drawCurves(_ ctx: inout GraphicsContext, _ size: CGSize, bands: [EQBandValues], eqOn: Bool, selected: Int, lowCut: (Double, Int)?, bandCount: Int) {
-        let steps = 160
+        let steps = 200
         var total = [Double](repeating: 0, count: steps)
-        var selectedCurve = [Double](repeating: 0, count: steps)
+        var perBand = [[Double]](repeating: [Double](repeating: 0, count: steps), count: bands.count)
         for i in 0..<steps {
             let norm = Double(i) / Double(steps - 1)
             let f = 20 * pow(1000, norm)
             var sum: Double = 0
             if eqOn {
-                for b in bands {
+                for (j, b) in bands.enumerated() {
                     let db = EQMath.bandDB(type: b.type, band: b.band, bandCount: bandCount, freq: Double(b.freq), gain: Double(b.gain), q: Double(b.q), at: f)
                     sum += db
-                    if b.band == selected {
-                        selectedCurve[i] = db
-                    }
+                    perBand[j][i] = db
                 }
             }
             if let lc = lowCut {
@@ -447,25 +511,28 @@ struct EQGraph: View {
         }
 
         if eqOn {
-            ctx.fill(path(selectedCurve, closeToZero: true), with: .color(EQColors.band(selected).opacity(0.18)))
+            for (j, b) in bands.enumerated() {
+                let opacity = b.band == selected ? 0.55 : 0.32
+                ctx.fill(path(perBand[j], closeToZero: true), with: .color(EQColors.band(b.band).opacity(opacity)))
+            }
         }
-        ctx.fill(path(total, closeToZero: true), with: .color(Theme.accent.opacity(eqOn ? 0.10 : 0.04)))
-        ctx.stroke(path(total, closeToZero: false), with: .color(eqOn ? Theme.accent : Theme.tertiary), lineWidth: 2.5)
+        if let lc = lowCut {
+            let lcValues = (0..<steps).map { i in EQMath.lowCutDB(freq: lc.0, slope: lc.1, at: 20 * pow(1000, Double(i) / Double(steps - 1))) }
+            ctx.fill(path(lcValues, closeToZero: true), with: .color(Theme.accent.opacity(0.35)))
+        }
+        ctx.stroke(path(total, closeToZero: false), with: .color(eqOn || lowCut != nil ? Theme.curve : Theme.tertiary), lineWidth: 2.5)
     }
 
     static func drawHandles(_ ctx: inout GraphicsContext, _ size: CGSize, bands: [EQBandValues], eqOn: Bool, selected: Int) {
         for b in bands {
             let p = point(for: b, size: size)
-            let isSelected = b.band == selected
-            let r: CGFloat = isSelected ? 15 : 12
-            let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
             let color = EQColors.band(b.band).opacity(eqOn ? 1 : 0.45)
-            ctx.fill(Path(ellipseIn: rect), with: .color(isSelected ? color : Color.black.opacity(0.6)))
-            ctx.stroke(Path(ellipseIn: rect), with: .color(color), lineWidth: 2)
-            let label = Text("\(b.band)")
-                .font(.system(size: 12, weight: .heavy))
-                .foregroundColor(isSelected ? Color.black.opacity(0.85) : color)
-            ctx.draw(label, at: p, anchor: .center)
+            let r: CGFloat = 9
+            ctx.fill(Path(ellipseIn: CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)), with: .color(color))
+            if b.band == selected {
+                let ring: CGFloat = 15
+                ctx.stroke(Path(ellipseIn: CGRect(x: p.x - ring, y: p.y - ring, width: ring * 2, height: ring * 2)), with: .color(Color.white), lineWidth: 2.5)
+            }
         }
     }
 }

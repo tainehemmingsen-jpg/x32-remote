@@ -61,7 +61,8 @@ shot "$IPAD" 03-mixer-17-32 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs2
 shot "$IPAD" 04-sends-on-fader 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
 shot "$IPAD" 05-dca 8 0 -autoDemo YES -autoMode mixer -autoLayer dca
 shot "$IPAD" 06-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
-shot "$IPAD" 07-dynamics 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab dynamics
+shot "$IPAD" 07-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp
+shot "$IPAD" 15-overview 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab overview
 shot "$IPAD" 08-input 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input
 shot "$IPAD" 09-sends 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends
 shot "$IPAD" 10-setup 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab setup
@@ -80,7 +81,12 @@ sleep 3
 shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1
 shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
 shot "$IPAD" 42-landscape-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
-shot "$IPAD" 43-landscape-dynamics 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab dynamics
+shot "$IPAD" 43-landscape-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp
+shot "$IPAD" 46-landscape-overview 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab overview
+shot "$IPAD" 47-landscape-gate 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab gate
+shot "$IPAD" 48-landscape-sends-page 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends
+shot "$IPAD" 49-landscape-input 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input
+shot "$IPAD" 50-landscape-bus-layer 9 0 -autoDemo YES -autoMode mixer -autoLayer buses
 shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
 shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
