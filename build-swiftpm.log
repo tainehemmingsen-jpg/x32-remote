@@ -1,0 +1,567 @@
+Command line invocation:
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild -scheme "X32 Remote" -destination "generic/platform=iOS Simulator" -derivedDataPath /Users/runner/work/x32-remote/x32-remote/build/DerivedData -skipPackagePluginValidation CODE_SIGNING_ALLOWED=NO build
+
+Build settings from command line:
+    CODE_SIGNING_ALLOWED = NO
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  X32 Remote: /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+
+ComputePackagePrebuildTargetDependencyGraph
+
+Prepare packages
+
+CreateBuildRequest
+
+SendProjectDescription
+
+CreateBuildOperation
+
+ComputeTargetDependencyGraph
+note: Building targets in dependency order
+note: Target dependency graph (1 target)
+    Target 'X32 Remote' in project 'X32 Remote' (no dependencies)
+
+GatherProvisioningInputs
+
+CreateBuildDescription
+
+ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/actool --print-asset-tag-combinations --output-format xml1 /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets
+
+ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -v -E -dM -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -x c -c /dev/null
+
+ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/actool --version --output-format xml1
+
+ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc --version
+
+ExecuteExternalTool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/ld -version_details
+
+Build description signature: 4346206dae670c554a91028ec679e392
+Build description path: /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/XCBuildData/4346206dae670c554a91028ec679e392.xcbuilddata
+CreateBuildDirectory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-create-build-directory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products
+
+ClangStatCache /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang-stat-cache /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache
+
+CreateBuildDirectory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-create-build-directory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex
+
+CreateBuildDirectory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-create-build-directory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-create-build-directory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator
+
+CreateBuildDirectory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/PackageFrameworks
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-create-build-directory /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/PackageFrameworks
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/empty-X32\ Remote.plist (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/empty-X32\ Remote.plist
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyStaticMetadataFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyStaticMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyMetadataFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyMetadataFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-x86_64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-x86_64.txt
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-arm64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-x86_64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-x86_64.txt
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-arm64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-arm64.txt
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_const_extract_protocols.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftConstValuesFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.LinkFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.LinkFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote-OutputFileMap.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_const_extract_protocols.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_const_extract_protocols.json
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftConstValuesFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftConstValuesFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.LinkFileList (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.LinkFileList
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote-OutputFileMap.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote-OutputFileMap.json
+
+WriteAuxiliaryFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    write-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift
+
+MkDir /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /bin/mkdir -p /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app
+
+GenerateAppPlaygroundAssetCatalog /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/appleProductTypesTool -appIconAssetName AppIcon -generateAccentColorAsset -accentColorPresetName orange -accentColorAssetName __PresetAccentColor -assetCatalogResourcePaths /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets -output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/__preview.dylib normal x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -dynamiclib -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -install_name @rpath/X32\ Remote.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_dependency_info.dat -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/__preview.dylib
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/__preview.dylib normal arm64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -dynamiclib -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -install_name @rpath/X32\ Remote.debug.dylib -dead_strip -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_dependency_info.dat -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/__preview.dylib
+
+MkDir /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/unthinned (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /bin/mkdir -p /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/unthinned
+
+MkDir /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/thinned (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /bin/mkdir -p /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/thinned
+
+GenerateAssetSymbols /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/actool /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets --compile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app --output-format human-readable-text --notices --warnings --export-dependency-info /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_dependencies --output-partial-info-plist /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist --app-icon AppIcon --accent-color __PresetAccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 17.0 --platform iphonesimulator --bundle-identifier nz.taine.x32remote --generate-swift-asset-symbol-extensions NO --generate-swift-asset-symbols /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.swift --generate-objc-asset-symbols /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.h --generate-asset-symbol-index /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/* com.apple.actool.compilation-results */
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/DerivedSources/GeneratedAssetSymbols-Index.plist
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/DerivedSources/GeneratedAssetSymbols.h
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/DerivedSources/GeneratedAssetSymbols.swift
+
+
+CreateUniversalBinary /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/__preview.dylib normal arm64\ x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/__preview.dylib /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/__preview.dylib -output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/__preview.dylib
+
+CompileAssetCatalogVariant thinned /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/actool /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets --compile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/thinned --output-format human-readable-text --notices --warnings --export-dependency-info /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_dependencies_thinned --output-partial-info-plist /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist_thinned --app-icon AppIcon --accent-color __PresetAccentColor --compress-pngs --enable-on-demand-resources YES --development-region en --target-device iphone --target-device ipad --minimum-deployment-target 17.0 --platform iphonesimulator
+/* com.apple.actool.compilation-results */
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/assetcatalog_generated_info.plist_thinned
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/assetcatalog_output/thinned/AppIcon60x60@2x.png
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/assetcatalog_output/thinned/AppIcon76x76@2x~ipad.png
+/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32 Remote.build/Debug-iphonesimulator/X32 Remote.build/assetcatalog_output/thinned/Assets.car
+
+
+SwiftDriver X32\ Remote normal arm64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-SwiftDriver -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver X32\ Remote normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-SwiftDriver -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+SwiftEmitModule normal x86_64 Emitting\ module\ for\ X32_Remote (in target 'X32 Remote' from project 'X32 Remote')
+
+EmitSwiftModule normal x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftEmitModule normal arm64 Emitting\ module\ for\ X32_Remote (in target 'X32 Remote' from project 'X32 Remote')
+
+EmitSwiftModule normal arm64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 Compiling\ UDPSocket.swift,\ X32Client.swift,\ X32Values.swift,\ BarSlider.swift,\ ChannelView.swift,\ ConnectView.swift,\ Controls.swift,\ DetailPages.swift,\ EQPage.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/UDPSocket.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Client.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Values.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/BarSlider.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ChannelView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ConnectView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Controls.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/DetailPages.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/UDPSocket.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Client.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Values.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/BarSlider.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ChannelView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ConnectView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Controls.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/DetailPages.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 Compiling\ Graphs.swift,\ MixerScreen.swift,\ MonitorScreen.swift,\ RootView.swift,\ Sheets.swift,\ SimpleScreen.swift,\ Theme.swift,\ GeneratedAssetSymbols.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Graphs.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MixerScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MonitorScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/RootView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Sheets.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/SimpleScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Theme.swift /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Graphs.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MixerScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MonitorScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/RootView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Sheets.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/SimpleScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Theme.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftDriverJobDiscovery normal arm64 Emitting module for X32_Remote (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriverJobDiscovery normal x86_64 Emitting module for X32_Remote (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriver\ Compilation\ Requirements X32\ Remote normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+SwiftDriver\ Compilation\ Requirements X32\ Remote normal arm64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-Swift-Compilation-Requirements -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+LinkAssetCatalog /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/AppPlaygroundDefaultAssetCatalog.xcassets /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-linkAssetCatalog --thinned /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/thinned --thinned-dependencies /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_dependencies_thinned --thinned-info-plist-content /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist_thinned --unthinned /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_output/unthinned --unthinned-dependencies /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_dependencies_unthinned --unthinned-info-plist-content /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist_unthinned --output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app --plist-output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist
+note: Emplaced /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32 Remote.app/AppIcon60x60@2x.png (in target 'X32 Remote' from project 'X32 Remote')
+note: Emplaced /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32 Remote.app/Assets.car (in target 'X32 Remote' from project 'X32 Remote')
+note: Emplaced /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32 Remote.app/AppIcon76x76@2x~ipad.png (in target 'X32 Remote' from project 'X32 Remote')
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.swiftmodule /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.swiftmodule
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.swiftdoc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftdoc (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftdoc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.abi.json /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.abi.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.abi.json /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/x86_64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.swiftmodule /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.swiftmodule
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.swiftdoc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftdoc (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftdoc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.swiftdoc
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.abi.json /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.abi.json (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.abi.json /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/arm64-apple-ios-simulator.abi.json
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftsourceinfo (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftsourceinfo /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/Project/x86_64-apple-ios-simulator.swiftsourceinfo
+
+Copy /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftsourceinfo (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-copy -exclude .DS_Store -exclude CVS -exclude .svn -exclude .git -exclude .hg -resolve-src-symlinks -rename /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftsourceinfo /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32_Remote.swiftmodule/Project/arm64-apple-ios-simulator.swiftsourceinfo
+
+ProcessInfoPlistFile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Info.plist /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/empty-X32\ Remote.plist (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-infoPlistUtility /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/empty-X32\ Remote.plist -producttype com.apple.product-type.application -genpkginfo /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/PkgInfo -expandbuildsettings -format binary -platform iphonesimulator -additionalcontentfile /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/assetcatalog_generated_info.plist -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Info.plist
+
+SwiftCompile normal x86_64 Compiling\ Graphs.swift,\ MixerScreen.swift,\ MonitorScreen.swift,\ RootView.swift,\ Sheets.swift,\ SimpleScreen.swift,\ Theme.swift,\ GeneratedAssetSymbols.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Graphs.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MixerScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MonitorScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/RootView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Sheets.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/SimpleScreen.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Theme.swift /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Graphs.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MixerScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/MonitorScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/RootView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Sheets.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/SimpleScreen.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Theme.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 Compiling\ UDPSocket.swift,\ X32Client.swift,\ X32Values.swift,\ BarSlider.swift,\ ChannelView.swift,\ ConnectView.swift,\ Controls.swift,\ DetailPages.swift,\ EQPage.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/UDPSocket.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Client.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Values.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/BarSlider.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ChannelView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ConnectView.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Controls.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/DetailPages.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/UDPSocket.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Client.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/X32Values.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/BarSlider.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ChannelView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/ConnectView.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/Controls.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/DetailPages.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/UI/EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftDriverJobDiscovery normal arm64 Compiling Graphs.swift, MixerScreen.swift, MonitorScreen.swift, RootView.swift, Sheets.swift, SimpleScreen.swift, Theme.swift, GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal arm64 Compiling\ resource_bundle_accessor.swift,\ AppModel.swift,\ AppSettings.swift,\ X32RemoteApp.swift,\ DemoDesk.swift,\ Discovery.swift,\ OSC.swift,\ Store.swift,\ Strips.swift /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppModel.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppSettings.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/X32RemoteApp.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/DemoDesk.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Discovery.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/OSC.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Store.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppModel.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppSettings.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/X32RemoteApp.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/DemoDesk.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Discovery.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/OSC.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Store.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal arm64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 Compiling\ resource_bundle_accessor.swift,\ AppModel.swift,\ AppSettings.swift,\ X32RemoteApp.swift,\ DemoDesk.swift,\ Discovery.swift,\ OSC.swift,\ Store.swift,\ Strips.swift /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppModel.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppSettings.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/X32RemoteApp.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/DemoDesk.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Discovery.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/OSC.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Store.swift /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/resource_bundle_accessor.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppModel.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/AppSettings.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/App/X32RemoteApp.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/DemoDesk.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Discovery.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/OSC.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Store.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftCompile normal x86_64 /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Core/Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    
+
+SwiftDriverJobDiscovery normal x86_64 Compiling Graphs.swift, MixerScreen.swift, MonitorScreen.swift, RootView.swift, Sheets.swift, SimpleScreen.swift, Theme.swift, GeneratedAssetSymbols.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling UDPSocket.swift, X32Client.swift, X32Values.swift, BarSlider.swift, ChannelView.swift, ConnectView.swift, Controls.swift, DetailPages.swift, EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriverJobDiscovery normal x86_64 Compiling resource_bundle_accessor.swift, AppModel.swift, AppSettings.swift, X32RemoteApp.swift, DemoDesk.swift, Discovery.swift, OSC.swift, Store.swift, Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriver\ Compilation X32\ Remote normal x86_64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-Swift-Compilation -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target x86_64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/x86_64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote.debug.dylib normal x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -dynamiclib -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -filelist /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.LinkFileList -install_name @rpath/X32\ Remote.debug.dylib -Xlinker -rpath -Xlinker @executable_path/../lib -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32_Remote.swiftmodule -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote.debug.dylib
+
+SwiftDriverJobDiscovery normal arm64 Compiling resource_bundle_accessor.swift, AppModel.swift, AppSettings.swift, X32RemoteApp.swift, DemoDesk.swift, Discovery.swift, OSC.swift, Store.swift, Strips.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+ConstructStubExecutorLinkFileList /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-x86_64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    construct-stub-executor-link-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote.debug.dylib /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-x86_64.txt
+note: Using stub executor library with Swift entry point. (in target 'X32 Remote' from project 'X32 Remote')
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote normal x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target x86_64-apple-ios17.0-simulator -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/../lib -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-x86_64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-x86_64.txt -Xlinker -filelist -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-x86_64.txt /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote.debug.dylib -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote
+
+SwiftDriverJobDiscovery normal arm64 Compiling UDPSocket.swift, X32Client.swift, X32Values.swift, BarSlider.swift, ChannelView.swift, ConnectView.swift, Controls.swift, DetailPages.swift, EQPage.swift (in target 'X32 Remote' from project 'X32 Remote')
+
+SwiftDriver\ Compilation X32\ Remote normal arm64 com.apple.xcode.tools.swift.compiler (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode
+    builtin-Swift-Compilation -- /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc -module-name X32_Remote -Onone -enforce-exclusivity\=checked @/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList -DSWIFT_PACKAGE -DDEBUG -DXcode -plugin-path /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins/testing -enable-experimental-feature DebugDescriptionMacro -sdk /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -target arm64-apple-ios17.0-simulator -g -module-cache-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex -Xfrontend -serialize-debugging-options -enable-testing -index-store-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Index.noindex/DataStore -swift-version 5 -I /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -I /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -F /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -c -j3 -enable-batch-mode -incremental -Xcc -ivfsstatcache -Xcc /Users/runner/work/x32-remote/x32-remote/build/DerivedData/SDKStatCaches.noindex/iphonesimulator18.5-22F76-96ae0914227b19deccb34b33ba7b5dea.sdkstatcache -output-file-map /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote-OutputFileMap.json -use-frontend-parseable-output -save-temps -no-color-diagnostics -serialize-diagnostics -emit-dependencies -emit-module -emit-module-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule -validate-clang-modules-once -clang-build-session-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/ModuleCache.noindex/Session.modulevalidation -package-name x32remote_swiftpm -emit-const-values -Xfrontend -const-gather-protocols-file -Xfrontend /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_const_extract_protocols.json -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/include -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources-normal/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources/arm64 -Xcc -I/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -working-directory /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/.swiftpm/xcode -experimental-emit-module-separately -disable-cmo
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote.debug.dylib normal arm64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -dynamiclib -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/EagerLinkingTBDs/Debug-iphonesimulator -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -filelist /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.LinkFileList -install_name @rpath/X32\ Remote.debug.dylib -Xlinker -rpath -Xlinker @executable_path/../lib -dead_strip -Xlinker -object_path_lto -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_lto.o -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -Xlinker -dependency_info -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_dependency_info.dat -fobjc-link-runtime -L/Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/iphonesimulator -L/usr/lib/swift -Xlinker -add_ast_path -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32_Remote.swiftmodule -Xlinker -alias -Xlinker _main -Xlinker ___debug_main_executable_dylib_entry_point -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote.debug.dylib
+
+CreateUniversalBinary /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote.debug.dylib normal arm64\ x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote.debug.dylib /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote.debug.dylib -output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote.debug.dylib
+
+ConstructStubExecutorLinkFileList /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-arm64.txt (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    construct-stub-executor-link-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote.debug.dylib /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor_no_swift_entry_point.a /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib/libPreviewsJITStubExecutor.a --output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-arm64.txt
+note: Using stub executor library with Swift entry point. (in target 'X32 Remote' from project 'X32 Remote')
+
+Ld /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote normal arm64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/clang -Xlinker -reproducible -target arm64-apple-ios17.0-simulator -isysroot /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk -O0 -L/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -L/Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/usr/lib -F/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/Library/Frameworks -iframework /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk/Developer/Library/Frameworks -Xlinker -rpath -Xlinker @executable_path -Xlinker -rpath -Xlinker @executable_path/../lib -rdynamic -Xlinker -no_deduplicate -Xlinker -objc_abi_version -Xlinker 2 -e ___debug_blank_executor_main -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_dylib -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibPath-normal-arm64.txt -Xlinker -sectcreate -Xlinker __TEXT -Xlinker __debug_instlnm -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-DebugDylibInstallName-normal-arm64.txt -Xlinker -filelist -Xlinker /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote-ExecutorLinkFileList-normal-arm64.txt /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote.debug.dylib -o /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote
+
+CreateUniversalBinary /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote normal arm64\ x86_64 (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/lipo -create /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/Binary/X32\ Remote /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/Binary/X32\ Remote -output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote
+
+ExtractAppIntentsMetadata (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsmetadataprocessor --toolchain-dir /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --module-name X32_Remote --sdk-root /Applications/Xcode_16.4.app/Contents/Developer/Platforms/iPhoneSimulator.platform/Developer/SDKs/iPhoneSimulator18.5.sdk --xcode-version 16F6 --platform-family iOS --deployment-target 17.0 --bundle-identifier nz.taine.x32remote --output /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app --target-triple arm64-apple-ios17.0-simulator --target-triple x86_64-apple-ios17.0-simulator --binary-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote --dependency-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote_dependency_info.dat --dependency-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote_dependency_info.dat --stringsdata-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/ExtractedAppShortcutsMetadata.stringsdata --stringsdata-file /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/ExtractedAppShortcutsMetadata.stringsdata --source-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftFileList --source-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftFileList --metadata-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyMetadataFileList --static-metadata-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyStaticMetadataFileList --swift-const-vals-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/arm64/X32\ Remote.SwiftConstValuesFileList --swift-const-vals-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/Objects-normal/x86_64/X32\ Remote.SwiftConstValuesFileList --compile-time-extraction --deployment-aware-processing --validate-assistant-intents --no-app-shortcuts-localization
+2026-10-20 01:42:33.968 appintentsmetadataprocessor[5936:22071] Starting appintentsmetadataprocessor export
+2026-10-20 01:42:33.977 appintentsmetadataprocessor[5936:22071] warning: Metadata extraction skipped. No AppIntents.framework dependency found.
+
+CopySwiftLibs /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-swiftStdLibTool --copy --verbose --scan-executable /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/X32\ Remote.debug.dylib --scan-folder /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Frameworks --scan-folder /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/PlugIns --scan-folder /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/SystemExtensions --scan-folder /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Extensions --platform iphonesimulator --toolchain /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain --destination /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Frameworks --strip-bitcode --strip-bitcode-tool /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/bitcode_strip --emit-dependency-info /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/SwiftStdLibToolInputDependencies.dep --filter-for-swift-os
+Ignoring --strip-bitcode because --sign was not passed
+
+AppIntentsSSUTraining (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /Applications/Xcode_16.4.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/appintentsnltrainingprocessor --infoplist-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Info.plist --temp-dir-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/ssu --bundle-id nz.taine.x32remote --product-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app --extracted-metadata-path /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app/Metadata.appintents --metadata-file-list /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Intermediates.noindex/X32\ Remote.build/Debug-iphonesimulator/X32\ Remote.build/X32\ Remote.DependencyMetadataFileList --archive-ssu-assets
+2026-10-20 01:42:34.058 appintentsnltrainingprocessor[5968:22168] Parsing options for appintentsnltrainingprocessor
+2026-10-20 01:42:34.061 appintentsnltrainingprocessor[5968:22168] No AppShortcuts found - Skipping.
+
+RegisterExecutionPolicyException /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-RegisterExecutionPolicyException /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app
+
+Validate /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    builtin-validationUtility /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app -infoplist-subpath Info.plist
+
+Touch /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app (in target 'X32 Remote' from project 'X32 Remote')
+    cd /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+    /usr/bin/touch -c /Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32\ Remote.app
+
+warning: Skipping duplicate build file in Compile Sources build phase: /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+warning: Skipping duplicate build file in Compile Sources build phase: /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm/Assets.xcassets (in target 'X32 Remote' from project 'X32 Remote')
+** BUILD SUCCEEDED **
+

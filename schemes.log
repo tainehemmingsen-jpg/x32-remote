@@ -1,0 +1,13 @@
+Command line invocation:
+    /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild -list
+
+Resolve Package Graph
+
+
+Resolved source packages:
+  X32 Remote: /Users/runner/work/x32-remote/x32-remote/X32Remote.swiftpm
+
+Information about workspace "X32Remote":
+    Schemes:
+        X32 Remote
+

@@ -1,0 +1,132 @@
+Building for debugging...
+[0/7] /Users/runner/work/x32-remote/x32-remote/build/CoreTestPackage/.build/arm64-apple-macosx/debug/X32CorePackageTests.derived/runner.swift
+[1/7] Write sources
+[4/7] Write swift-version--79AA4F9932D1E87A.txt
+[6/14] Emitting module X32Core
+[7/14] Compiling X32Core DemoDesk.swift
+[8/14] Compiling X32Core Discovery.swift
+[9/14] Compiling X32Core OSC.swift
+[10/16] Compiling X32Core Store.swift
+[11/16] Compiling X32Core Strips.swift
+[12/16] Compiling X32Core UDPSocket.swift
+[13/16] Compiling X32Core X32Client.swift
+[14/16] Compiling X32Core X32Values.swift
+[15/18] Compiling X32CoreTests CoreTests.swift
+[16/18] Emitting module X32CoreTests
+[17/20] Emitting module X32CorePackageTests
+[18/20] Compiling X32CorePackageTests runner.swift
+[18/20] Write Objects.LinkFileList
+[19/20] Linking X32CorePackageTests
+Build complete! (25.80s)
+Test Suite 'All tests' started at 2026-10-20 01:41:20.029.
+Test Suite 'X32CorePackageTests.xctest' started at 2026-10-20 01:41:20.031.
+Test Suite 'AddressTests' started at 2026-10-20 01:41:20.031.
+Test Case '-[X32CoreTests.AddressTests testIPv4Normalisation]' started.
+Test Case '-[X32CoreTests.AddressTests testIPv4Normalisation]' passed (0.009 seconds).
+Test Suite 'AddressTests' passed at 2026-10-20 01:41:20.040.
+	 Executed 1 test, with 0 failures (0 unexpected) in 0.009 (0.009) seconds
+Test Suite 'ClientTests' started at 2026-10-20 01:41:20.040.
+Test Case '-[X32CoreTests.ClientTests testConnectsAndRegistersForUpdates]' started.
+Test Case '-[X32CoreTests.ClientTests testConnectsAndRegistersForUpdates]' passed (0.371 seconds).
+Test Case '-[X32CoreTests.ClientTests testLostAndRecovered]' started.
+Test Case '-[X32CoreTests.ClientTests testLostAndRecovered]' passed (7.479 seconds).
+Test Case '-[X32CoreTests.ClientTests testRequestsAreWindowedAndAnswered]' started.
+Test Case '-[X32CoreTests.ClientTests testRequestsAreWindowedAndAnswered]' passed (0.750 seconds).
+Test Case '-[X32CoreTests.ClientTests testSetsAreCoalesced]' started.
+Test Case '-[X32CoreTests.ClientTests testSetsAreCoalesced]' passed (0.338 seconds).
+Test Case '-[X32CoreTests.ClientTests testUnansweredRequestsAreRetriedThenDropped]' started.
+Test Case '-[X32CoreTests.ClientTests testUnansweredRequestsAreRetriedThenDropped]' passed (2.431 seconds).
+Test Suite 'ClientTests' passed at 2026-10-20 01:41:31.410.
+	 Executed 5 tests, with 0 failures (0 unexpected) in 11.369 (11.370) seconds
+Test Suite 'DemoDeskTests' started at 2026-10-20 01:41:31.410.
+Test Case '-[X32CoreTests.DemoDeskTests testDemoDeskBehavesLikeAConsole]' started.
+Test Case '-[X32CoreTests.DemoDeskTests testDemoDeskBehavesLikeAConsole]' passed (1.610 seconds).
+Test Case '-[X32CoreTests.DemoDeskTests testEveryAddressTheAppLoadsHasADemoValue]' started.
+Test Case '-[X32CoreTests.DemoDeskTests testEveryAddressTheAppLoadsHasADemoValue]' passed (0.024 seconds).
+Test Suite 'DemoDeskTests' passed at 2026-10-20 01:41:33.044.
+	 Executed 2 tests, with 0 failures (0 unexpected) in 1.634 (1.634) seconds
+Test Suite 'NetworkMathTests' started at 2026-10-20 01:41:33.044.
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsForSlash24]' started.
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsForSlash24]' passed (0.001 seconds).
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsLargeSubnetIsCapped]' started.
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsLargeSubnetIsCapped]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsSlash22]' started.
+Test Case '-[X32CoreTests.NetworkMathTests testScanTargetsSlash22]' passed (0.000 seconds).
+Test Suite 'NetworkMathTests' passed at 2026-10-20 01:41:33.046.
+	 Executed 3 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'OSCTests' started at 2026-10-20 01:41:33.046.
+Test Case '-[X32CoreTests.OSCTests testDecodeAddressOnly]' started.
+Test Case '-[X32CoreTests.OSCTests testDecodeAddressOnly]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testDecodeRejectsGarbage]' started.
+Test Case '-[X32CoreTests.OSCTests testDecodeRejectsGarbage]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testDecodeTruncatedArgumentFails]' started.
+Test Case '-[X32CoreTests.OSCTests testDecodeTruncatedArgumentFails]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testEncodeFaderMatchesWireFormat]' started.
+Test Case '-[X32CoreTests.OSCTests testEncodeFaderMatchesWireFormat]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testGetRequestHasEmptyTypeTag]' started.
+Test Case '-[X32CoreTests.OSCTests testGetRequestHasEmptyTypeTag]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testMeterBlobIsLittleEndianWithCount]' started.
+Test Case '-[X32CoreTests.OSCTests testMeterBlobIsLittleEndianWithCount]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testMeterBlobToleratesShortData]' started.
+Test Case '-[X32CoreTests.OSCTests testMeterBlobToleratesShortData]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.OSCTests testRoundTripAllTypes]' started.
+Test Case '-[X32CoreTests.OSCTests testRoundTripAllTypes]' passed (0.000 seconds).
+Test Suite 'OSCTests' passed at 2026-10-20 01:41:33.047.
+	 Executed 8 tests, with 0 failures (0 unexpected) in 0.001 (0.002) seconds
+Test Suite 'StoreTests' started at 2026-10-20 01:41:33.047.
+Test Case '-[X32CoreTests.StoreTests testDefaultsWhenUnknown]' started.
+Test Case '-[X32CoreTests.StoreTests testDefaultsWhenUnknown]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StoreTests testMeterIngest]' started.
+Test Case '-[X32CoreTests.StoreTests testMeterIngest]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StoreTests testMeterReleaseIsSmoothed]' started.
+Test Case '-[X32CoreTests.StoreTests testMeterReleaseIsSmoothed]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StoreTests testRemoteValuesIgnoredWhileTouched]' started.
+Test Case '-[X32CoreTests.StoreTests testRemoteValuesIgnoredWhileTouched]' passed (0.000 seconds).
+Test Suite 'StoreTests' passed at 2026-10-20 01:41:33.049.
+	 Executed 4 tests, with 0 failures (0 unexpected) in 0.001 (0.001) seconds
+Test Suite 'StripTests' started at 2026-10-20 01:41:33.049.
+Test Case '-[X32CoreTests.StripTests testChannelPaths]' started.
+Test Case '-[X32CoreTests.StripTests testChannelPaths]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testCodable]' started.
+Test Case '-[X32CoreTests.StripTests testCodable]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testEveryStripHasUniqueAddresses]' started.
+Test Case '-[X32CoreTests.StripTests testEveryStripHasUniqueAddresses]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testLabels]' started.
+Test Case '-[X32CoreTests.StripTests testLabels]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testMeterIndices]' started.
+Test Case '-[X32CoreTests.StripTests testMeterIndices]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testOtherStripPaths]' started.
+Test Case '-[X32CoreTests.StripTests testOtherStripPaths]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.StripTests testSoloIndices]' started.
+Test Case '-[X32CoreTests.StripTests testSoloIndices]' passed (0.000 seconds).
+Test Suite 'StripTests' passed at 2026-10-20 01:41:33.051.
+	 Executed 7 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+Test Suite 'ValueTests' started at 2026-10-20 01:41:33.051.
+Test Case '-[X32CoreTests.ValueTests testDisplayStrings]' started.
+Test Case '-[X32CoreTests.ValueTests testDisplayStrings]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testFaderLawKeyPoints]' started.
+Test Case '-[X32CoreTests.ValueTests testFaderLawKeyPoints]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testFaderLawRoundTrips]' started.
+Test Case '-[X32CoreTests.ValueTests testFaderLawRoundTrips]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testFormatting]' started.
+Test Case '-[X32CoreTests.ValueTests testFormatting]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testFrequencyScale]' started.
+Test Case '-[X32CoreTests.ValueTests testFrequencyScale]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testLinearScales]' started.
+Test Case '-[X32CoreTests.ValueTests testLinearScales]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testQScaleRunsFromTenDownToPointThree]' started.
+Test Case '-[X32CoreTests.ValueTests testQScaleRunsFromTenDownToPointThree]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testQuantize]' started.
+Test Case '-[X32CoreTests.ValueTests testQuantize]' passed (0.000 seconds).
+Test Case '-[X32CoreTests.ValueTests testSourceNames]' started.
+Test Case '-[X32CoreTests.ValueTests testSourceNames]' passed (0.000 seconds).
+Test Suite 'ValueTests' passed at 2026-10-20 01:41:33.054.
+	 Executed 9 tests, with 0 failures (0 unexpected) in 0.002 (0.003) seconds
+Test Suite 'X32CorePackageTests.xctest' passed at 2026-10-20 01:41:33.054.
+	 Executed 39 tests, with 0 failures (0 unexpected) in 13.020 (13.023) seconds
+Test Suite 'All tests' passed at 2026-10-20 01:41:33.054.
+	 Executed 39 tests, with 0 failures (0 unexpected) in 13.020 (13.025) seconds
+◇ Test run started.
+↳ Testing Library Version: 124.4
+↳ Target Platform: arm64e-apple-macos14.0
+✔ Test run with 0 tests passed after 0.001 seconds.

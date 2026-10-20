@@ -1,0 +1,1 @@
+APP=/Users/runner/work/x32-remote/x32-remote/build/DerivedData/Build/Products/Debug-iphonesimulator/X32 Remote.app

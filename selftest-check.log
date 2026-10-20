@@ -1,0 +1,8 @@
+/ch/01/mix/fader         want 0.7497556207233627 got 0.7497556209564209 OK
+/ch/02/mix/on            want 0            got 0            OK
+/ch/03/config/name       want 'SelfTest'   got 'SelfTest'   OK
+/ch/04/mix/05/level      want 0.6          got 0.6000000238418579 OK
+/ch/05/config/color      want 4            got 4            OK
+/ch/06/eq/2/g            want 0.7          got 0.699999988079071 OK
+/config/mute/3           want 1            got 1            OK
+all self-test changes reached the desk
