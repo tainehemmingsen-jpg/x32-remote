@@ -37,16 +37,14 @@ private struct GatePanel: View {
                 ReductionMeter(meter: app.meters.meter(strip), gate: true)
                     .frame(maxWidth: 220)
             }
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
-                    ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Threshold", tint: tint, enabled: on)
-                    ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Range", tint: tint, enabled: on)
-                    ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", tint: tint, enabled: on)
-                    ParamKnob(app: app, address: strip.gatePath("hold"), spec: Specs.hold, title: "Hold", tint: tint, enabled: on)
-                    ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", tint: tint, enabled: on)
-                }
-                .padding(.vertical, 4)
+            ControlGrid {
+                ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Threshold", tint: tint, enabled: on)
+                ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Range", tint: tint, enabled: on)
+                ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", tint: tint, enabled: on)
+                ParamKnob(app: app, address: strip.gatePath("hold"), spec: Specs.hold, title: "Hold", tint: tint, enabled: on)
+                ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", tint: tint, enabled: on)
             }
+            .padding(.vertical, 4)
         }
     }
 }
@@ -76,28 +74,42 @@ private struct CompressorPanel: View {
                     OnSwitch(app: app, address: strip.dynPath("auto"), title: "AUTO", color: tint, width: 70)
                 }
             }
-            HStack(alignment: .top, spacing: 16) {
-                TransferCurve(app: app, strip: strip)
-                    .frame(width: 150, height: 150)
-                ScrollView(.horizontal, showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 20) {
-                            ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Threshold", tint: tint, enabled: on)
-                            EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", tint: tint, enabled: on)
-                            ParamKnob(app: app, address: strip.dynPath("knee"), spec: Specs.knee, title: "Knee", tint: tint, enabled: on)
-                            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Gain", tint: tint, enabled: on)
-                        }
-                        HStack(spacing: 20) {
-                            ParamKnob(app: app, address: strip.dynPath("attack"), spec: Specs.attack, title: "Attack", tint: tint, enabled: on)
-                            ParamKnob(app: app, address: strip.dynPath("hold"), spec: Specs.hold, title: "Hold", tint: tint, enabled: on)
-                            ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", tint: tint, enabled: on)
-                            ParamKnob(app: app, address: strip.dynPath("mix"), spec: Specs.dynMix, title: "Mix", tint: tint, enabled: on)
-                        }
-                    }
-                    .padding(.vertical, 4)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .top, spacing: 16) {
+                    TransferCurve(app: app, strip: strip)
+                        .frame(width: 150, height: 150)
+                    CompressorBars(app: app, strip: strip, tint: tint, on: on)
+                        .frame(minWidth: 520)
+                }
+                VStack(alignment: .leading, spacing: 12) {
+                    TransferCurve(app: app, strip: strip)
+                        .frame(width: 150, height: 150)
+                        .frame(maxWidth: .infinity)
+                    CompressorBars(app: app, strip: strip, tint: tint, on: on)
                 }
             }
         }
+    }
+}
+
+private struct CompressorBars: View {
+    let app: AppModel
+    let strip: StripID
+    let tint: Color
+    let on: Bool
+
+    var body: some View {
+        ControlGrid {
+            ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Threshold", tint: tint, enabled: on)
+            EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("knee"), spec: Specs.knee, title: "Knee", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Gain", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("attack"), spec: Specs.attack, title: "Attack", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("hold"), spec: Specs.hold, title: "Hold", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", tint: tint, enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("mix"), spec: Specs.dynMix, title: "Mix", tint: tint, enabled: on)
+        }
+        .padding(.vertical, 4)
     }
 }
 

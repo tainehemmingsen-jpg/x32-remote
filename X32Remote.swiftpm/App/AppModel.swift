@@ -41,6 +41,8 @@ final class AppModel {
     var detailStrip: StripID?
     var sheet: Sheet?
     var detailTab: DetailTab = .eq
+    /// Fine mode: every fader, slider and pan moves 4x more slowly.
+    var fineMode = false
     /// The channel the open channel page is showing now (it can step prev/next).
     @ObservationIgnored var visibleDetailStrip: StripID?
 
@@ -324,6 +326,39 @@ final class AppModel {
         if let d = visibleDetailStrip ?? detailStrip {
             loadDetail(d)
         }
+        if settings.mode == .mixer {
+            c.get(stripOverviewAddresses())
+        }
+    }
+
+    /// What the strip overviews show: gain, +48, gate/EQ/comp state and the mini EQ and comp graphs.
+    func stripOverviewAddresses() -> [String] {
+        var a: [String] = []
+        for s in StripID.everything where s.kind != .dca {
+            if let ha = s.headampIndexPath { a.append(ha) }
+            if s.kind == .channel || s.kind == .auxIn { a.append(s.sourcePath) }
+            if s.hasTrim { a.append(s.preampPath("trim")) }
+            if s.hasHighPass {
+                a.append(s.preampPath("hpon"))
+                a.append(s.preampPath("hpf"))
+                a.append(s.preampPath("hpslope"))
+            }
+            if s.hasGate { a.append(s.gatePath("on")) }
+            if s.hasEQ {
+                a.append(s.eqOnPath)
+                for band in 1...s.eqBandCount {
+                    for field in ["type", "f", "g", "q"] {
+                        a.append(s.eqPath(band, field))
+                    }
+                }
+            }
+            if s.hasDynamics {
+                for field in ["on", "mode", "thr", "ratio", "knee"] {
+                    a.append(s.dynPath(field))
+                }
+            }
+        }
+        return a
     }
 
     func loadSends(bus: Int) {
@@ -477,6 +512,7 @@ final class AppModel {
             touch(address, false)
         }
         target.address = nil
+        target.blocked = false
     }
 
     /// Set a float on the parameter the current drag started on (or `address` if no drag).

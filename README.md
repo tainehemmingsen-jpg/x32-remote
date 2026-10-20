@@ -2,9 +2,9 @@
 
 A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over Wi‑Fi — a replacement for the discontinued X32‑Mix app.
 
-- **Mixer** — fader banks (1–16, 17–32, Aux·FX, Buses, Matrix·Main, DCA), mute, solo, pan, meters, mute groups, scenes, and a Main LR master. Tap any scribble strip for the channel page.
+- **Mixer** — layers (Ch 1–16, Ch 17–32, Aux, FX returns, Buses, Matrix·Main, DCA) in a panel down the right with mute groups, sends on fader and Fine. Each strip shows its input and gain, +48/gate/EQ/comp lights, a mini EQ curve and compressor graph, mute, pan, fader with meter, and solo. Tap the scribble strip (or the gain, EQ or compressor picture) for the channel page.
 - **Channel page** — Input (gain, 48 V, trim, polarity, low cut), EQ with a draggable curve, gate and compressor, sends, and setup (name, colour, DCA and mute-group assignment, LR/mono).
-- **Sends on faders** — pick a mix bus from the top-right menu and the faders become that bus's sends (the strip tints in the bus colour so you can't mistake it for the main mix).
+- **Sends on faders** — pick a mix bus in the right-hand panel (top-right menu on a phone) and the faders become that bus's sends (the strip tints in the bus colour so you can't mistake it for the main mix).
 - **Monitor mix mode** — one performer's mix on big faders, with only the inputs they need, lockable with a PIN.
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console.
@@ -37,7 +37,8 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 ## Tips
 
 - **Faders:** touch anywhere on a fader and drag — it never jumps to your finger. Slide your finger sideways off the strip while dragging for fine control. Several faders can be moved at once.
-- **Knobs:** drag up/down. Double‑tap resets (e.g. EQ gain to 0 dB).
+- **Parameters** (gain, EQ, dynamics…) are wide slider bars: drag left/right anywhere on the bar, or tap − / + for one step (hold to repeat). Double‑tap resets EQ gain and trim.
+- **Fine:** switch it on (right-hand panel, or the channel page header) and every fader, pan and bar moves 4× more slowly under your finger.
 - **Pan:** drag sideways; double‑tap centres.
 - **48 V** asks for confirmation before switching on.
 - **Scenes** ask before recalling, then the app re-reads the desk.
@@ -45,7 +46,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 
 ## How it was tested
 
-- `Tests/CoreTests` — 38 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics), addresses, meters, the client (request window, retries, coalescing, reconnect) and the demo desk.
+- `Tests/CoreTests` — 39 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics), addresses, meters, the client (request window, retries, coalescing, reconnect) and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
 - `ci/` + `.github/workflows/ios.yml` — on every push, GitHub Actions builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 

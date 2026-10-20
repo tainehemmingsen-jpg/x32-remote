@@ -113,6 +113,8 @@ struct FaderView: View {
     var showScale: Bool = true
     var hapticAtUnity: Bool = true
     var capLabel: String? = nil
+    /// Fine mode: 4x slower.
+    var fine: Bool = false
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -148,7 +150,8 @@ struct FaderView: View {
                     onMove: { p in
                         let dy = p.y - lastPoint.y
                         lastPoint = p
-                        let fine: CGFloat = abs(p.x - width / 2) > max(80, width) ? 0.25 : 1
+                        let sideways: CGFloat = abs(p.x - width / 2) > max(80, width) ? 0.25 : 1
+                        let fine: CGFloat = sideways * (self.fine ? 0.25 : 1)
                         // Never let a short fader become hair-trigger: at least 150 pt per full throw.
                         var next = dragValue - Float(dy / max(travel, 150) * fine)
                         next = min(max(next, 0), maxValue)
@@ -271,6 +274,7 @@ struct HFader: View {
     var tint: Color = Theme.accent
     var maxValue: Float = 1
     var hapticAtUnity: Bool = true
+    var fine: Bool = false
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -340,7 +344,8 @@ struct HFader: View {
                     onMove: { p in
                         let dx = p.x - lastPoint.x
                         lastPoint = p
-                        let fine: CGFloat = abs(p.y - height / 2) > max(70, height * 1.5) ? 0.25 : 1
+                        let sideways: CGFloat = abs(p.y - height / 2) > max(70, height * 1.5) ? 0.25 : 1
+                        let fine: CGFloat = sideways * (self.fine ? 0.25 : 1)
                         // Never let a short fader become hair-trigger: at least 150 pt per full throw.
                         var next = dragValue + Float(dx / max(travel, 150) * fine)
                         next = min(max(next, 0), maxValue)
@@ -561,6 +566,7 @@ struct PanControl: View {
     let value: Float
     var tint: Color = Theme.accent
     var height: CGFloat = 22
+    var fine: Bool = false
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -600,7 +606,7 @@ struct PanControl: View {
                     onMove: { p in
                         let dx = p.x - lastPoint.x
                         lastPoint = p
-                        var next = dragValue + Float(dx / max(60, width * 1.5))
+                        var next = dragValue + Float(dx / max(60, width * 1.5) * (fine ? 0.25 : 1))
                         next = min(max(next, 0), 1)
                         if (dragValue < 0.5) != (next < 0.5) {
                             Haptics.tick()

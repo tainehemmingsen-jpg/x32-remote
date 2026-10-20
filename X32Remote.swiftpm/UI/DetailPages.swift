@@ -50,27 +50,29 @@ private struct PreampControls: View {
         let haIndex = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
         let hasHeadamp = haIndex >= 0 && haIndex < 128
         let phantomOn = hasHeadamp && app.param(StripID.headampPhantomPath(haIndex)).bool
-        HStack(alignment: .top, spacing: 22) {
+        VStack(alignment: .leading, spacing: 12) {
             if hasHeadamp {
-                ParamKnob(app: app, address: StripID.headampGainPath(haIndex), spec: Specs.headampGain, title: "Gain", size: 64)
-                PhantomSwitch(app: app, address: StripID.headampPhantomPath(haIndex), confirm: $confirmPhantom)
-            }
-            if strip.hasTrim {
-                ParamKnob(app: app, address: strip.preampPath("trim"), spec: Specs.trim, title: "Trim", bipolar: true)
-            }
-            if strip.hasPolarity {
-                VStack(spacing: 6) {
-                    Text("POLARITY")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.secondary)
-                    OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø", color: Theme.accent, width: 56)
-                }
-            }
-            if !hasHeadamp {
+                ParamKnob(app: app, address: StripID.headampGainPath(haIndex), spec: Specs.headampGain, title: "Gain")
+            } else {
                 Text("This input isn't fed by a local or AES50 preamp, so gain is set at the source.")
                     .font(.system(size: 13))
                     .foregroundStyle(Theme.secondary)
-                    .frame(maxWidth: 220, alignment: .leading)
+            }
+            if strip.hasTrim {
+                ParamKnob(app: app, address: strip.preampPath("trim"), spec: Specs.trim, title: "Trim", bipolar: true, resettable: true)
+            }
+            HStack(alignment: .top, spacing: 18) {
+                if hasHeadamp {
+                    PhantomSwitch(app: app, address: StripID.headampPhantomPath(haIndex), confirm: $confirmPhantom)
+                }
+                if strip.hasPolarity {
+                    VStack(spacing: 6) {
+                        Text("POLARITY")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Theme.secondary)
+                        OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø", color: Theme.accent, width: 56)
+                    }
+                }
             }
         }
         .alert(phantomOn ? "Turn off 48V phantom power?" : "Turn on 48V phantom power?", isPresented: $confirmPhantom) {
@@ -112,20 +114,15 @@ private struct LowCutControls: View {
     let strip: StripID
 
     var body: some View {
-        HStack(alignment: .top, spacing: 22) {
-            VStack(spacing: 6) {
-                Text("LOW CUT")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(Theme.secondary)
-                OnSwitch(app: app, address: strip.preampPath("hpon"))
-            }
-            ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Frequency", enabled: app.param(strip.preampPath("hpon")).bool)
-            VStack(spacing: 6) {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 12) {
+                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "LOW CUT", width: 96)
                 Text("SLOPE")
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(Theme.secondary)
                 EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
             }
+            ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Frequency", enabled: app.param(strip.preampPath("hpon")).bool)
         }
     }
 }
@@ -267,6 +264,7 @@ private struct SendRow: View {
             value: level.float,
             tint: color,
             hapticAtUnity: app.settings.hapticAtUnity,
+            fine: app.fineMode,
             onChange: { v in app.dragSet(levelAddress, drag, v, steps: 160) },
             onTouch: { began in
                 if began { app.beginDrag(levelAddress, drag) } else { app.endDrag(drag) }
@@ -490,7 +488,8 @@ private struct MainAssign: View {
     let strip: StripID
 
     var body: some View {
-        HStack(alignment: .top, spacing: 22) {
+        VStack(alignment: .leading, spacing: 12) {
+          HStack(alignment: .top, spacing: 22) {
             if let lr = strip.lrAssignPath {
                 VStack(spacing: 6) {
                     Text("TO MAIN LR")
@@ -507,8 +506,10 @@ private struct MainAssign: View {
                     OnSwitch(app: app, address: mono, title: "M/C", color: Theme.accent)
                 }
             }
+          }
             if let level = strip.monoLevelPath {
                 ParamKnob(app: app, address: level, spec: Specs.send, title: "Mono level")
+                    .frame(maxWidth: 420)
             }
         }
     }

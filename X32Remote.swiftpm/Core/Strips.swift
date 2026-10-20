@@ -236,17 +236,18 @@ struct StripID: Hashable, Codable, Identifiable {
 
 /// Banks of strips shown on the mixer screen.
 enum MixerLayer: String, CaseIterable, Identifiable, Codable {
-    case inputs1, inputs2, auxFx, buses, matrix, dca
+    case inputs1, inputs2, aux, fxReturns, buses, matrix, dca
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .inputs1: return "1–16"
-        case .inputs2: return "17–32"
-        case .auxFx: return "Aux · FX"
-        case .buses: return "Buses"
-        case .matrix: return "Mtx · Main"
+        case .inputs1: return "Ch 1–16"
+        case .inputs2: return "Ch 17–32"
+        case .aux: return "Aux"
+        case .fxReturns: return "FX Ret"
+        case .buses: return "Bus"
+        case .matrix: return "Mtx / Main"
         case .dca: return "DCA"
         }
     }
@@ -255,9 +256,10 @@ enum MixerLayer: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .inputs1: return (1...16).map { StripID(.channel, $0) }
         case .inputs2: return (17...32).map { StripID(.channel, $0) }
-        case .auxFx: return StripID.all(.auxIn) + StripID.all(.fxReturn)
+        case .aux: return StripID.all(.auxIn)
+        case .fxReturns: return StripID.all(.fxReturn)
         case .buses: return StripID.all(.bus)
-        case .matrix: return StripID.all(.matrix) + [StripID.monoC]
+        case .matrix: return StripID.all(.matrix) + [StripID.mainLR, StripID.monoC]
         case .dca: return StripID.all(.dca)
         }
     }
@@ -265,7 +267,7 @@ enum MixerLayer: String, CaseIterable, Identifiable, Codable {
     /// Whether this layer's strips can show sends-on-fader for a mix bus.
     var supportsBusSends: Bool {
         switch self {
-        case .inputs1, .inputs2, .auxFx: return true
+        case .inputs1, .inputs2, .aux, .fxReturns: return true
         default: return false
         }
     }

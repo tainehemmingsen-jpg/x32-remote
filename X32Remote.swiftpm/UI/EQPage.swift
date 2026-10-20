@@ -227,17 +227,13 @@ private struct BandControls: View {
         let tint = EQColors.band(band)
         let usesGain = type >= 1 && type <= 4
         let usesQ = type == 2 || type == 3
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .center, spacing: 20) {
-                VStack(spacing: 8) {
-                    Text("BAND \(band) TYPE")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Theme.secondary)
-                    EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
-                }
-                ParamKnob(app: app, address: strip.eqPath(band, "f"), spec: Specs.eqFreq, title: "Freq", tint: tint)
-                ParamKnob(app: app, address: strip.eqPath(band, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain, resettable: true)
-                ParamKnob(app: app, address: strip.eqPath(band, "q"), spec: Specs.eqQ, title: "Q", tint: tint, enabled: usesQ)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                Text("BAND \(band) TYPE")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.secondary)
+                EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
+                Spacer(minLength: 8)
                 Button {
                     app.setFloat(strip.eqPath(band, "g"), 0.5, steps: Specs.eqGain.steps)
                 } label: {
@@ -246,8 +242,13 @@ private struct BandControls: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 4)
+            ControlGrid(minimumWidth: 230) {
+                ParamKnob(app: app, address: strip.eqPath(band, "f"), spec: Specs.eqFreq, title: "Freq", tint: tint)
+                ParamKnob(app: app, address: strip.eqPath(band, "g"), spec: Specs.eqGain, title: "Gain", bipolar: true, tint: tint, enabled: usesGain, resettable: true)
+                ParamKnob(app: app, address: strip.eqPath(band, "q"), spec: Specs.eqQ, title: "Q", tint: tint, enabled: usesQ)
+            }
         }
+        .padding(.horizontal, 4)
     }
 }
 

@@ -121,11 +121,17 @@ private struct DetailHeader: View {
                 if wide {
                     Spacer(minLength: 10)
                     TabButtons(app: app, tabs: tabs, tab: tab)
+                    FineButton(app: app, height: 34)
+                        .frame(width: 70)
                 }
             }
             if !wide {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    TabButtons(app: app, tabs: tabs, tab: tab)
+                HStack(spacing: 8) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        TabButtons(app: app, tabs: tabs, tab: tab)
+                    }
+                    FineButton(app: app, height: 32)
+                        .frame(width: 64)
                 }
             }
         }
@@ -248,6 +254,7 @@ private struct CompactStripBar: View {
             HFader(
                 value: fader.float,
                 hapticAtUnity: app.settings.hapticAtUnity,
+                fine: app.fineMode,
                 onChange: { v in app.dragSet(address, drag, v, steps: 1023) },
                 onTouch: { began in
                     if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
@@ -265,7 +272,7 @@ private struct CompactStripBar: View {
 
 // MARK: - Shared bound controls
 
-/// A knob bound to one OSC address via a ParamSpec.
+/// A slider bar bound to one OSC address via a ParamSpec. (Kept the old name; it used to be a knob.)
 struct ParamKnob: View {
     let app: AppModel
     let address: String
@@ -282,16 +289,20 @@ struct ParamKnob: View {
     var body: some View {
         let p = app.param(address)
         let v = p.float(or: spec.defaultNorm)
-        Knob(
+        BarSlider(
             title: title,
             value: v,
             display: p.isKnown ? spec.display(v) : "—",
             tint: tint,
             bipolar: bipolar,
-            defaultValue: resettable ? spec.defaultNorm : nil,
             enabled: enabled,
-            size: size,
-            onChange: { nv in app.dragSet(address, drag, nv, steps: spec.steps) },
+            fine: app.fineMode,
+            step: 1 / Float(max(spec.steps, 1)),
+            defaultValue: resettable ? spec.defaultNorm : nil,
+            onChange: { nv in
+                guard app.param(drag.address ?? address).isKnown else { return }
+                app.dragSet(address, drag, nv, steps: spec.steps)
+            },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
             }
@@ -299,7 +310,7 @@ struct ParamKnob: View {
     }
 }
 
-/// A knob that steps through a list of named values (e.g. compressor ratio).
+/// A slider bar that steps through a list of named values (e.g. compressor ratio).
 struct EnumKnob: View {
     let app: AppModel
     let address: String
@@ -315,14 +326,17 @@ struct EnumKnob: View {
         let count = max(options.count, 2)
         let index = min(max(p.int, 0), options.count - 1)
         let v = Float(index) / Float(count - 1)
-        Knob(
+        BarSlider(
             title: title,
             value: v,
             display: p.isKnown ? options[index] + suffix : "—",
             tint: tint,
             enabled: enabled,
+            fine: app.fineMode,
+            step: 1 / Float(count - 1),
             onChange: { nv in
                 let target = drag.address ?? address
+                guard app.param(target).isKnown else { return }
                 let i = Int((nv * Float(count - 1)).rounded())
                 if i != app.param(target).int {
                     app.setInt(target, i)
