@@ -588,14 +588,16 @@ final class LayerAndEntryTests: XCTestCase {
 final class UndoTests: XCTestCase {
     func testCoalescesRepeatedChangesToOneControl() {
         let u = UndoStack(limit: 10, coalesceWindow: 1.5)
-        u.record(address: "/ch/01/mix/on", previous: .int(1), label: "Ch 1 mute", now: 100)
-        u.record(address: "/ch/01/mix/on", previous: .int(0), label: "Ch 1 mute", now: 100.5)
+        u.record(address: "/ch/01/mix/fader", previous: .float(0.5), newValue: .float(0.55), label: "Ch 1 fader", now: 100)
+        u.record(address: "/ch/01/mix/fader", previous: .float(0.55), newValue: .float(0.6), label: "Ch 1 fader", now: 100.5)
         XCTAssertEqual(u.entries.count, 1)
-        XCTAssertEqual(u.last?.changes.first?.previous, .int(1), "undo goes back to before the burst")
-        u.record(address: "/ch/01/mix/on", previous: .int(1), label: "Ch 1 mute", now: 103)
+        XCTAssertEqual(u.last?.changes.first?.previous, .float(0.5), "undo goes back to before the burst")
+        u.record(address: "/ch/01/mix/fader", previous: .float(0.6), newValue: .float(0.7), label: "Ch 1 fader", now: 103)
         XCTAssertEqual(u.entries.count, 2, "a later change is its own step")
-        u.record(address: "/ch/02/mix/on", previous: .int(1), label: "Ch 2 mute", now: 103.1)
+        u.record(address: "/ch/02/mix/on", previous: .int(1), newValue: .int(0), label: "Ch 2 mute", now: 103.1)
         XCTAssertEqual(u.entries.count, 3, "a different control is its own step")
+        u.record(address: "/ch/02/mix/on", previous: .int(0), newValue: .int(1), label: "Ch 2 mute", now: 103.4)
+        XCTAssertEqual(u.entries.count, 2, "tapped on and straight off again leaves nothing to undo")
     }
 
     func testLimitAndPop() {
@@ -624,6 +626,7 @@ final class UndoTests: XCTestCase {
         XCTAssertEqual(AddressNames.describe("/dca/3/fader"), "DCA 3 fader")
         XCTAssertEqual(AddressNames.describe("/headamp/033/gain"), "A 02 gain")
         XCTAssertEqual(AddressNames.describe("/config/mute/2"), "Mute group 2")
+        XCTAssertEqual(AddressNames.describe("/config/solo/level"), "Solo level")
         XCTAssertEqual(AddressNames.describe("/ch/05/preamp/hpf"), "Ch 5 low cut freq")
         XCTAssertNil(AddressNames.split("/ch/99/mix/fader"))
         XCTAssertEqual(StripID.headampLabel(0), "Loc 01")
@@ -675,6 +678,8 @@ final class ClipboardTests: XCTestCase {
         XCTAssertEqual(clip.values.count, 1)
         XCTAssertFalse(ch.relativePaths(.preamp).contains { $0.contains("headamp") || $0.contains("gain") })
         XCTAssertEqual(clip.changes(onto: StripID(.channel, 4)).map(\.0), ["/ch/04/preamp/trim"])
+        XCTAssertTrue(ch.relativePaths(.sends).contains("/mix/01/type"), "send tap points travel with the levels")
+        XCTAssertFalse(ch.relativePaths(.sends).contains("/mix/02/type"))
     }
 }
 

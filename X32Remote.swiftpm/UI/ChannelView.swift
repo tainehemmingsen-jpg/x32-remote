@@ -851,6 +851,8 @@ struct ParamKnob: View {
     var enabled: Bool = true
     /// Double-tap to reset. Off by default: resetting gain or a threshold mid-show is dangerous.
     var resettable: Bool = false
+    /// Long-press opens the precision editor (off inside popovers, where it would open behind them).
+    var editable: Bool = true
     @State private var drag = DragTarget()
 
     var body: some View {
@@ -866,7 +868,7 @@ struct ParamKnob: View {
             fine: app.fineMode,
             step: 1 / Float(max(spec.steps, 1)),
             defaultValue: resettable ? spec.defaultNorm : nil,
-            onLongPress: { app.editValue(title, address, spec, reset: resettable ? spec.defaultNorm : nil) },
+            onLongPress: editable ? { app.editValue(title, address, spec, reset: resettable ? spec.defaultNorm : nil) } : nil,
             onChange: { nv in
                 guard app.param(drag.address ?? address).isKnown else { return }
                 app.dragSet(address, drag, nv, steps: spec.steps)

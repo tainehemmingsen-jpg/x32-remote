@@ -248,6 +248,7 @@ final class AppModel {
         if newPhase == .background {
             wasInBackground = true
             store.releaseAllTouches()
+            dragOriginals.removeAll()
         }
         if newPhase == .active && wasInBackground {
             wasInBackground = false
@@ -451,6 +452,7 @@ final class AppModel {
                 a.append(s.sendOnPath(n))
                 if n % 2 == 1 {
                     a.append(s.sendTypePath(n))
+                    a.append(s.sendPanPath(n))
                 }
             }
             if s.sendsFeedMatrix {
@@ -492,7 +494,7 @@ final class AppModel {
     func set(_ address: String, _ value: OSCArg) {
         if !restoring && AppModel.recordsUndo(address) && dragOriginals[address] == nil,
            let previous = store.value(address), previous != value {
-            undoStack.record(address: address, previous: previous, label: undoName(address), now: X32Client.now())
+            undoStack.record(address: address, previous: previous, newValue: value, label: undoName(address), now: X32Client.now())
             undoLabel = undoStack.last?.label
         }
         store.applyLocal(address, value)
@@ -531,6 +533,7 @@ final class AppModel {
     func beginDrag(_ address: String, _ target: DragTarget) {
         if let previous = target.address {
             touch(previous, false)
+            finishUndoGesture(previous)
         }
         // Never drag from a value we haven't read from the desk: it would jump the real level.
         target.blocked = !store.param(address).isKnown
@@ -539,19 +542,15 @@ final class AppModel {
         }
         target.address = address
         touch(address, true)
-        if !target.blocked, let v = store.value(address), AppModel.recordsUndo(address) {
-            dragOriginals[address] = v
+        if !target.blocked {
+            beginGesture([address])
         }
     }
 
     func endDrag(_ target: DragTarget) {
         if let address = target.address {
             touch(address, false)
-            // A whole drag is one undo step, back to where the finger first landed.
-            if let original = dragOriginals.removeValue(forKey: address), let now = store.value(address), now != original {
-                undoStack.push(UndoEntry(label: undoName(address), changes: [UndoEntry.Change(address: address, previous: original)], time: X32Client.now()))
-                undoLabel = undoStack.last?.label
-            }
+            finishUndoGesture(address)
         }
         target.address = nil
         target.blocked = false
@@ -622,8 +621,41 @@ final class AppModel {
         return AddressNames.describe(address)
     }
 
+    /// Remember where a gesture started; until it ends, its moves aren't recorded one by one.
+    func beginGesture(_ addresses: [String]) {
+        for a in addresses where AppModel.recordsUndo(a) && dragOriginals[a] == nil {
+            if let v = store.value(a) {
+                dragOriginals[a] = v
+            }
+        }
+    }
+
+    /// A whole gesture is one undo step, back to where the finger first landed.
+    func endGesture(_ addresses: [String], label: String) {
+        var changes: [UndoEntry.Change] = []
+        for a in addresses where store.param(a).touchCount == 0 {
+            if let original = dragOriginals.removeValue(forKey: a), let now = store.value(a), now != original {
+                changes.append(UndoEntry.Change(address: a, previous: original))
+            }
+        }
+        if !changes.isEmpty {
+            undoStack.push(UndoEntry(label: label, changes: changes, time: X32Client.now()))
+            undoLabel = undoStack.last?.label
+        }
+    }
+
+    private func finishUndoGesture(_ address: String) {
+        endGesture([address], label: undoName(address))
+    }
+
     func undo() {
-        guard let entry = undoStack.popLast() else { return }
+        guard let entry = undoStack.last else { return }
+        // Undoing something a finger is still moving would be overwritten straight away.
+        if entry.changes.contains(where: { store.param($0.address).touchCount > 0 }) {
+            showToast("Let go of the control first")
+            return
+        }
+        _ = undoStack.popLast()
         restoring = true
         for change in entry.changes.reversed() {
             set(change.address, change.previous)
@@ -660,10 +692,14 @@ final class AppModel {
     func showToast(_ text: String) {
         toastToken += 1
         let token = toastToken
-        toast = text
+        withAnimation(.easeOut(duration: 0.15)) {
+            toast = text
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.4) { [weak self] in
             guard let self, self.toastToken == token else { return }
-            self.toast = nil
+            withAnimation(.easeIn(duration: 0.25)) {
+                self.toast = nil
+            }
         }
     }
 
@@ -672,7 +708,19 @@ final class AppModel {
     /// Channel settings copied from the channel view.
     var clipboard: ChannelClipboard?
 
+    /// Addresses of `sections` on `strip` that haven't been read from the desk yet.
+    private func missing(_ strip: StripID, _ sections: [ProcessingSection]) -> [String] {
+        sections.flatMap { strip.relativePaths($0) }.map { strip.base + $0 }.filter { store.value($0) == nil }
+    }
+
     func copySettings(from strip: StripID, sections: [ProcessingSection]) {
+        // Never copy half a section: the paste would mix two channels' settings.
+        let gaps = missing(strip, sections)
+        if !gaps.isEmpty {
+            client?.get(gaps)
+            showToast("Still reading \(stripTitle(strip)) from the desk, try again in a moment")
+            return
+        }
         clipboard = ChannelClipboard.copy(from: strip, sections: sections) { store.value($0) }
         let names = clipboard?.sections.map(\.title).joined(separator: ", ") ?? ""
         showToast("Copied \(names) from \(stripTitle(strip))")
@@ -682,6 +730,13 @@ final class AppModel {
         guard let clip = clipboard else { return }
         let changes = clip.changes(onto: strip)
         guard !changes.isEmpty else { return }
+        // Read the target first so the paste can be undone completely.
+        let gaps = changes.map(\.0).filter { store.value($0) == nil }
+        if !gaps.isEmpty {
+            client?.get(gaps)
+            showToast("Still reading \(stripTitle(strip)) from the desk, try again in a moment")
+            return
+        }
         let names = clip.sections(for: strip).map(\.title).joined(separator: ", ")
         applyBatch(changes, label: "paste \(names) onto \(stripTitle(strip))")
         showToast("Pasted \(names) onto \(stripTitle(strip))")

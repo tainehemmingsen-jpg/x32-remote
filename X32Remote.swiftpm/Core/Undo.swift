@@ -28,12 +28,17 @@ final class UndoStack {
     var isEmpty: Bool { entries.isEmpty }
     var last: UndoEntry? { entries.last }
 
-    /// Records a single change. `previous` is the value before it.
-    func record(address: String, previous: OSCArg, label: String, now: TimeInterval) {
+    /// Records a single change from `previous` to `newValue`.
+    func record(address: String, previous: OSCArg, newValue: OSCArg, label: String, now: TimeInterval) {
         if let lastEntry = entries.last, lastEntry.changes.count == 1, lastEntry.changes[0].address == address,
            now - lastEntry.time < coalesceWindow {
-            // Keep the oldest value so undo goes back to where this burst started.
-            entries[entries.count - 1].time = now
+            if lastEntry.changes[0].previous == newValue {
+                // Changed and changed back (e.g. a switch tapped twice): nothing left to undo.
+                entries.removeLast()
+            } else {
+                // Keep the oldest value so undo goes back to where this burst started.
+                entries[entries.count - 1].time = now
+            }
             return
         }
         push(UndoEntry(label: label, changes: [UndoEntry.Change(address: address, previous: previous)], time: now))
@@ -66,6 +71,9 @@ enum AddressNames {
             }
             return "Gain"
         }
+        let special = ["/config/solo/level": "Solo level", "/config/solo/dim": "Solo dim",
+                       "/config/talk/A/level": "Talk A level", "/config/talk/B/level": "Talk B level"]
+        if let name = special[address] { return name }
         if address.hasPrefix("/config/mute/") {
             return "Mute group " + String(address.dropFirst("/config/mute/".count))
         }

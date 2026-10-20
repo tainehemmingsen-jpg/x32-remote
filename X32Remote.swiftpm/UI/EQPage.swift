@@ -342,6 +342,7 @@ struct EQGraph: View {
         if let b = dragBand, let s = dragStrip {
             app.touch(s.eqPath(b, "f"), false)
             app.touch(s.eqPath(b, "g"), false)
+            app.endGesture([s.eqPath(b, "f"), s.eqPath(b, "g")], label: "\(app.stripTitle(s)) EQ \(b)")
         }
         dragBand = nil
         dragStrip = nil
@@ -388,6 +389,8 @@ struct EQGraph: View {
                             selectedBand = hit.band
                             app.touch(strip.eqPath(hit.band, "f"), true)
                             app.touch(strip.eqPath(hit.band, "g"), true)
+                            // The whole drag (frequency and gain together) is one undo step.
+                            app.beginGesture([strip.eqPath(hit.band, "f"), strip.eqPath(hit.band, "g")])
                         }
                         // Keep editing the channel the drag started on, even if the page moved on.
                         guard let b = dragBand, let s = dragStrip else { return }

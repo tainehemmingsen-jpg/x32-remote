@@ -198,8 +198,9 @@ struct MixerTopBar: View {
             } else {
                 // Phones: everything else lives in one menu so the bar fits.
                 Menu {
-                    Button { showMonitor = true } label: { Label("Solo and talkback", systemImage: "headphones") }
-                    Button { showMuteGroups = true } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
+                    // Present after the menu has finished closing, or iOS can refuse the popover.
+                    Button { DispatchQueue.main.async { showMonitor = true } } label: { Label("Solo and talkback", systemImage: "headphones") }
+                    Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
                     Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
                     Button {
                         app.loadScenes()
@@ -488,7 +489,7 @@ private struct MonitorPopover: View {
             Text("Solo and talkback")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.text)
-            ParamKnob(app: app, address: "/config/solo/level", spec: Specs.fader, title: "Solo / phones level")
+            ParamKnob(app: app, address: "/config/solo/level", spec: Specs.fader, title: "Solo / phones level", editable: false)
             HStack(spacing: 8) {
                 OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 90)
                 ClearSoloButton(app: app)
@@ -498,8 +499,8 @@ private struct MonitorPopover: View {
                 TalkButton(app: app, channel: "A")
                 TalkButton(app: app, channel: "B")
             }
-            ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.fader, title: "Talk A level")
-            ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.fader, title: "Talk B level")
+            ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.fader, title: "Talk A level", editable: false)
+            ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.fader, title: "Talk B level", editable: false)
         }
         .padding(16)
         .frame(width: 320)

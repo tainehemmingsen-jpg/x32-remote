@@ -50,6 +50,11 @@ extension StripID {
                 for n in 1...sendCount {
                     p.append(String(format: "/mix/%02d/level", n))
                     p.append(String(format: "/mix/%02d/on", n))
+                    // Pan and tap point (pre/post) live on the odd send of each pair.
+                    if n % 2 == 1 {
+                        p.append(String(format: "/mix/%02d/pan", n))
+                        p.append(String(format: "/mix/%02d/type", n))
+                    }
                 }
             }
         }
