@@ -420,17 +420,49 @@ struct OverviewPage: View {
     let strip: StripID
     let wide: Bool
 
-    var body: some View {
-        if wide {
-            HStack(spacing: 2) {
-                columns
+    private enum Column: Hashable {
+        case config, gate, eq, comp, sends
+
+        var weight: CGFloat {
+            switch self {
+            case .config: return 0.75
+            case .gate, .comp: return 1
+            case .eq: return 1.45
+            case .sends: return 1.15
             }
-            .padding(2)
+        }
+    }
+
+    private var columns: [Column] {
+        var c: [Column] = [.config]
+        if strip.hasGate { c.append(.gate) }
+        if strip.hasEQ { c.append(.eq) }
+        if strip.hasDynamics { c.append(.comp) }
+        if strip.sendCount > 0 { c.append(.sends) }
+        return c
+    }
+
+    var body: some View {
+        let cols = columns
+        if wide {
+            GeometryReader { geo in
+                let total = cols.reduce(0) { $0 + $1.weight }
+                let usable = geo.size.width - 4 - CGFloat(cols.count - 1) * 2
+                HStack(spacing: 2) {
+                    ForEach(cols, id: \.self) { c in
+                        column(c)
+                            .frame(width: usable * c.weight / total)
+                    }
+                }
+                .padding(2)
+            }
         } else {
             ScrollView {
                 VStack(spacing: 2) {
-                    columns
-                        .frame(minHeight: 360)
+                    ForEach(cols, id: \.self) { c in
+                        column(c)
+                            .frame(minHeight: c == .config ? 260 : 380)
+                    }
                 }
                 .padding(2)
             }
@@ -438,30 +470,18 @@ struct OverviewPage: View {
     }
 
     @ViewBuilder
-    private var columns: some View {
-        ConfigColumn(app: app, strip: strip)
-            .layoutPriority(0.9)
-        if strip.hasGate {
-            Cell {
-                GateColumn(app: app, strip: strip)
-            }
-        }
-        if strip.hasEQ {
-            Cell {
-                EQColumn(app: app, strip: strip)
-            }
-            .frame(minWidth: wide ? 230 : nil)
-        }
-        if strip.hasDynamics {
-            Cell {
-                CompColumn(app: app, strip: strip)
-            }
-        }
-        if strip.sendCount > 0 {
-            Cell {
-                SendsColumn(app: app, strip: strip)
-            }
-            .frame(minWidth: wide ? 200 : nil)
+    private func column(_ c: Column) -> some View {
+        switch c {
+        case .config:
+            ConfigColumn(app: app, strip: strip)
+        case .gate:
+            Cell { GateColumn(app: app, strip: strip) }
+        case .eq:
+            Cell { EQColumn(app: app, strip: strip) }
+        case .comp:
+            Cell { CompColumn(app: app, strip: strip) }
+        case .sends:
+            Cell { SendsColumn(app: app, strip: strip) }
         }
     }
 }

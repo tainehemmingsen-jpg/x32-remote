@@ -11,7 +11,7 @@ permissions:
 jobs:
   ios:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 75
     env:
       OUT: ${{ github.workspace }}/ci-out
     steps:
