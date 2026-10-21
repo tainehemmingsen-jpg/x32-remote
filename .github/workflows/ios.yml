@@ -8,10 +8,16 @@ on:
 permissions:
   contents: write
 
+# Only the newest push gets built; an older build still waiting is dropped.
+concurrency:
+  group: ios-build
+  cancel-in-progress: true
+
 jobs:
   ios:
-    runs-on: macos-15
-    timeout-minutes: 75
+    # Runs on Taine's own Mac (a self-hosted runner), so GitHub doesn't charge for build minutes.
+    runs-on: [self-hosted, macOS]
+    timeout-minutes: 90
     env:
       OUT: ${{ github.workspace }}/ci-out
     steps:
@@ -35,13 +41,6 @@ jobs:
 
       - name: Screenshots and emulator integration test
         run: ./ci/run-sim.sh
-
-      - name: Upload results
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-results
-          path: ci-out
 
       - name: Publish results branch
         if: always()

@@ -32,6 +32,13 @@ IPAD=$(pick_device "iPad Pro 13")
 IPHONE=$(pick_device "iPhone 16")
 [ -z "$IPHONE" ] && IPHONE=$(pick_device "iPhone")
 echo "iPad: $IPAD  iPhone: $IPHONE"
+if [ -z "$IPAD" ]; then
+  echo "No iPad simulator found. In Xcode: Settings > Components, install the iOS simulator." | tee "$OUT/no-simulator.txt"
+  exit 1
+fi
+# On a personal Mac, leave things as we found them: note whether Simulator was already open.
+SIM_WAS_OPEN=0
+pgrep -x Simulator > /dev/null && SIM_WAS_OPEN=1
 
 boot() {
   xcrun simctl boot "$1" 2>/dev/null || true
@@ -78,17 +85,17 @@ open -a Simulator || true
 sleep 3
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 124 using command down' > "$OUT/rotate.log" 2>&1 || true
 sleep 3
-shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1
-shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
-shot "$IPAD" 42-landscape-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
-shot "$IPAD" 43-landscape-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp
-shot "$IPAD" 46-landscape-overview 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab overview
-shot "$IPAD" 47-landscape-gate 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab gate
-shot "$IPAD" 48-landscape-sends-page 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends
-shot "$IPAD" 49-landscape-input 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input
-shot "$IPAD" 50-landscape-bus-layer 9 0 -autoDemo YES -autoMode mixer -autoLayer buses
-shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
-shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple
+shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoOrientation landscape
+shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1 -autoOrientation landscape
+shot "$IPAD" 42-landscape-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq -autoOrientation landscape
+shot "$IPAD" 43-landscape-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp -autoOrientation landscape
+shot "$IPAD" 46-landscape-overview 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab overview -autoOrientation landscape
+shot "$IPAD" 47-landscape-gate 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab gate -autoOrientation landscape
+shot "$IPAD" 48-landscape-sends-page 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab sends -autoOrientation landscape
+shot "$IPAD" 49-landscape-input 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab input -autoOrientation landscape
+shot "$IPAD" 50-landscape-bus-layer 9 0 -autoDemo YES -autoMode mixer -autoLayer buses -autoOrientation landscape
+shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1 -autoOrientation landscape
+shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple -autoOrientation landscape
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
 sleep 3
 
@@ -118,4 +125,9 @@ if [ -n "$IPHONE" ]; then
 fi
 
 xcrun simctl spawn "$IPAD" log show --last 5m --predicate 'process == "X32Remote" OR process == "X32 Remote"' --style compact > "$OUT/app-log.txt" 2>/dev/null || true
+xcrun simctl shutdown "$IPAD" > /dev/null 2>&1 || true
+[ -n "$IPHONE" ] && xcrun simctl shutdown "$IPHONE" > /dev/null 2>&1 || true
+if [ "$SIM_WAS_OPEN" = "0" ]; then
+  osascript -e 'quit app "Simulator"' > /dev/null 2>&1 || true
+fi
 exit $RESULT
