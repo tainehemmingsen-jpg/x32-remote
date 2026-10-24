@@ -96,6 +96,7 @@ shot "$IPAD" 49-landscape-input 9 0 -autoDemo YES -autoMode mixer -autoDetail ch
 shot "$IPAD" 50-landscape-bus-layer 9 0 -autoDemo YES -autoMode mixer -autoLayer buses -autoOrientation landscape
 shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1 -autoOrientation landscape
 shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple -autoOrientation landscape
+shot "$IPAD" 52-landscape-eq-rta 10 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab eq -autoRTA YES -autoOrientation landscape
 shot "$IPAD" 51-landscape-geq 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 5 -autoOrientation landscape
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
 sleep 3
@@ -111,7 +112,7 @@ if [ -x "$EMU" ]; then
   sleep 2
   python3 "$ROOT/ci/x32tool.py" check 127.0.0.1 | tee "$OUT/selftest-check.log"
   RESULT=${PIPESTATUS[0]}
-  shot "$IPAD" 21-emulator-eq 9 0 -autoHost 127.0.0.1 -autoMode mixer -autoDetail channel-6 -autoTab eq
+  shot "$IPAD" 21-emulator-eq 9 0 -autoHost 127.0.0.1 -autoMode mixer -autoDetail channel-6 -autoTab eq -autoRTA NO
   pkill -f X32emu || true
 else
   echo "emulator missing; skipped integration test"

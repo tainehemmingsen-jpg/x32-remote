@@ -78,11 +78,11 @@ enum Effects {
         geqLabels.indices.contains(i) ? geqLabels[i] : ""
     }
 
-    /// Strips whose insert is on and points at this slot (either side). `insertSel` reads a
-    /// strip's /insert/sel value, nil if not read yet.
-    static func insertedOn(slot: Int, insertSel: (String) -> Int?) -> [StripID] {
+    /// Strips whose insert is on and points at this slot (either side). `value` reads an int
+    /// from the desk, nil if not read yet.
+    static func insertedOn(slot: Int, value: (String) -> Int?) -> [StripID] {
         StripID.everything.filter { strip in
-            guard strip.hasInsert, let sel = insertSel(strip.insertPath("sel")) else { return false }
+            guard strip.hasInsert, value(strip.insertPath("on")) == 1, let sel = value(strip.insertPath("sel")) else { return false }
             return sel == slot * 2 - 1 || sel == slot * 2
         }
     }
@@ -329,6 +329,7 @@ enum Effects {
         }
         // Where each slot is inserted.
         for strip in StripID.everything where strip.hasInsert {
+            a.append(strip.insertPath("on"))
             a.append(strip.insertPath("sel"))
         }
         return a

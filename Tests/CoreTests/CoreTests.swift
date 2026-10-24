@@ -828,9 +828,10 @@ final class SceneSaveTests: XCTestCase {
     }
 
     func testInsertedOnAndKeySources() {
-        let sel: [String: Int] = ["/bus/01/insert/sel": 9, "/bus/02/insert/sel": 10, "/ch/05/insert/sel": 3]
+        let sel: [String: Int] = ["/bus/01/insert/sel": 9, "/bus/02/insert/sel": 10, "/ch/05/insert/sel": 3, "/ch/06/insert/sel": 4,
+                                  "/bus/01/insert/on": 1, "/bus/02/insert/on": 1, "/ch/05/insert/on": 1, "/ch/06/insert/on": 0]
         XCTAssertEqual(Effects.insertedOn(slot: 5) { sel[$0] }, [StripID(.bus, 1), StripID(.bus, 2)])
-        XCTAssertEqual(Effects.insertedOn(slot: 2) { sel[$0] }, [StripID(.channel, 5)])
+        XCTAssertEqual(Effects.insertedOn(slot: 2) { sel[$0] }, [StripID(.channel, 5)], "switched-off inserts don't count")
         XCTAssertTrue(Effects.addresses().contains("/main/st/insert/sel"))
         XCTAssertNil(StripID.keySource(0))
         XCTAssertEqual(StripID.keySource(1), StripID(.channel, 1))
@@ -839,6 +840,60 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(StripID.keySource(64), StripID(.bus, 16))
         XCTAssertEqual(DemoTransport.defaultValue(for: "/bus/02/insert/sel"), .int(10))
         XCTAssertEqual(DemoTransport.defaultValue(for: "/bus/05/insert/on"), .int(0))
+    }
+
+    func testRTABlobAndSources() {
+        let levels: [Float] = (0..<100).map { -Float($0) * 0.5 }
+        let blob = RTA.encode(levels)
+        XCTAssertEqual(blob.count, 4 + 200)
+        XCTAssertEqual(Array(blob.prefix(4)), [50, 0, 0, 0], "count is in 32-bit words")
+        XCTAssertEqual(RTA.decode(blob), levels)
+        // -93.0 dB as the desk sends it: 0xA3 0x00 little-endian bytes of Int16(-93 * 256).
+        let raw = UInt16(bitPattern: Int16(-93 * 256))
+        XCTAssertEqual(RTA.decode(Data([1, 0, 0, 0, UInt8(raw & 0xff), UInt8(raw >> 8), 0, 0])), [-93, 0])
+        XCTAssertEqual(RTA.decode(Data([50, 0, 0, 0, 1])), [], "truncated blobs don't crash")
+        XCTAssertEqual(RTA.frequency(90), 10000, accuracy: 0.01)
+        XCTAssertEqual(RTA.frequency(0), 19.53, accuracy: 0.01)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.channel, 1)), 2)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.channel, 32)), 33)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.auxIn, 1)), 34)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.fxReturn, 8)), 49)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.bus, 1)), 50)
+        XCTAssertEqual(RTA.sourceValue(for: StripID(.matrix, 6)), 71)
+        XCTAssertEqual(RTA.sourceValue(for: StripID.mainLR), 72)
+        XCTAssertEqual(RTA.sourceValue(for: StripID.monoC), 73)
+        XCTAssertNil(RTA.sourceValue(for: StripID(.dca, 1)))
+    }
+
+    func testRTAIdleAndFall() {
+        let rta = RTAData()
+        let flat = [Float](repeating: -97, count: 100)
+        for i in 0..<12 { rta.ingest(flat, now: Double(i)) }
+        XCTAssertTrue(rta.idle, "an unchanging flat frame means the desk's analyser isn't running")
+        XCTAssertEqual(rta.levels.first, RTA.floorDB)
+        var live = flat
+        live[10] = -20
+        rta.ingest(live, now: 20)
+        XCTAssertFalse(rta.idle)
+        XCTAssertEqual(rta.levels[10], -20, "rises instantly")
+        rta.ingest(flat, now: 21)
+        XCTAssertEqual(rta.levels[10], -22, "falls gently")
+    }
+
+    func testDemoDeskSendsRTA() {
+        let demo = DemoTransport()
+        let client = X32Client(transport: demo)
+        var rta: [Float] = []
+        client.onMeters = { block, values in
+            if block == RTA.block { rta = values }
+        }
+        client.setMeterSubscriptions([RTA.block])
+        client.set(RTA.sourcePath, .int(2))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.5))
+        XCTAssertEqual(rta.count, 100)
+        XCTAssertTrue(rta.allSatisfy { $0 <= 0 && $0 >= -128 })
+        XCTAssertNotNil(DemoTransport.defaultValue(for: RTA.positionPath))
+        client.close()
     }
 
     func testDemoDeskSavesScenes() {

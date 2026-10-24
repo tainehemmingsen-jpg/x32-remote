@@ -212,6 +212,7 @@ struct EQPage: View {
                             OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 90)
                         }
                         Spacer()
+                        RTAToggle(app: app, strip: strip)
                     }
                     EQGraph(app: app, strip: strip, selectedBand: $band)
                         .frame(height: 240)
@@ -236,6 +237,7 @@ private struct EQSideControls: View {
                 ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Freq", enabled: app.param(strip.preampPath("hpon")).bool)
                 EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
             }
+            RTAToggle(app: app, strip: strip, width: 100)
             Spacer(minLength: 0)
             Button {
                 confirmFlatten = true
@@ -323,6 +325,81 @@ private struct BandArrow: View {
     }
 }
 
+/// The desk's analyser, drawn behind the EQ curve (0 dB at the top, -80 dB at the bottom).
+private struct RTALayer: View {
+    let rta: RTAData
+
+    var body: some View {
+        let levels = rta.levels
+        Canvas { ctx, size in
+            guard levels.count > 1 else { return }
+            let range: Float = 80
+            var area = Path()
+            area.move(to: CGPoint(x: 0, y: size.height))
+            var line = Path()
+            for (i, db) in levels.enumerated() {
+                let f = RTA.frequency(i)
+                let x = CGFloat(log(f / 20) / log(1000)) * size.width
+                let y = CGFloat(min(max(-db / range, 0), 1)) * size.height
+                area.addLine(to: CGPoint(x: x, y: y))
+                if i == 0 { line.move(to: CGPoint(x: x, y: y)) } else { line.addLine(to: CGPoint(x: x, y: y)) }
+            }
+            area.addLine(to: CGPoint(x: size.width, y: size.height))
+            area.closeSubpath()
+            ctx.fill(area, with: .linearGradient(Gradient(colors: [Color.white.opacity(0.22), Color.white.opacity(0.05)]),
+                                                 startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
+            ctx.stroke(line, with: .color(Color.white.opacity(0.35)), lineWidth: 1)
+        }
+        .allowsHitTesting(false)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Shown when the desk's analyser hasn't been started since it was switched on.
+private struct RTAIdleNotice: View {
+    let app: AppModel
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("Desk analyser not running")
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.secondary)
+            Button {
+                app.wakeRTA()
+            } label: {
+                Text("Start")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.text)
+                    .padding(.horizontal, 10)
+                    .frame(height: 26)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
+            }
+            .buttonStyle(.plain)
+            .accessibilityHint("Briefly shows the RTA page on the desk's screen to start its analyser")
+        }
+        .padding(6)
+        .background(RoundedRectangle(cornerRadius: 5).fill(Color.black.opacity(0.6)))
+        .padding(6)
+    }
+}
+
+/// "RTA" switch next to the EQ controls.
+struct RTAToggle: View {
+    let app: AppModel
+    let strip: StripID
+    var width: CGFloat = 64
+
+    var body: some View {
+        if RTA.sourceValue(for: strip) != nil {
+            LitButton(title: "RTA", isOn: app.settings.showRTA, height: 40, fontSize: 13, style: .outline) {
+                app.setShowRTA(!app.settings.showRTA, strip: strip)
+            }
+            .frame(width: width)
+            .accessibilityHint("Shows the desk's analyser for this channel behind the EQ curve")
+        }
+    }
+}
+
 /// Interactive EQ curve: drag a numbered point to change frequency and gain.
 struct EQGraph: View {
     let app: AppModel
@@ -364,6 +441,7 @@ struct EQGraph: View {
         let lowCutFreq = Double(Specs.hpf.value(app.param(strip.preampPath("hpf")).float(or: 0.4)))
         let lowCutSlope = app.param(strip.preampPath("hpslope")).int
         let selected = selectedBand
+        let showRTA = interactive && app.settings.showRTA && RTA.sourceValue(for: strip) != nil
         GeometryReader { geo in
             let size = geo.size
             Canvas { ctx, sz in
@@ -371,7 +449,19 @@ struct EQGraph: View {
                 EQGraph.drawCurves(&ctx, sz, bands: bands, eqOn: eqOn, selected: selected, lowCut: lowCutOn ? (lowCutFreq, lowCutSlope) : nil, bandCount: count)
                 EQGraph.drawHandles(&ctx, sz, bands: bands, eqOn: eqOn, selected: selected)
             }
-            .background(Theme.graphBack)
+            .background {
+                ZStack {
+                    Theme.graphBack
+                    if showRTA {
+                        RTALayer(rta: app.meters.rta)
+                    }
+                }
+            }
+            .overlay(alignment: .topTrailing) {
+                if showRTA && app.meters.rta.idle {
+                    RTAIdleNotice(app: app)
+                }
+            }
             .contentShape(Rectangle())
             .allowsHitTesting(interactive)
             .gesture(
@@ -410,6 +500,9 @@ struct EQGraph: View {
             )
             .onDisappear {
                 endDrag()
+                if interactive && app.rtaStrip == strip {
+                    app.setRTAStrip(nil)
+                }
             }
             .onChange(of: gestureActive) { _, active in
                 // Also runs when the system cancels the gesture (onEnded doesn't).
@@ -417,6 +510,12 @@ struct EQGraph: View {
                     endDrag()
                 }
             }
+        }
+        .onAppear {
+            if interactive { app.setRTAStrip(strip) }
+        }
+        .onChange(of: strip) { _, newStrip in
+            if interactive { app.setRTAStrip(newStrip) }
         }
     }
 

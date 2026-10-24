@@ -243,6 +243,35 @@ final class DemoTransport: X32Transport {
             block[24] = 0
             sendMeters(2, block)
         }
+        if active.contains(RTA.block) {
+            let source = int(RTA.sourcePath)
+            let amp: Float
+            switch source {
+            case 2...49: amp = inputs[source - 2]
+            case 50...65: amp = buses[source - 50]
+            case 72, 73: amp = max(outL, outR)
+            default: amp = 0
+            }
+            reply(OSCMessage("/meters/\(RTA.block)", [.blob(RTA.encode(demoSpectrum(level: amp, seed: source)))]))
+        }
+    }
+
+    /// A moving, roughly pink spectrum with a couple of resonances (different per source).
+    private func demoSpectrum(level amp: Float, seed: Int) -> [Float] {
+        let base = X32Math.amplitudeToDB(amp)
+        guard base.isFinite, base > -80 else { return [Float](repeating: -97, count: RTA.bandCount) }
+        let t = tickCount * 0.05
+        let peak1 = 25 + (seed * 7) % 30
+        let peak2 = 55 + (seed * 13) % 30
+        return (0..<RTA.bandCount).map { i in
+            let fi = Float(i)
+            var db = base - 8 - 0.12 * abs(fi - 40)              // tilt away from ~150 Hz
+            if i < 12 { db -= Float(12 - i) * 2.5 }               // low roll-off
+            db += 6 * expf(-powf((fi - Float(peak1)) / 4, 2))
+            db += 4 * expf(-powf((fi - Float(peak2)) / 6, 2))
+            db += 2.5 * sinf(Float(t) * 3.1 + fi * 0.7) + 1.5 * sinf(Float(t) * 7.3 + fi * 1.9)
+            return min(db, 0)
+        }
     }
 
     private func sendMeters(_ block: Int, _ floats: [Float]) {
@@ -535,6 +564,8 @@ final class DemoTransport: X32Transport {
             }
         }
         if address == "/-show/prepos/current" { return .int(0) }
+        if address == RTA.sourcePath || address == RTA.screenPath || address == RTA.meterPagePath { return .int(0) }
+        if address == RTA.positionPath { return .int(1) }
         if address == "/config/solo/level" { return .float(0.5) }
         if address == "/config/solo/dim" { return .int(0) }
         if address.hasPrefix("/config/talk/") && address.hasSuffix("/level") { return .float(0.5) }

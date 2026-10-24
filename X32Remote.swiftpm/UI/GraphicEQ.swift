@@ -43,6 +43,7 @@ struct GraphicEQPanel: View {
                 }
             }
             GraphicEQGraph(app: app, slot: slot, side: shownSide)
+                .id(shownSide)
                 .frame(height: 300)
                 .clipShape(RoundedRectangle(cornerRadius: 4))
             ParamKnob(app: app, address: Effects.parPath(slot, Effects.geqMasterNumber(side: shownSide)),
@@ -73,6 +74,7 @@ struct GraphicEQGraph: View {
     @State private var dragSide = 0
     @State private var shownBand: Int?
     @State private var lastTap: (band: Int, time: Date)?
+    @State private var readoutToken = 0
 
     private static let labelHeight: CGFloat = 18
     private static let dbRange: Float = 15
@@ -83,18 +85,19 @@ struct GraphicEQGraph: View {
 
     var body: some View {
         let norms: [Float] = (0..<31).map { app.param(address($0)).float(or: 0.5) }
-        let known = app.param(address(0)).isKnown
+        let knownBands: [Bool] = (0..<31).map { app.param(address($0)).isKnown }
+        let known = knownBands.contains(true)
         GeometryReader { geo in
             let size = geo.size
             let graphHeight = max(size.height - GraphicEQGraph.labelHeight, 1)
             let column = size.width / 31
             Canvas { ctx, sz in
-                GraphicEQGraph.draw(&ctx, sz, norms: norms, known: known, highlighted: shownBand)
+                GraphicEQGraph.draw(&ctx, sz, norms: norms, known: knownBands, highlighted: shownBand)
             }
             .accessibilityHidden(true)
             .background(Theme.graphBack)
             .overlay(alignment: .topLeading) {
-                if let b = shownBand, known {
+                if let b = shownBand, knownBands[b] {
                     Text("\(Effects.geqBandLabel(b)) Hz   \(Effects.geqSpec.display(norms[b]))")
                         .font(Theme.mono(13))
                         .foregroundStyle(Theme.text)
@@ -103,6 +106,7 @@ struct GraphicEQGraph: View {
                         .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.55)))
                         .padding(6)
                         .allowsHitTesting(false)
+                        .accessibilityHidden(true)
                 }
             }
             .contentShape(Rectangle())
@@ -110,9 +114,11 @@ struct GraphicEQGraph: View {
                 DragGesture(minimumDistance: 0)
                     .updating($gestureActive) { _, state, _ in state = true }
                     .onChanged { g in
-                        guard known else { return }
                         let band = min(max(Int(g.location.x / max(column, 1)), 0), 30)
                         if startBand == nil {
+                            // Never start from a value that hasn't been read from the desk.
+                            guard knownBands[band] else { return }
+                            readoutToken += 1
                             startBand = band
                             lastBand = band
                             dragSlot = slot
@@ -123,8 +129,11 @@ struct GraphicEQGraph: View {
                             shownBand = band
                             return
                         }
+                        guard let start = startBand else { return }
                         let absolute = Float(1 - min(max(g.location.y, 0), graphHeight) / graphHeight)
-                        if !drawing && band != startBand {
+                        // Only a clear sideways move starts drawing, so a tap or an up/down drag
+                        // near a column edge never touches the neighbouring band.
+                        if !drawing && band != start && abs(g.translation.width) > max(column * 0.75, 10) {
                             drawing = true
                         }
                         if drawing {
@@ -144,15 +153,15 @@ struct GraphicEQGraph: View {
                             let sensitivity: Float = app.fineMode ? 0.25 : 1
                             let delta = Float(-g.translation.height / graphHeight) * sensitivity
                             let v = min(max(startNorm + delta, 0), 1)
-                            set(band, v)
+                            set(start, v)
                             lastNorm = v
                         }
-                        lastBand = band
-                        shownBand = band
+                        lastBand = drawing ? band : start
+                        shownBand = drawing ? band : start
                     }
                     .onEnded { g in
                         let tapped = abs(g.translation.width) < 4 && abs(g.translation.height) < 4
-                        if tapped, let b = startBand, known {
+                        if tapped, !drawing, let b = startBand {
                             if let last = lastTap, last.band == b, Date().timeIntervalSince(last.time) < 0.35 {
                                 set(b, 0.5)
                                 lastTap = nil
@@ -183,6 +192,7 @@ struct GraphicEQGraph: View {
 
     private func set(_ band: Int, _ norm: Float) {
         let a = address(band, slot: dragSlot, side: dragSide)
+        guard app.param(a).isKnown else { return }
         if !touched.contains(a) {
             touched.append(a)
             app.touch(a, true)
@@ -201,9 +211,15 @@ struct GraphicEQGraph: View {
         startBand = nil
         lastBand = nil
         drawing = false
+        // Leave the readout up for a moment after the finger lifts.
+        readoutToken += 1
+        let token = readoutToken
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            if readoutToken == token { shownBand = nil }
+        }
     }
 
-    static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, norms: [Float], known: Bool, highlighted: Int?) {
+    static func draw(_ ctx: inout GraphicsContext, _ size: CGSize, norms: [Float], known: [Bool], highlighted: Int?) {
         let h = size.height - labelHeight
         let column = size.width / 31
         func y(_ db: Float) -> CGFloat { CGFloat(0.5 - db / (2 * dbRange)) * h }
@@ -219,7 +235,8 @@ struct GraphicEQGraph: View {
                      at: CGPoint(x: 3, y: y(db) - 7), anchor: .leading)
         }
         // Column separators and labels
-        let everyOther = column < 26
+        // All labels when there's room, every other one, or every third (31.5, 63, 125…) on phones.
+        let labelEvery = column >= 26 ? 1 : (column >= 17 ? 2 : 3)
         for i in 0..<31 {
             let x0 = CGFloat(i) * column
             if i > 0 {
@@ -228,16 +245,14 @@ struct GraphicEQGraph: View {
                 sep.addLine(to: CGPoint(x: x0, y: h))
                 ctx.stroke(sep, with: .color(Color.white.opacity(0.04)), lineWidth: 1)
             }
-            if !everyOther || i % 2 == 0 {
+            if labelEvery == 1 || (labelEvery == 2 && i % 2 == 0) || (labelEvery == 3 && i % 3 == 2) {
                 ctx.draw(Text(Effects.geqBandLabel(i)).font(.system(size: 9)).foregroundStyle(Theme.secondary),
                          at: CGPoint(x: x0 + column / 2, y: h + labelHeight / 2))
             }
         }
-        guard known else { return }
-
-        // Bars from the 0 dB line, with a bright cap.
+        // Bars from the 0 dB line, with a bright cap (only for bands read from the desk).
         var points: [CGPoint] = []
-        for (i, n) in norms.enumerated() {
+        for (i, n) in norms.enumerated() where known[i] {
             let db = (n - 0.5) * 2 * dbRange
             let x0 = CGFloat(i) * column
             let top = y(db)
@@ -251,7 +266,7 @@ struct GraphicEQGraph: View {
         }
         // Smooth curve through the bands
         var curve = Path()
-        if let first = points.first {
+        if points.count == norms.count, let first = points.first {
             curve.move(to: first)
             for i in 1..<points.count {
                 let p0 = points[i - 1], p1 = points[i]

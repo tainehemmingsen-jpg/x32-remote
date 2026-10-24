@@ -272,10 +272,11 @@ struct SettingsSheet: View {
                 }
                 Section {
                     Toggle("Select the channel on the desk when I open it", isOn: binding(\.selectOnDesk))
+                    Toggle("Show the analyser (RTA) behind the EQ", isOn: binding(\.showRTA))
                 } header: {
                     Text("Desk")
                 } footer: {
-                    Text("Handy when someone is standing at the desk: its screen jumps to the channel you're working on.")
+                    Text("Selecting is handy when someone is standing at the desk: its screen jumps to the channel you're working on. The analyser uses the desk's own RTA, so its RTA follows the channel whose EQ you have open.")
                 }
                 Section {
                     SecureField(app.hasPIN ? "Change PIN" : "Set a PIN (4+ digits)", text: $newPIN)

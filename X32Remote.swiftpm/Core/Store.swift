@@ -88,6 +88,8 @@ final class MeterLevel {
 /// Converts /meters blobs into per-strip meter levels with simple ballistics.
 final class MeterStore {
     private var levels: [StripID: MeterLevel] = [:]
+    /// The desk's analyser (only sent while the app subscribes to it).
+    let rta = RTAData()
 
     private static let block0Strips: [StripID] = {
         var list: [StripID] = []
@@ -113,6 +115,7 @@ final class MeterStore {
             m.gateReduction = 0
             m.dynReduction = 0
         }
+        rta.reset()
     }
 
     func ingest(block: Int, values: [Float]) {
@@ -147,6 +150,8 @@ final class MeterStore {
                 setReduction(main, gate: 1, dyn: values[47])
                 setReduction(meter(StripID.monoC), gate: 1, dyn: values[48])
             }
+        case RTA.block:
+            rta.ingest(values, now: X32Client.now())
         default:
             break
         }

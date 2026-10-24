@@ -79,6 +79,8 @@ struct EffectsSheet: View {
                 // Reopen on the same slot next time.
                 app.effectsSlot = slot
             }
+            // Sliders and the graphic EQ are dragged downwards a lot; close with Done instead.
+            .interactiveDismissDisabled()
             .navigationTitle("Effects")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

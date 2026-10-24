@@ -246,7 +246,8 @@ final class X32Client {
         let address = message.address
         if address.hasPrefix("/meters/") {
             if let block = Int(address.dropFirst(8)), case .blob(let data)? = message.args.first {
-                onMeters?(block, MeterBlob.floats(from: data))
+                // The analyser block packs 16-bit levels; the others are 32-bit floats.
+                onMeters?(block, block == RTA.block ? RTA.decode(data) : MeterBlob.floats(from: data))
             }
             return
         }

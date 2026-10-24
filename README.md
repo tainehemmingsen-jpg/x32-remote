@@ -3,7 +3,7 @@
 A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over Wi‑Fi — a replacement for the discontinued X32‑Mix app.
 
 - **Mixer** — layers (Ch 1–16, Ch 17–32, Aux/FX, Mix buses, Mtx/Main, DCA and two custom layers) in a two-column panel down the right with Fine, Mute Enable, sends on fader, mute groups and Clear Solo. Each strip shows its input and gain, +48/gate/EQ/comp lights, a mini EQ curve and compressor graph, mute, pan, fader with meter, and solo. Tap the scribble strip (or the gain, EQ or compressor picture) for the channel page.
-- **Channel page** — a block bar with live pictures of every section; Overview with everything side by side; Input (gain, 48 V, trim, polarity, low cut, delay), Gate, EQ with a draggable curve, Compressor, Sends as faders, and Config (name, colour, input source, stereo link, DCA and mute groups, LR/mono). Inserts, compressor position and gate/compressor sidechain (key source and key filter) too. Copy any section to another channel.
+- **Channel page** — a block bar with live pictures of every section; Overview with everything side by side; Input (gain, 48 V, trim, polarity, low cut, delay), Gate, EQ with a draggable curve and the desk's analyser (RTA) behind it, Compressor, Sends as faders, and Config (name, colour, input source, stereo link, DCA and mute groups, LR/mono). Inserts, compressor position and gate/compressor sidechain (key source and key filter) too. Copy any section to another channel.
 - **Sends on faders** — pick a mix bus in the right-hand panel (top-right menu on a phone) and the faders become that bus's sends (the strip tints in the bus colour so you can't mistake it for the main mix).
 - **Monitor mix mode** — one performer's mix on big faders, with only the inputs they need, lockable with a PIN.
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
@@ -52,13 +52,15 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Solo and talkback:** the headphones icon has the solo/phones level and Dim. Talk A/B: tap to latch on, or hold to talk and let go to stop.
 - **Stereo links:** linked pairs show a link mark under the fader; link or unlink a pair on the Config page. The app re-reads the other side after each change so the screen matches the desk.
 - **Select on desk** (Settings): opening a channel in the app also selects it on the X32's own screen.
+- **RTA:** tap RTA on the EQ page to see the desk's analyser for that channel behind the curve (it points the desk's RTA at the channel you have open). If the desk was just switched on, tap Start to wake its analyser.
+- **Graphic EQ:** on a GEQ in the effects rack, drag a band up or down; sweep sideways to draw a curve; double-tap a band to reset it.
 - **48 V** asks for confirmation before switching on.
 - **Scenes** ask before recalling, then the app re-reads the desk.
 - **Locking:** in Monitor or Simple mode, set a PIN and lock. The mixer is then hidden until someone enters the PIN.
 
 ## How it was tested
 
-- `Tests/CoreTests` — 63 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
+- `Tests/CoreTests` — 66 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
 - `ci/` + `.github/workflows/ios.yml` — on every push, a self-hosted GitHub Actions runner on the owner's Mac (so it costs nothing) builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 
@@ -66,7 +68,7 @@ It hasn't been run against a physical X32 yet. If something behaves differently 
 
 ## Not in this version
 
-Routing/patching, RTA, editing the EQ/dynamics processors in FX slots 5–8 (other than graphic EQs), and library presets.
+Routing/patching, editing the EQ/dynamics processors in FX slots 5–8 (other than graphic EQs), and library presets.
 
 ---
 

@@ -328,7 +328,49 @@ final class AppModel {
     // MARK: - Loading
 
     func updateMeterSubscriptions() {
-        client?.setMeterSubscriptions([0, 1, 2])
+        client?.setMeterSubscriptions(rtaStrip == nil ? [0, 1, 2] : [0, 1, 2, RTA.block])
+    }
+
+    // MARK: - Analyser
+
+    /// The strip whose EQ is on screen with the analyser showing.
+    @ObservationIgnored private(set) var rtaStrip: StripID?
+
+    /// Called by the EQ graph as it appears, changes channel or disappears.
+    func setRTAStrip(_ strip: StripID?) {
+        let wanted = settings.showRTA ? strip.flatMap { RTA.sourceValue(for: $0) == nil ? nil : $0 } : nil
+        guard wanted != rtaStrip else { return }
+        rtaStrip = wanted
+        if let s = wanted, let source = RTA.sourceValue(for: s) {
+            meters.rta.reset()
+            // Analyse after the EQ, so the picture matches what the curve is doing.
+            set(RTA.positionPath, .int(1))
+            set(RTA.sourcePath, .int(Int32(source)))
+        }
+        updateMeterSubscriptions()
+    }
+
+    func setShowRTA(_ on: Bool, strip: StripID) {
+        updateSettings { $0.showRTA = on }
+        setRTAStrip(on ? strip : nil)
+    }
+
+    /// Starts the desk's analyser by showing its RTA page for a moment, then puts the desk's
+    /// screen back.
+    func wakeRTA() {
+        guard let c = client else { return }
+        c.get([RTA.screenPath, RTA.meterPagePath])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            guard let self else { return }
+            let screen = self.store.value(RTA.screenPath)
+            let page = self.store.value(RTA.meterPagePath)
+            self.set(RTA.screenPath, .int(Int32(RTA.metersScreen)))
+            self.set(RTA.meterPagePath, .int(Int32(RTA.rtaPage)))
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                if let page { self?.set(RTA.meterPagePath, page) }
+                if let screen { self?.set(RTA.screenPath, screen) }
+            }
+        }
     }
 
     /// Everything shown on the fader screens.
@@ -1000,6 +1042,10 @@ final class AppModel {
         let d = UserDefaults.standard
         if let mode = d.string(forKey: "autoMode"), let m = AppMode(rawValue: mode) {
             updateSettings { $0.mode = m }
+        }
+        if d.object(forKey: "autoRTA") != nil {
+            let on = d.bool(forKey: "autoRTA")
+            updateSettings { $0.showRTA = on }
         }
         if let pin = d.string(forKey: "autoPIN") {
             updateSettings { $0.pin = pin }
