@@ -46,6 +46,21 @@ enum Effects {
         return "Type \(type)"
     }
 
+    // MARK: Tap tempo
+
+    /// The delay-time parameter of the delay types (1-3000 ms), for tap tempo.
+    static func tapTimeParameter(slot: Int, type: Int) -> Int? {
+        guard editableSlots.contains(slot) else { return nil }
+        switch type {
+        case 10: return 2      // Stereo Delay: Mix, Time…
+        case 11, 12: return 1  // 3-Tap, 4-Tap: Time first
+        default: return nil
+        }
+    }
+
+    /// 1-3000 ms in 1 ms steps.
+    static let delayTimeSpec = ParamSpec(.linear(1, 3000), steps: 2999, unit: "ms", defaultNorm: 0.5)
+
     // MARK: Graphic EQs
 
     /// The 31 ISO third-octave bands of the graphic EQs.
@@ -334,4 +349,27 @@ enum Effects {
         }
         return a
     }
+}
+
+/// Works out a delay time from taps on a button: the average of the last few gaps, starting
+/// again after a pause.
+struct TapTempo {
+    private(set) var taps: [TimeInterval] = []
+    /// A gap longer than this starts a new count.
+    var resetAfter: TimeInterval = 2.5
+    var maxTaps = 5
+
+    /// Records a tap. Returns the delay time in ms once there are two taps in a row.
+    mutating func tap(at time: TimeInterval) -> Double? {
+        if let last = taps.last, time - last > resetAfter || time <= last {
+            taps.removeAll()
+        }
+        taps.append(time)
+        if taps.count > maxTaps { taps.removeFirst(taps.count - maxTaps) }
+        guard taps.count >= 2, let first = taps.first, let last = taps.last else { return nil }
+        let ms = (last - first) / Double(taps.count - 1) * 1000
+        return min(max(ms, 1), 3000)
+    }
+
+    static func bpm(ms: Double) -> Double { 60000 / ms }
 }

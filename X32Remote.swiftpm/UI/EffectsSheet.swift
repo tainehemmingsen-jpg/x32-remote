@@ -167,6 +167,10 @@ private struct SlotDetail: View {
                         .id(slot)
                         .padding(.top, 4)
                 } else if let params {
+                    if let timePar = Effects.tapTimeParameter(slot: slot, type: type) {
+                        TapTempoRow(app: app, address: Effects.parPath(slot, timePar))
+                            .id(slot)
+                    }
                     ControlGrid(minimumWidth: 240) {
                         ForEach(params, id: \.number) { p in
                             EffectParamControl(app: app, slot: slot, param: p)
@@ -230,6 +234,51 @@ private struct TypeMenu: View {
                     .font(.system(size: 10, weight: .bold))
             }
             .barChip()
+        }
+    }
+}
+
+/// Tap along to set the delay time; shows the time and tempo.
+private struct TapTempoRow: View {
+    let app: AppModel
+    let address: String
+    @State private var tempo = TapTempo()
+    @State private var flash = false
+
+    var body: some View {
+        let p = app.param(address)
+        let ms = Double(Effects.delayTimeSpec.value(p.float))
+        HStack(spacing: 14) {
+            Button {
+                let now = ProcessInfo.processInfo.systemUptime
+                if let newMS = tempo.tap(at: now), p.isKnown {
+                    app.setFloat(address, Effects.delayTimeSpec.norm(Float(newMS)), steps: Effects.delayTimeSpec.steps)
+                }
+                flash = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeOut(duration: 0.2)) { flash = false }
+                }
+            } label: {
+                Text("TAP")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(flash ? Color.black : Theme.text)
+                    .frame(width: 110, height: 54)
+                    .background(RoundedRectangle(cornerRadius: 6).fill(flash ? Theme.curve : Theme.raised2))
+                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.curve.opacity(0.7), lineWidth: 1.5))
+            }
+            .buttonStyle(.plain)
+            .disabled(!p.isKnown)
+            .accessibilityLabel("Tap tempo")
+            .accessibilityHint("Tap repeatedly in time with the music to set the delay time")
+            VStack(alignment: .leading, spacing: 2) {
+                Text(p.isKnown ? "\(Int(ms.rounded())) ms" : "—")
+                    .font(Theme.mono(20))
+                    .foregroundStyle(Theme.text)
+                Text(p.isKnown ? String(format: "%.1f BPM", TapTempo.bpm(ms: ms)) : " ")
+                    .font(Theme.mono(13))
+                    .foregroundStyle(Theme.secondary)
+            }
+            Spacer()
         }
     }
 }

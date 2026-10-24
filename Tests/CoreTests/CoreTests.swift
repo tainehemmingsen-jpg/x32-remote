@@ -865,6 +865,25 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertNil(RTA.sourceValue(for: StripID(.dca, 1)))
     }
 
+    func testTapTempo() {
+        var t = TapTempo()
+        XCTAssertNil(t.tap(at: 10))
+        XCTAssertEqual(t.tap(at: 10.5) ?? 0, 500, accuracy: 0.01)
+        XCTAssertEqual(t.tap(at: 11.0) ?? 0, 500, accuracy: 0.01)
+        XCTAssertEqual(t.tap(at: 11.6) ?? 0, 533.33, accuracy: 0.01, "averages the gaps")
+        XCTAssertNil(t.tap(at: 20), "a long pause starts again")
+        XCTAssertEqual(t.tap(at: 20.25) ?? 0, 250, accuracy: 0.01)
+        for i in 1...10 { _ = t.tap(at: 20.25 + Double(i) * 0.4) }
+        XCTAssertEqual(t.taps.count, 5, "only the last few taps count")
+        XCTAssertEqual(t.tap(at: 24.65) ?? 0, 400, accuracy: 0.01)
+        XCTAssertEqual(TapTempo.bpm(ms: 500), 120, accuracy: 0.001)
+        XCTAssertEqual(Effects.tapTimeParameter(slot: 3, type: 10), 2)
+        XCTAssertEqual(Effects.tapTimeParameter(slot: 1, type: 12), 1)
+        XCTAssertNil(Effects.tapTimeParameter(slot: 1, type: 0))
+        XCTAssertNil(Effects.tapTimeParameter(slot: 5, type: 10))
+        XCTAssertEqual(Effects.delayTimeSpec.value(Effects.delayTimeSpec.norm(500)), 500, accuracy: 0.01)
+    }
+
     func testRTAIdleAndFall() {
         let rta = RTAData()
         let flat = [Float](repeating: -97, count: 100)
