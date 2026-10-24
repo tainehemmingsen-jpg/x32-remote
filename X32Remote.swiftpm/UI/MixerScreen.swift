@@ -502,15 +502,32 @@ private struct MonitorPopover: View {
     let app: AppModel
 
     var body: some View {
+        ScrollView {
+            content
+        }
+        .frame(width: 320, height: 600)
+        .background(Theme.panel)
+        .presentationCompactAdaptation(.popover)
+        .preferredColorScheme(.dark)
+    }
+
+    private var content: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Solo and talkback")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.text)
             ParamKnob(app: app, address: "/config/solo/level", spec: Specs.send, title: "Solo / phones level", editable: false)
             HStack(spacing: 8) {
-                OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 90)
+                OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 70)
+                OnSwitch(app: app, address: Monitoring.monoPath, title: "Mono", width: 70)
                 ClearSoloButton(app: app)
             }
+            LabeledChoice(app: app, title: "Listen to", address: Monitoring.sourcePath, options: Monitoring.sources)
+            HStack(spacing: 8) {
+                LabeledChoice(app: app, title: "Ch solo", address: Monitoring.channelModePath, options: Monitoring.soloModes)
+                LabeledChoice(app: app, title: "Bus solo", address: Monitoring.busModePath, options: Monitoring.soloModes)
+            }
+            OnSwitch(app: app, address: Monitoring.exclusivePath, title: "Exclusive solo (one at a time)", width: 288)
             Divider().background(Theme.line)
             HStack(spacing: 8) {
                 TalkButton(app: app, channel: "A")
@@ -518,12 +535,39 @@ private struct MonitorPopover: View {
             }
             ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.send, title: "Talk A level", editable: false)
             ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.send, title: "Talk B level", editable: false)
+            TalkDestinations(app: app, channel: "A")
+            TalkDestinations(app: app, channel: "B")
         }
         .padding(16)
-        .frame(width: 320)
-        .background(Theme.panel)
-        .presentationCompactAdaptation(.popover)
-        .preferredColorScheme(.dark)
+    }
+}
+
+/// Where Talk A or B goes: mix buses 1-16, LR and M/C.
+private struct TalkDestinations: View {
+    let app: AppModel
+    let channel: String
+
+    var body: some View {
+        let address = Monitoring.talkDestinationPath(channel)
+        let param = app.param(address)
+        let mask = param.int
+        VStack(alignment: .leading, spacing: 6) {
+            Text("Talk \(channel) goes to")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondary)
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 6), spacing: 4) {
+                ForEach(Monitoring.talkDestinations.indices, id: \.self) { bit in
+                    let on = param.isKnown && (mask >> bit) & 1 == 1
+                    LitButton(title: Monitoring.talkDestinations[bit], isOn: on, color: Theme.solo, height: 30, fontSize: 11) {
+                        // Never write a mask we haven't read: it would drop the other destinations.
+                        guard param.isKnown else { return }
+                        app.setInt(address, on ? (mask & ~(1 << bit)) : (mask | (1 << bit)))
+                    }
+                    .accessibilityLabel("Talk \(channel) to \(bit < 16 ? "Mix \(bit + 1)" : Monitoring.talkDestinations[bit])")
+                    .accessibilityValue(on ? "on" : "off")
+                }
+            }
+        }
     }
 }
 

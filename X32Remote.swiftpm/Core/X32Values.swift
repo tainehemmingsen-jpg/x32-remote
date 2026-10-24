@@ -270,3 +270,24 @@ enum X32Enums {
         }
     }
 }
+
+/// Solo/phones monitoring and talkback settings.
+enum Monitoring {
+    static let sourcePath = "/config/solo/source"
+    static let monoPath = "/config/solo/mono"
+    static let channelModePath = "/config/solo/chmode"
+    static let busModePath = "/config/solo/busmode"
+    static let exclusivePath = "/config/solo/exclusive"
+
+    static func talkDestinationPath(_ channel: String) -> String { "/config/talk/\(channel)/destmap" }
+
+    /// What the phones/monitor outputs listen to when nothing is soloed.
+    static let sources = ["Off", "LR", "LR + C", "LR PFL", "LR AFL", "Aux 5/6", "Aux 7/8"]
+    static let soloModes = ["PFL", "AFL"]
+    /// Talkback destination bits: mix buses 1-16, then LR and mono/centre.
+    static let talkDestinations: [String] = (1...16).map { "\($0)" } + ["LR", "M/C"]
+
+    static var addresses: [String] {
+        [sourcePath, monoPath, channelModePath, busModePath, exclusivePath, talkDestinationPath("A"), talkDestinationPath("B")]
+    }
+}

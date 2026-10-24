@@ -436,6 +436,7 @@ final class AppModel {
             a.append("/config/mute/\(n)")
         }
         a += ["/config/solo/level", "/config/solo/dim", "/-stat/talk/A", "/-stat/talk/B", "/config/talk/A/level", "/config/talk/B/level"]
+        a += Monitoring.addresses
         a += StripID.allLinkPaths
         a.append("/-show/prepos/current")
         a.append("/-stat/solo")

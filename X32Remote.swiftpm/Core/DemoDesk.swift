@@ -585,6 +585,10 @@ final class DemoTransport: X32Transport {
         if address == RTA.sourcePath || address == RTA.screenPath || address == RTA.meterPagePath { return .int(0) }
         if address == RTA.positionPath { return .int(1) }
         if address == "/config/solo/level" { return .float(0.5) }
+        if address == Monitoring.sourcePath { return .int(1) }
+        if [Monitoring.monoPath, Monitoring.channelModePath, Monitoring.busModePath, Monitoring.exclusivePath].contains(address) { return .int(0) }
+        if address == Monitoring.talkDestinationPath("A") { return .int(0b111111) }
+        if address == Monitoring.talkDestinationPath("B") { return .int(0) }
         if address == "/config/solo/dim" { return .int(0) }
         if address.hasPrefix("/config/talk/") && address.hasSuffix("/level") { return .float(0.5) }
         if address.hasPrefix("/-stat/talk/") { return .int(0) }

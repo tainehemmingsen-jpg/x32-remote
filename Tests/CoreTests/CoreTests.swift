@@ -912,6 +912,13 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(Set(Outputs.sourceGroups.flatMap { Array($0.1) }).count, 76, "every source but Off is in a group")
     }
 
+    func testMonitoringSettings() {
+        XCTAssertEqual(Monitoring.sources.count, 7)
+        XCTAssertEqual(Monitoring.talkDestinations.count, 18, "the desk's destination map is 18 bits")
+        XCTAssertEqual(Monitoring.talkDestinations[16], "LR")
+        XCTAssertTrue(Monitoring.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

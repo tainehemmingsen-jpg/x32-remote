@@ -72,7 +72,11 @@ enum AddressNames {
             return "Gain"
         }
         let special = ["/config/solo/level": "Solo level", "/config/solo/dim": "Solo dim",
-                       "/config/talk/A/level": "Talk A level", "/config/talk/B/level": "Talk B level"]
+                       "/config/talk/A/level": "Talk A level", "/config/talk/B/level": "Talk B level",
+                       "/config/solo/source": "Monitor source", "/config/solo/mono": "Monitor mono",
+                       "/config/solo/chmode": "Channel solo mode", "/config/solo/busmode": "Bus solo mode",
+                       "/config/solo/exclusive": "Exclusive solo",
+                       "/config/talk/A/destmap": "Talk A destinations", "/config/talk/B/destmap": "Talk B destinations"]
         if let name = special[address] { return name }
         let linkKinds = ["chlink": "Ch", "auxlink": "Aux", "fxlink": "FX", "buslink": "Mix", "mtxlink": "Mtx"]
         for (key, label) in linkKinds where address.hasPrefix("/config/\(key)/") {
