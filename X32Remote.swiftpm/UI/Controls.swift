@@ -595,3 +595,34 @@ func panText(_ v: Float) -> String {
     if abs(p) < 1 { return "C" }
     return p < 0 ? "L\(-p)" : "R\(p)"
 }
+
+// MARK: - VoiceOver
+
+extension View {
+    /// Makes a bound control readable and adjustable with VoiceOver (swipe up/down to change it).
+    func paramAccessibility(app: AppModel, title: String, address: String, spec: ParamSpec) -> some View {
+        let p = app.param(address)
+        return self
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(title)
+            .accessibilityValue(p.isKnown ? spec.display(p.float) : "not read yet")
+            .accessibilityAdjustableAction { direction in
+                let current = app.param(address)
+                guard current.isKnown else { return }
+                let sign: Float
+                switch direction {
+                case .increment: sign = 1
+                case .decrement: sign = -1
+                @unknown default: return
+                }
+                var next = current.float + sign * max(1 / Float(max(spec.steps, 1)), 0.02)
+                if case .fader = spec.scale {
+                    let db = X32Math.faderToDB(current.float)
+                    if db.isFinite && db > -89 {
+                        next = X32Math.dbToFader(db + sign)
+                    }
+                }
+                app.setFloat(address, min(max(next, 0), 1), steps: spec.steps)
+            }
+    }
+}

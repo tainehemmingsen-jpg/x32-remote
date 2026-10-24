@@ -1354,6 +1354,7 @@ struct ParamFader: View {
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
             }
         )
+        .paramAccessibility(app: app, title: editTitle, address: address, spec: editSpec)
     }
 }
 
