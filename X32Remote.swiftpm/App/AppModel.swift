@@ -284,6 +284,9 @@ final class AppModel {
             lastLocalSet[address] = nil
         }
         store.applyRemote(address, value)
+        if let old = previous, old != value {
+            rereadPreampIfSourceChanged(address)
+        }
 
         if address.hasPrefix("/-ha/") && address.hasSuffix("/index"), let ha = value.intValue, ha >= 0, ha < 128 {
             client?.get([StripID.headampGainPath(ha), StripID.headampPhantomPath(ha)])
@@ -502,17 +505,25 @@ final class AppModel {
         lastLocalSet[address] = X32Client.now()
         client?.set(address, value)
         refreshLinkedPartner(of: address)
+        rereadPreampIfSourceChanged(address)
+    }
+
+    /// A channel's source decides which preamp feeds it. Whenever the source changes (from here,
+    /// an undo, the desk or another app), read the preamp assignment again so gain and +48V
+    /// controls never act on the wrong input.
+    private func rereadPreampIfSourceChanged(_ address: String) {
+        guard address.hasSuffix("/config/source"), let (strip, _) = AddressNames.split(address),
+              let ha = strip.headampIndexPath else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.client?.get(ha)
+        }
     }
 
     // MARK: - Stereo links
 
-    /// Changing a channel's source can change which preamp feeds it, so read that again.
+    /// Changing a channel's source can change which preamp feeds it (set() re-reads that).
     func setSource(_ strip: StripID, _ value: Int) {
         setInt(strip.sourcePath, value)
-        guard let ha = strip.headampIndexPath else { return }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
-            self?.client?.get(ha)
-        }
     }
 
     /// Linking copies one channel onto the other on the desk; read both again afterwards.
@@ -670,9 +681,12 @@ final class AppModel {
     /// A short message shown at the bottom of the screen.
     var toast: String?
 
-    /// Solo, actions and show/scene state aren't undoable.
+    /// Solo, actions and show/scene state aren't undoable, and neither are stereo links: undoing
+    /// an unlink would re-link, which makes the desk copy one channel over the other.
     static func recordsUndo(_ address: String) -> Bool {
-        !address.hasPrefix("/-")
+        if address.hasPrefix("/-") { return false }
+        if address.hasPrefix("/config/") && address.contains("link") { return false }
+        return true
     }
 
     func undoName(_ address: String) -> String {

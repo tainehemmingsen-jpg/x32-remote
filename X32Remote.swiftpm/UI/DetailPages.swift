@@ -432,7 +432,7 @@ private struct LinkSwitch: View {
         } message: {
             Text(linked
                  ? "They'll go back to being two separate channels."
-                 : "The desk copies \(first.footLabel)'s settings onto \(second.footLabel) and then moves them together.")
+                 : "\(second.footLabel) takes on \(first.footLabel)'s linked settings, and from then on they move together.")
         }
     }
 }

@@ -540,11 +540,12 @@ private struct TalkButton: View {
                         Haptics.tick()
                     }
                 },
-                onEnd: { _, _ in
+                onEnd: { _, taps in
                     let held = pressedAt.map { Date().timeIntervalSince($0) } ?? 0
                     pressedAt = nil
                     // Already latched: a tap turns it off. Held down: it was push-to-talk, so stop.
-                    if wasOn || held >= 0.5 {
+                    // Cancelled (popover closed under the finger): never leave the mic live.
+                    if wasOn || held >= 0.5 || taps == 0 {
                         app.setBool(address, false)
                     }
                 }

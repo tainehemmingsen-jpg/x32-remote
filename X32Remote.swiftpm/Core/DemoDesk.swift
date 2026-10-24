@@ -84,7 +84,8 @@ final class DemoTransport: X32Transport {
         } else {
             values[address] = message.args[0]
             // Like the real desk, a change to one side of a linked pair moves the other side too.
-            if let partner = LinkSync.partnerAddress(for: address, isLinked: { s in s.linkPath.map { self.int($0) != 0 } ?? false }) {
+            // (Pan isn't copied: a linked pair keeps its left/right spread.)
+            if !address.hasSuffix("/pan"), let partner = LinkSync.partnerAddress(for: address, isLinked: { s in s.linkPath.map { self.int($0) != 0 } ?? false }) {
                 values[partner] = message.args[0]
             }
             if address.hasPrefix("/-stat/solosw/") {
