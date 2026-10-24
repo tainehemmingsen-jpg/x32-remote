@@ -865,6 +865,29 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertNil(RTA.sourceValue(for: StripID(.dca, 1)))
     }
 
+    func testPresetsRoundTripAndFit() throws {
+        let ch = StripID(.channel, 3)
+        var store: [String: OSCArg] = [:]
+        for section in ChannelPreset.sections {
+            for rel in ch.relativePaths(section) { store[ch.base + rel] = .float(0.3) }
+        }
+        store[ch.base + "/eq/2/type"] = .int(2)
+        store[ch.base + "/gate/keysrc"] = .int(0)
+        let clip = ChannelClipboard.copy(from: ch, sections: ChannelPreset.sections) { store[$0] }
+        let preset = ChannelPreset(name: "Vox", clip: clip)
+        let defaults = UserDefaults(suiteName: "presets-test-\(UUID().uuidString)")!
+        PresetLibrary.save([preset], to: defaults)
+        let loaded = PresetLibrary.load(from: defaults)
+        XCTAssertEqual(loaded, [preset])
+        XCTAssertEqual(loaded.first?.clip.values["/eq/2/type"], .int(2))
+        XCTAssertEqual(preset.summary, "Preamp, Gate, EQ, Compressor")
+        // Onto a bus: only EQ and compressor fit.
+        XCTAssertEqual(preset.clip.sections(for: StripID(.bus, 1)), [.eq, .comp])
+        XCTAssertEqual(preset.clipboard(only: [.eq]).sections, [.eq])
+        XCTAssertTrue(preset.clipboard(only: [.eq]).changes(onto: StripID(.channel, 9)).allSatisfy { $0.0.hasPrefix("/ch/09/eq/") })
+        XCTAssertEqual(PresetLibrary.sorted([ChannelPreset(name: "b", clip: clip), ChannelPreset(name: "A", clip: clip)]).map(\.name), ["A", "b"])
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

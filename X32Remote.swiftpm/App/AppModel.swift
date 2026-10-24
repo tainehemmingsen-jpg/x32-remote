@@ -900,6 +900,10 @@ final class AppModel {
 
     func pasteSettings(onto strip: StripID) {
         guard let clip = clipboard else { return }
+        apply(clip, onto: strip, label: "paste", done: "Pasted")
+    }
+
+    private func apply(_ clip: ChannelClipboard, onto strip: StripID, label: String, done: String) {
         let changes = clip.changes(onto: strip)
         guard !changes.isEmpty else { return }
         // Read the target first so the paste can be undone completely.
@@ -910,8 +914,40 @@ final class AppModel {
             return
         }
         let names = clip.sections(for: strip).map(\.title).joined(separator: ", ")
-        applyBatch(changes, label: "paste \(names) onto \(stripTitle(strip))")
-        showToast("Pasted \(names) onto \(stripTitle(strip))")
+        applyBatch(changes, label: "\(label) \(names) onto \(stripTitle(strip))")
+        showToast("\(done) \(names) onto \(stripTitle(strip))")
+    }
+
+    // MARK: - Presets
+
+    private(set) var presets: [ChannelPreset] = PresetLibrary.sorted(PresetLibrary.load())
+
+    func savePreset(name: String, from strip: StripID) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let sections = ChannelPreset.sections.filter { strip.supports($0) }
+        let gaps = missing(strip, sections)
+        if !gaps.isEmpty {
+            client?.get(gaps)
+            showToast("Still reading \(stripTitle(strip)) from the desk, try again in a moment")
+            return
+        }
+        let clip = ChannelClipboard.copy(from: strip, sections: sections) { store.value($0) }
+        // Saving under an existing name replaces that preset.
+        var list = presets.filter { $0.name.caseInsensitiveCompare(trimmed) != .orderedSame }
+        list.append(ChannelPreset(name: trimmed, clip: clip))
+        presets = PresetLibrary.sorted(list)
+        PresetLibrary.save(presets)
+        showToast("Saved preset \"\(trimmed)\"")
+    }
+
+    func loadPreset(_ preset: ChannelPreset, only sections: [ProcessingSection]? = nil, onto strip: StripID) {
+        apply(preset.clipboard(only: sections), onto: strip, label: "preset \(preset.name):", done: "Loaded \(preset.name):")
+    }
+
+    func deletePreset(_ preset: ChannelPreset) {
+        presets.removeAll { $0.id == preset.id }
+        PresetLibrary.save(presets)
     }
 
     // MARK: - Navigation

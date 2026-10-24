@@ -150,6 +150,9 @@ private struct ChannelHeader: View {
 private struct CopyPasteMenu: View {
     let app: AppModel
     let strip: StripID
+    @State private var naming = false
+    @State private var presetName = ""
+    @State private var deleting: ChannelPreset?
 
     var body: some View {
         let available = ProcessingSection.allCases.filter { strip.supports($0) }
@@ -176,6 +179,23 @@ private struct CopyPasteMenu: View {
                     }
                 }
             }
+            Section("Presets") {
+                Button {
+                    presetName = app.param(strip.namePath).string
+                    naming = true
+                } label: {
+                    Label("Save as preset…", systemImage: "square.and.arrow.down")
+                }
+                if !app.presets.isEmpty {
+                    Menu {
+                        ForEach(app.presets) { preset in
+                            PresetMenu(app: app, strip: strip, preset: preset) { deleting = preset }
+                        }
+                    } label: {
+                        Label("Load preset", systemImage: "tray.and.arrow.up")
+                    }
+                }
+            }
         } label: {
             Image(systemName: "doc.on.doc")
                 .font(.system(size: 18))
@@ -183,7 +203,57 @@ private struct CopyPasteMenu: View {
                 .frame(width: 46, height: 42)
                 .contentShape(Rectangle())
         }
-        .accessibilityLabel("Copy and paste")
+        .accessibilityLabel("Copy, paste and presets")
+        .alert("Save preset", isPresented: $naming) {
+            TextField("Name", text: $presetName)
+            Button("Save") {
+                app.savePreset(name: presetName, from: strip)
+            }
+            .disabled(presetName.trimmingCharacters(in: .whitespaces).isEmpty)
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Keeps \(app.stripTitle(strip))'s preamp, gate, EQ and compressor on this device. A preset with the same name is replaced.")
+        }
+        .confirmationDialog(deleting.map { "Delete preset \"\($0.name)\"?" } ?? "",
+                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
+                            titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                if let p = deleting { app.deletePreset(p) }
+                deleting = nil
+            }
+            Button("Cancel", role: .cancel) { deleting = nil }
+        }
+    }
+}
+
+/// One preset in the Load menu: load all of it, or just one section.
+private struct PresetMenu: View {
+    let app: AppModel
+    let strip: StripID
+    let preset: ChannelPreset
+    let delete: () -> Void
+
+    var body: some View {
+        let fits = preset.clip.sections(for: strip)
+        Menu {
+            if fits.isEmpty {
+                Text("Nothing in it fits this channel")
+            } else {
+                Button("Load \(fits.map(\.title).joined(separator: ", "))") {
+                    app.loadPreset(preset, onto: strip)
+                }
+                if fits.count > 1 {
+                    ForEach(fits) { section in
+                        Button("Load \(section.title) only") {
+                            app.loadPreset(preset, only: [section], onto: strip)
+                        }
+                    }
+                }
+            }
+            Button("Delete preset…", role: .destructive, action: delete)
+        } label: {
+            Text(preset.name)
+        }
     }
 }
 

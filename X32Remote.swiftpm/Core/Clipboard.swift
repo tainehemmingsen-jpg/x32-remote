@@ -67,7 +67,7 @@ extension StripID {
 }
 
 /// Copied channel settings, kept as paths relative to the strip so they can go onto another one.
-struct ChannelClipboard: Equatable {
+struct ChannelClipboard: Equatable, Codable {
     let source: StripID
     let sections: [ProcessingSection]
     let values: [String: OSCArg]

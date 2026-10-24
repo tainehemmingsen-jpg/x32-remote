@@ -49,6 +49,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Meters:** the bar‑chart icon shows every meter on the desk.
 - **Undo:** the curved arrow undoes your last change (a whole fader move counts as one). Recalling a scene clears it.
 - **Copy / paste:** on a channel page, the copy icon copies everything or one section (preamp, gate, EQ, compressor, sends); open another channel and paste.
+- **Presets:** the same menu saves a channel's preamp, gate, EQ and compressor as a named preset on your iPad, and loads a preset (all of it or one section) onto any channel.
 - **Solo and talkback:** the headphones icon has the solo/phones level and Dim. Talk A/B: tap to latch on, or hold to talk and let go to stop.
 - **Stereo links:** linked pairs show a link mark under the fader; link or unlink a pair on the Config page. The app re-reads the other side after each change so the screen matches the desk.
 - **Select on desk** (Settings): opening a channel in the app also selects it on the X32's own screen.
@@ -61,7 +62,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 
 ## How it was tested
 
-- `Tests/CoreTests` — 67 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
+- `Tests/CoreTests` — 68 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
 - `ci/` + `.github/workflows/ios.yml` — on every push, a self-hosted GitHub Actions runner on the owner's Mac (so it costs nothing) builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 
@@ -69,7 +70,7 @@ It hasn't been run against a physical X32 yet. If something behaves differently 
 
 ## Not in this version
 
-Routing/patching, editing the EQ/dynamics processors in FX slots 5–8 (other than graphic EQs), and library presets.
+Routing/patching, editing the EQ/dynamics processors in FX slots 5–8 (other than graphic EQs), and the desk's own library presets.
 
 ---
 
