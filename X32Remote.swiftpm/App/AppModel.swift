@@ -18,6 +18,7 @@ final class AppModel {
         case meters
         case effects
         case outputs
+        case recorder
         case editUser1
         case editUser2
         var id: String { rawValue }
@@ -593,6 +594,10 @@ final class AppModel {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             self?.loadEffectParameters(slot: slot, type: type)
         }
+    }
+
+    func loadRecorder() {
+        client?.get(Recorder.addresses)
     }
 
     func loadOutputs() {
@@ -1193,6 +1198,9 @@ final class AppModel {
                 }
                 if s == .outputs {
                     self?.loadOutputs()
+                }
+                if s == .recorder {
+                    self?.loadRecorder()
                 }
                 if s == .effects {
                     let slot = d.integer(forKey: "autoFXSlot")

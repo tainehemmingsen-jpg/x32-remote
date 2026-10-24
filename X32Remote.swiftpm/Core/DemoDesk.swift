@@ -586,6 +586,9 @@ final class DemoTransport: X32Transport {
         if address == RTA.positionPath { return .int(1) }
         if address == "/config/solo/level" { return .float(0.5) }
         if address == Monitoring.sourcePath { return .int(1) }
+        if address == Recorder.statePath { return .int(0) }
+        if address == Recorder.mountedPath { return .int(1) }
+        if address == Recorder.filePath { return .string("R_20261024-201500.wav") }
         if [Monitoring.monoPath, Monitoring.channelModePath, Monitoring.busModePath, Monitoring.exclusivePath].contains(address) { return .int(0) }
         if address == Monitoring.talkDestinationPath("A") { return .int(0b111111) }
         if address == Monitoring.talkDestinationPath("B") { return .int(0) }

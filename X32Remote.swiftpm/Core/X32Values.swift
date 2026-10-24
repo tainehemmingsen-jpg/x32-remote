@@ -291,3 +291,41 @@ enum Monitoring {
         [sourcePath, monoPath, channelModePath, busModePath, exclusivePath, talkDestinationPath("A"), talkDestinationPath("B")]
     }
 }
+
+/// The desk's built-in USB stick recorder (2-track).
+enum Recorder {
+    static let statePath = "/-stat/tape/state"
+    static let filePath = "/-stat/tape/file"
+    static let mountedPath = "/-stat/usbmounted"
+
+    enum State: Int, CaseIterable {
+        case stop = 0, playPaused, play, recordPaused, record, fastForward, rewind
+
+        var title: String {
+            switch self {
+            case .stop: return "Stopped"
+            case .playPaused: return "Playback paused"
+            case .play: return "Playing"
+            case .recordPaused: return "Recording paused"
+            case .record: return "Recording"
+            case .fastForward: return "Fast forward"
+            case .rewind: return "Rewind"
+            }
+        }
+
+        var isRecording: Bool { self == .record || self == .recordPaused }
+    }
+
+    static var addresses: [String] { [statePath, filePath, mountedPath] }
+
+    /// What the pause button does from each state.
+    static func pauseTarget(from state: State) -> State? {
+        switch state {
+        case .play: return .playPaused
+        case .playPaused: return .play
+        case .record: return .recordPaused
+        case .recordPaused: return .record
+        default: return nil
+        }
+    }
+}

@@ -919,6 +919,14 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertTrue(Monitoring.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
     }
 
+    func testRecorderStates() {
+        XCTAssertEqual(Recorder.State.record.rawValue, 4)
+        XCTAssertEqual(Recorder.pauseTarget(from: .play), .playPaused)
+        XCTAssertEqual(Recorder.pauseTarget(from: .recordPaused), .record)
+        XCTAssertNil(Recorder.pauseTarget(from: .stop))
+        XCTAssertTrue(Recorder.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

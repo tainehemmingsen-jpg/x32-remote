@@ -81,6 +81,8 @@ struct MixerScreen: View {
                 EffectsSheet(app: app)
             case .outputs:
                 OutputsSheet(app: app)
+            case .recorder:
+                RecorderSheet(app: app)
             case .editUser1:
                 UserLayerEditor(app: app, index: 0)
             case .editUser2:
@@ -351,6 +353,12 @@ struct ConsoleMenu: View {
                     app.sheet = .outputs
                 } label: {
                     Label("Output patch", systemImage: "arrow.triangle.branch")
+                }
+                Button {
+                    app.loadRecorder()
+                    app.sheet = .recorder
+                } label: {
+                    Label("USB recorder", systemImage: "record.circle")
                 }
             }
             Button(role: .destructive) {

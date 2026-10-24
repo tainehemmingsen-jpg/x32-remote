@@ -9,6 +9,7 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
 - **Effects** — the FX icon shows all eight slots: what's loaded, which mix feeds it, where it's inserted, and the return level. Reverbs, delays, chorus and flanger in slots 1–4 are fully editable, and graphic EQs (GEQ/TEQ, stereo or dual) in any slot get a 31-band editor — drag a band, or sweep across to draw a curve.
 - **Output patch** — from the desk-name menu: what each local out, aux out, P16 (Ultranet), AES and record output carries, and the tap point for direct outs. Every change asks first.
+- **USB recorder** — play, pause, record and stop the desk's USB stick recorder from the desk-name menu.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console.
 
 It talks to the desk directly (OSC over UDP port 10023), so there's no extra box.
@@ -63,7 +64,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 
 ## How it was tested
 
-- `Tests/CoreTests` — 70 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
+- `Tests/CoreTests` — 71 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
 - `ci/` + `.github/workflows/ios.yml` — on every push, a self-hosted GitHub Actions runner on the owner's Mac (so it costs nothing) builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 
