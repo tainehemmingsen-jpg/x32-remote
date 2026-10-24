@@ -919,6 +919,31 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertTrue(Monitoring.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
     }
 
+    func testEffectUndoNames() {
+        let types = [1: 10, 5: 0, 7: 1]
+        XCTAssertEqual(Effects.describe("/fx/1/par/02", type: { types[$0] }), "FX 1 Time")
+        XCTAssertEqual(Effects.describe("/fx/5/par/33", type: { types[$0] }), "FX 5 GEQ B 20 Hz")
+        XCTAssertEqual(Effects.describe("/fx/5/par/32", type: { types[$0] }), "FX 5 GEQ A level")
+        XCTAssertEqual(Effects.describe("/fx/7/par/18", type: { types[$0] }), "FX 7 GEQ 1k Hz")
+        XCTAssertEqual(Effects.describe("/fx/2/par/03", type: { _ in nil }), "FX 2 parameter 3")
+        XCTAssertEqual(Effects.describe("/fx/2/type", type: { _ in nil }), "FX 2 type")
+        XCTAssertNil(Effects.describe("/ch/01/mix/fader", type: { _ in nil }))
+    }
+
+    func testPresetStoreSurvivesABadEntry() throws {
+        let defaults = UserDefaults(suiteName: "presets-bad-\(UUID().uuidString)")!
+        let clip = ChannelClipboard(source: StripID(.channel, 1), sections: [.eq], values: ["/eq/on": .int(1)])
+        let good = try JSONEncoder().encode([ChannelPreset(name: "Good", clip: clip)])
+        var array = try JSONSerialization.jsonObject(with: good) as! [Any]
+        array.append(["name": "Broken"])
+        defaults.set(try JSONSerialization.data(withJSONObject: array), forKey: PresetLibrary.key)
+        let loaded = PresetLibrary.load(from: defaults)
+        XCTAssertEqual(loaded.map(\.name), ["Good"])
+        XCTAssertNotNil(defaults.data(forKey: PresetLibrary.key + ".backup"), "the original is kept")
+        defaults.set(Data("not json".utf8), forKey: PresetLibrary.key)
+        XCTAssertEqual(PresetLibrary.load(from: defaults), [])
+    }
+
     func testRecorderStates() {
         XCTAssertEqual(Recorder.State.record.rawValue, 4)
         XCTAssertEqual(Recorder.pauseTarget(from: .play), .playPaused)
@@ -934,6 +959,7 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(t.tap(at: 11.0) ?? 0, 500, accuracy: 0.01)
         XCTAssertEqual(t.tap(at: 11.6) ?? 0, 533.33, accuracy: 0.01, "averages the gaps")
         XCTAssertNil(t.tap(at: 20), "a long pause starts again")
+        XCTAssertEqual(TapTempo().resetAfter > 3, true, "slow tempos up to 3 s can be tapped")
         XCTAssertEqual(t.tap(at: 20.25) ?? 0, 250, accuracy: 0.01)
         for i in 1...10 { _ = t.tap(at: 20.25 + Double(i) * 0.4) }
         XCTAssertEqual(t.taps.count, 5, "only the last few taps count")

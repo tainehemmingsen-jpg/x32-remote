@@ -245,31 +245,38 @@ private struct TapTempoRow: View {
     @State private var tempo = TapTempo()
     @State private var flash = false
 
+    private func tap() {
+        let p = app.param(address)
+        guard p.isKnown else { return }
+        if let newMS = tempo.tap(at: ProcessInfo.processInfo.systemUptime) {
+            app.setFloat(address, Effects.delayTimeSpec.norm(Float(newMS)), steps: Effects.delayTimeSpec.steps)
+        }
+        flash = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+            withAnimation(.easeOut(duration: 0.2)) { flash = false }
+        }
+    }
+
     var body: some View {
         let p = app.param(address)
         let ms = Double(Effects.delayTimeSpec.value(p.float))
         HStack(spacing: 14) {
-            Button {
-                let now = ProcessInfo.processInfo.systemUptime
-                if let newMS = tempo.tap(at: now), p.isKnown {
-                    app.setFloat(address, Effects.delayTimeSpec.norm(Float(newMS)), steps: Effects.delayTimeSpec.steps)
-                }
-                flash = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeOut(duration: 0.2)) { flash = false }
-                }
-            } label: {
-                Text("TAP")
-                    .font(.system(size: 17, weight: .semibold))
-                    .foregroundStyle(flash ? Color.black : Theme.text)
-                    .frame(width: 110, height: 54)
-                    .background(RoundedRectangle(cornerRadius: 6).fill(flash ? Theme.curve : Theme.raised2))
-                    .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.curve.opacity(0.7), lineWidth: 1.5))
-            }
-            .buttonStyle(.plain)
-            .disabled(!p.isKnown)
-            .accessibilityLabel("Tap tempo")
-            .accessibilityHint("Tap repeatedly in time with the music to set the delay time")
+            Text("TAP")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(flash ? Color.black : Theme.text)
+                .frame(width: 110, height: 54)
+                .background(RoundedRectangle(cornerRadius: 6).fill(flash ? Theme.curve : Theme.raised2))
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Theme.curve.opacity(0.7), lineWidth: 1.5))
+                .opacity(p.isKnown ? 1 : 0.4)
+                .overlay(
+                    // Timed on touch-down: how long each tap is held mustn't change the tempo.
+                    TouchSurface(onBegin: { _ in tap() }, onEnd: { _, _ in })
+                )
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Tap tempo")
+                .accessibilityHint("Tap repeatedly in time with the music to set the delay time")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction { tap() }
             VStack(alignment: .leading, spacing: 2) {
                 Text(p.isKnown ? "\(Int(ms.rounded())) ms" : "—")
                     .font(Theme.mono(20))

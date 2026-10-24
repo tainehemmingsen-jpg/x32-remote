@@ -46,6 +46,32 @@ enum Effects {
         return "Type \(type)"
     }
 
+    /// "/fx/3/par/02" -> "FX 3 Time" (using the slot's current type), "/fx/1/type" -> "FX 1 type".
+    static func describe(_ address: String, type: (Int) -> Int?) -> String? {
+        let parts = address.split(separator: "/")
+        guard parts.count >= 3, parts[0] == "fx", let slot = Int(parts[1]), slots.contains(slot) else { return nil }
+        switch parts[2] {
+        case "type": return "FX \(slot) type"
+        case "source": return "FX \(slot) source"
+        case "par":
+            guard parts.count == 4, let n = Int(parts[3]) else { return nil }
+            if let t = type(slot) {
+                if graphicEQSides(slot: slot, type: t) != nil {
+                    let side = (n - 1) / 32
+                    let band = (n - 1) % 32
+                    let sideLabel = graphicEQSides(slot: slot, type: t) == 2 ? (side == 0 ? " A" : " B") : ""
+                    return band == 31 ? "FX \(slot) GEQ\(sideLabel) level" : "FX \(slot) GEQ\(sideLabel) \(geqBandLabel(band)) Hz"
+                }
+                if slot <= 4, let p = parameters(type: t), n >= 1, n <= p.count {
+                    return "FX \(slot) \(p[n - 1].name)"
+                }
+            }
+            return "FX \(slot) parameter \(n)"
+        default:
+            return nil
+        }
+    }
+
     // MARK: Tap tempo
 
     /// The delay-time parameter of the delay types (1-3000 ms), for tap tempo.
@@ -356,7 +382,7 @@ enum Effects {
 struct TapTempo {
     private(set) var taps: [TimeInterval] = []
     /// A gap longer than this starts a new count.
-    var resetAfter: TimeInterval = 2.5
+    var resetAfter: TimeInterval = 3.2
     var maxTaps = 5
 
     /// Records a tap. Returns the delay time in ms once there are two taps in a row.

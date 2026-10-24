@@ -117,7 +117,9 @@ private struct ChannelHeader: View {
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
             Spacer(minLength: 8)
-            CopyPasteMenu(app: app, strip: strip)
+            if ProcessingSection.allCases.contains(where: { strip.supports($0) }) {
+                CopyPasteMenu(app: app, strip: strip)
+            }
             UndoButton(app: app)
             FineButton(app: app, height: 34)
                 .frame(width: 64)
@@ -153,6 +155,7 @@ private struct CopyPasteMenu: View {
     @State private var naming = false
     @State private var presetName = ""
     @State private var deleting: ChannelPreset?
+    @State private var confirmDelete = false
 
     var body: some View {
         let available = ProcessingSection.allCases.filter { strip.supports($0) }
@@ -181,7 +184,8 @@ private struct CopyPasteMenu: View {
             }
             Section("Presets") {
                 Button {
-                    presetName = app.param(strip.namePath).string
+                    let name = app.param(strip.namePath).string
+                    presetName = name.isEmpty ? app.stripTitle(strip) : name
                     naming = true
                 } label: {
                     Label("Save as preset…", systemImage: "square.and.arrow.down")
@@ -189,7 +193,10 @@ private struct CopyPasteMenu: View {
                 if !app.presets.isEmpty {
                     Menu {
                         ForEach(app.presets) { preset in
-                            PresetMenu(app: app, strip: strip, preset: preset) { deleting = preset }
+                            PresetMenu(app: app, strip: strip, preset: preset) {
+                                deleting = preset
+                                confirmDelete = true
+                            }
                         }
                     } label: {
                         Label("Load preset", systemImage: "tray.and.arrow.up")
@@ -207,21 +214,19 @@ private struct CopyPasteMenu: View {
         .alert("Save preset", isPresented: $naming) {
             TextField("Name", text: $presetName)
             Button("Save") {
+                // Blank names are ignored by savePreset.
                 app.savePreset(name: presetName, from: strip)
             }
-            .disabled(presetName.trimmingCharacters(in: .whitespaces).isEmpty)
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("Keeps \(app.stripTitle(strip))'s preamp, gate, EQ and compressor on this device. A preset with the same name is replaced.")
         }
-        .confirmationDialog(deleting.map { "Delete preset \"\($0.name)\"?" } ?? "",
-                            isPresented: Binding(get: { deleting != nil }, set: { if !$0 { deleting = nil } }),
-                            titleVisibility: .visible) {
+        .confirmationDialog("Delete preset \"\(deleting?.name ?? "")\"?",
+                            isPresented: $confirmDelete, titleVisibility: .visible, presenting: deleting) { preset in
             Button("Delete", role: .destructive) {
-                if let p = deleting { app.deletePreset(p) }
-                deleting = nil
+                app.deletePreset(preset)
             }
-            Button("Cancel", role: .cancel) { deleting = nil }
+            Button("Cancel", role: .cancel) {}
         }
     }
 }

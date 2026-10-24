@@ -58,7 +58,25 @@ enum PresetLibrary {
 
     static func load(from defaults: UserDefaults = .standard) -> [ChannelPreset] {
         guard let data = defaults.data(forKey: key) else { return [] }
-        return (try? JSONDecoder().decode([ChannelPreset].self, from: data)) ?? []
+        // Decode each preset on its own, so one unreadable preset doesn't lose the rest.
+        guard let items = try? JSONDecoder().decode([Lenient].self, from: data) else {
+            // Keep the unreadable store rather than letting the next save overwrite it.
+            defaults.set(data, forKey: key + ".backup")
+            return []
+        }
+        let presets = items.compactMap(\.preset)
+        if presets.count < items.count {
+            defaults.set(data, forKey: key + ".backup")
+        }
+        return presets
+    }
+
+    private struct Lenient: Decodable {
+        let preset: ChannelPreset?
+
+        init(from decoder: Decoder) throws {
+            preset = try? ChannelPreset(from: decoder)
+        }
     }
 
     static func save(_ presets: [ChannelPreset], to defaults: UserDefaults = .standard) {

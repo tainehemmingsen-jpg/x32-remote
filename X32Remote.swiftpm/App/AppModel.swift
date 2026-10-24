@@ -842,6 +842,9 @@ final class AppModel {
         if let (strip, rest) = AddressNames.split(address) {
             return stripTitle(strip) + " " + AddressNames.parameterName(rest, strip: strip)
         }
+        if let name = Effects.describe(address, type: { store.value(Effects.typePath($0))?.intValue }) {
+            return name
+        }
         return AddressNames.describe(address)
     }
 
@@ -979,6 +982,7 @@ final class AppModel {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
         let sections = ChannelPreset.sections.filter { strip.supports($0) }
+        guard !sections.isEmpty else { return }
         let gaps = missing(strip, sections)
         if !gaps.isEmpty {
             client?.get(gaps)

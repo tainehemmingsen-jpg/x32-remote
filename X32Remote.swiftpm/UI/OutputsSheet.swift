@@ -7,6 +7,7 @@ struct OutputsSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var group: Outputs.Group = .main
     @State private var pending: PendingPatch?
+    @State private var confirming = false
 
     struct PendingPatch: Identifiable {
         let address: String
@@ -36,7 +37,10 @@ struct OutputsSheet: View {
                 ScrollView {
                     LazyVStack(spacing: 2) {
                         ForEach(1...group.count, id: \.self) { n in
-                            OutputRow(app: app, group: group, number: n) { pending = $0 }
+                            OutputRow(app: app, group: group, number: n) {
+                                pending = $0
+                                confirming = true
+                            }
                         }
                     }
                     .padding(.horizontal, 10)
@@ -54,15 +58,13 @@ struct OutputsSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
-            .confirmationDialog(pending.map { "Patch \($0.output) to \($0.valueName)?" } ?? "",
-                                isPresented: Binding(get: { pending != nil }, set: { if !$0 { pending = nil } }),
-                                titleVisibility: .visible) {
+            .confirmationDialog("Patch \(pending?.output ?? "") to \(pending?.valueName ?? "")?",
+                                isPresented: $confirming, titleVisibility: .visible, presenting: pending) { p in
                 Button("Patch") {
-                    if let p = pending { app.setInt(p.address, p.value) }
-                    pending = nil
+                    app.setInt(p.address, p.value)
                 }
-                Button("Cancel", role: .cancel) { pending = nil }
-            } message: {
+                Button("Cancel", role: .cancel) {}
+            } message: { _ in
                 Text("The output changes on the desk straight away.")
             }
         }
