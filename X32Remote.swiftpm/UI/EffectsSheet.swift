@@ -1,0 +1,308 @@
+import SwiftUI
+
+/// "FX" in the top bar.
+struct FXIcon: View {
+    let app: AppModel
+
+    var body: some View {
+        Button {
+            app.loadEffects()
+            app.sheet = .effects
+        } label: {
+            Text("FX")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(Theme.text)
+                .frame(width: 46, height: 42)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Effects")
+    }
+}
+
+/// The eight effects slots: what's in each, what feeds it, its return level, and (for the
+/// reverbs, delays and modulation effects in slots 1-4) every parameter.
+struct EffectsSheet: View {
+    let app: AppModel
+    @Environment(\.dismiss) private var dismiss
+    @State private var slot = 1
+
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geo in
+                let wide = geo.size.width >= 700
+                if wide {
+                    HStack(spacing: 2) {
+                        ScrollView {
+                            VStack(spacing: 4) {
+                                ForEach(Array(Effects.slots), id: \.self) { s in
+                                    SlotTile(app: app, slot: s, selected: s == slot) { slot = s }
+                                }
+                            }
+                            .padding(6)
+                        }
+                        .frame(width: 210)
+                        .background(Theme.background)
+                        SlotDetail(app: app, slot: slot) { dismiss() }
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                } else {
+                    VStack(spacing: 0) {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 4) {
+                                ForEach(Array(Effects.slots), id: \.self) { s in
+                                    SlotTile(app: app, slot: s, selected: s == slot) { slot = s }
+                                        .frame(width: 150)
+                                }
+                            }
+                            .padding(6)
+                        }
+                        SlotDetail(app: app, slot: slot) { dismiss() }
+                    }
+                }
+            }
+            .background(Theme.background)
+            .overlay(alignment: .bottom) {
+                ToastView(app: app)
+            }
+            .overlay {
+                ValueEditorOverlay(app: app)
+            }
+            .navigationTitle("Effects")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") { dismiss() }
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+}
+
+private struct SlotTile: View {
+    let app: AppModel
+    let slot: Int
+    let selected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        let type = app.param(Effects.typePath(slot))
+        let source = app.param(Effects.sourcePath(slot))
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 3) {
+                Text("FX \(slot)")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.secondary)
+                Text(type.isKnown ? Effects.typeName(slot: slot, type: type.int) : "—")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Theme.text)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
+                Text(source.isKnown ? "from \(Effects.sourceName(source.int))" : " ")
+                    .font(.system(size: 11))
+                    .foregroundStyle(Theme.tertiary)
+            }
+            .padding(10)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Theme.raised2 : Theme.raised))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Theme.on : Color.white.opacity(0.07), lineWidth: selected ? 2 : 1))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct SlotDetail: View {
+    let app: AppModel
+    let slot: Int
+    let close: () -> Void
+    @State private var pendingType: Int?
+
+    var body: some View {
+        let typeParam = app.param(Effects.typePath(slot))
+        let type = typeParam.int(or: -1)
+        let source = app.param(Effects.sourcePath(slot))
+        let params = slot <= 4 ? Effects.parameters(type: type) : nil
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("FX \(slot)")
+                            .font(.system(size: 12))
+                            .foregroundStyle(Theme.secondary)
+                        Text(typeParam.isKnown ? Effects.typeName(slot: slot, type: type) : "Reading…")
+                            .font(.system(size: 22))
+                            .foregroundStyle(Theme.text)
+                    }
+                    Spacer()
+                    if slot <= 4 {
+                        TypeMenu(current: type) { pendingType = $0 }
+                    }
+                }
+                if source.isKnown {
+                    SourceRow(app: app, sourceValue: source.int, close: close)
+                }
+                ForEach(Effects.returnStrips(slot: slot)) { strip in
+                    ReturnRow(app: app, strip: strip)
+                }
+                if let params {
+                    ControlGrid(minimumWidth: 240) {
+                        ForEach(params, id: \.number) { p in
+                            EffectParamControl(app: app, slot: slot, param: p)
+                        }
+                    }
+                    .padding(.top, 4)
+                } else if typeParam.isKnown {
+                    Text(slot <= 4
+                         ? "This effect type isn't editable here yet. Its settings are on the desk's Effects screen; you can still change the type above."
+                         : "Slots 5-8 hold EQs and processors. Edit them on the desk's Effects screen.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Theme.secondary)
+                }
+            }
+            .padding(16)
+        }
+        .background(Theme.panel)
+        .confirmationDialog(
+            pendingType.map { "Change FX \(slot) to \(Effects.typeName(slot: slot, type: $0))?" } ?? "",
+            isPresented: Binding(get: { pendingType != nil }, set: { if !$0 { pendingType = nil } }),
+            titleVisibility: .visible
+        ) {
+            Button("Change effect", role: .destructive) {
+                if let t = pendingType {
+                    app.setEffectType(slot: slot, type: t)
+                }
+                pendingType = nil
+            }
+            Button("Cancel", role: .cancel) { pendingType = nil }
+        } message: {
+            Text("Its settings go back to the desk's defaults for the new effect.")
+        }
+    }
+}
+
+private struct TypeMenu: View {
+    let current: Int
+    let choose: (Int) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(Array(Effects.editableTypeNames.enumerated()), id: \.offset) { item in
+                Button {
+                    if item.offset != current { choose(item.offset) }
+                } label: {
+                    if item.offset == current {
+                        Label(item.element, systemImage: "checkmark")
+                    } else {
+                        Text(item.element)
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Text("Change effect")
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+            }
+            .barChip()
+        }
+    }
+}
+
+/// Which mix feeds the effect, with a shortcut to put that mix's sends on the faders.
+private struct SourceRow: View {
+    let app: AppModel
+    let sourceValue: Int
+    let close: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("Fed from \(Effects.sourceName(sourceValue))")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.text)
+            if let bus = Effects.feedingBus(sourceValue: sourceValue) {
+                let name = app.param(StripID(.bus, bus).namePath).string
+                if !name.isEmpty {
+                    Text("(\(name))")
+                        .font(.system(size: 14))
+                        .foregroundStyle(Theme.secondary)
+                }
+                Spacer()
+                Button {
+                    app.selectSendsBus(bus)
+                    close()
+                } label: {
+                    Text("Sends on faders")
+                        .barChip()
+                }
+                .buttonStyle(.plain)
+            } else {
+                Spacer()
+            }
+        }
+    }
+}
+
+/// The FX return's level and mute.
+private struct ReturnRow: View {
+    let app: AppModel
+    let strip: StripID
+    @State private var drag = DragTarget()
+
+    var body: some View {
+        let address = strip.faderPath
+        let fader = app.param(address)
+        HStack(spacing: 10) {
+            Text("Return \(strip.footLabel)")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.secondary)
+                .frame(width: 110, alignment: .leading)
+            HFader(
+                value: fader.float,
+                hapticAtUnity: app.settings.hapticAtUnity,
+                fine: app.fineMode,
+                onLongPress: { app.editValue("\(strip.footLabel) return", address, Specs.fader) },
+                onChange: { v in app.dragSet(address, drag, v, steps: 1023) },
+                onTouch: { began in
+                    if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
+                }
+            )
+            .frame(height: 40)
+            Text(fader.isKnown ? X32Math.formatFader(fader.float) : "—")
+                .font(Theme.mono(13))
+                .foregroundStyle(Theme.text)
+                .frame(width: 50, alignment: .trailing)
+            MuteButton(app: app, strip: strip, height: 36)
+                .frame(width: 70)
+        }
+    }
+}
+
+/// One effect parameter: a slider, or a menu for choices.
+private struct EffectParamControl: View {
+    let app: AppModel
+    let slot: Int
+    let param: Effects.Param
+
+    private static let percentSpec = ParamSpec(.linear(0, 100), steps: 1000, unit: "%", decimals: 0, defaultNorm: 0.5)
+
+    var body: some View {
+        let address = Effects.parPath(slot, param.number)
+        switch param.kind {
+        case .value(let spec):
+            ParamKnob(app: app, address: address, spec: spec, title: param.name)
+        case .percent:
+            ParamKnob(app: app, address: address, spec: EffectParamControl.percentSpec, title: param.name)
+        case .choice(let options):
+            HStack {
+                Text(param.name)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Theme.text)
+                Spacer()
+                EnumMenu(app: app, address: address, options: options)
+            }
+            .frame(minHeight: 44)
+        }
+    }
+}

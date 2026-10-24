@@ -16,6 +16,7 @@ final class AppModel {
         case settings
         case modes
         case meters
+        case effects
         case editUser1
         case editUser2
         var id: String { rawValue }
@@ -473,6 +474,19 @@ final class AppModel {
         if let p = s.dcaGroupsPath { a.append(p) }
         if let p = s.muteGroupsPath { a.append(p) }
         c.get(a)
+    }
+
+    /// FX slot types, sources and the parameters of the editable slots.
+    func loadEffects() {
+        client?.get(Effects.addresses())
+    }
+
+    /// Changing an effect's type resets its parameters on the desk, so read them again.
+    func setEffectType(slot: Int, type: Int) {
+        setInt(Effects.typePath(slot), type)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+            self?.client?.get((1...16).map { Effects.parPath(slot, $0) })
+        }
     }
 
     func loadScenes() {

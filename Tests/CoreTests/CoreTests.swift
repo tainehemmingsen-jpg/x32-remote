@@ -722,3 +722,52 @@ final class LinkTests: XCTestCase {
     }
 }
 
+final class EffectsTests: XCTestCase {
+    /// Parameter layouts per type from the X32 protocol ('f' float, 'i' int), first 16 parameters.
+    let layouts: [Int: String] = [
+        0: "ffffffffffff", 1: "ffffffffff", 2: "ffffffffffffffff", 3: "ffffffffffffffff",
+        4: "ffffffffffffffff", 5: "ffffffffffff", 6: "fffiifffff", 7: "ffffffffffffi",
+        8: "ffffffffff", 9: "fffffffff", 10: "ffiiifffffff", 11: "ffffffiffiffiii",
+        12: "ffffffifififiii", 13: "fffffffffff", 14: "ffffffffffff"
+    ]
+
+    func testParameterLayoutsMatchTheDesk() {
+        for (type, layout) in layouts {
+            guard let params = Effects.parameters(type: type) else {
+                XCTFail("missing type \(type)")
+                continue
+            }
+            XCTAssertEqual(params.count, layout.count, "type \(type) parameter count")
+            for (i, ch) in layout.enumerated() where i < params.count {
+                let isInt: Bool
+                if case .choice = params[i].kind { isInt = true } else { isInt = false }
+                XCTAssertEqual(isInt, ch == "i", "type \(type) parameter \(i + 1) (\(params[i].name))")
+                XCTAssertEqual(params[i].number, i + 1)
+            }
+        }
+        XCTAssertNil(Effects.parameters(type: 15))
+    }
+
+    func testNamesAndSources() {
+        XCTAssertEqual(Effects.typeName(slot: 1, type: 0), "Hall Reverb")
+        XCTAssertEqual(Effects.typeName(slot: 3, type: 10), "Stereo Delay")
+        XCTAssertEqual(Effects.typeName(slot: 2, type: 27), "GEQ2")
+        XCTAssertEqual(Effects.typeName(slot: 6, type: 0), "GEQ2")
+        XCTAssertEqual(Effects.typeCodes1.count, 61)
+        XCTAssertEqual(Effects.sourceName(0), "Insert")
+        XCTAssertEqual(Effects.sourceName(13), "Mix 13")
+        XCTAssertEqual(Effects.feedingBus(sourceValue: 13), 13)
+        XCTAssertNil(Effects.feedingBus(sourceValue: 17))
+        XCTAssertEqual(Effects.returnStrips(slot: 2), [StripID(.fxReturn, 3), StripID(.fxReturn, 4)])
+        XCTAssertEqual(Effects.parPath(3, 2), "/fx/3/par/02")
+    }
+
+    func testDemoAnswersEffects() {
+        for a in Effects.addresses() {
+            XCTAssertNotNil(DemoTransport.defaultValue(for: a), a)
+        }
+        XCTAssertEqual(DemoTransport.defaultValue(for: "/fx/3/type"), .int(10))
+        XCTAssertEqual(DemoTransport.defaultValue(for: "/fx/3/par/03"), .int(0), "delay mode is an int")
+    }
+}
+

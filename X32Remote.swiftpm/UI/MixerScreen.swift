@@ -45,10 +45,10 @@ struct MixerScreen: View {
         }
         .background(Theme.background)
         .overlay(alignment: .bottom) {
-            ToastView(app: app, active: app.detailStrip == nil)
+            ToastView(app: app, active: app.detailStrip == nil && app.sheet == nil)
         }
         .overlay {
-            ValueEditorOverlay(app: app, active: app.detailStrip == nil)
+            ValueEditorOverlay(app: app, active: app.detailStrip == nil && app.sheet == nil)
         }
         .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .onChange(of: app.layer) { _, _ in
@@ -75,6 +75,8 @@ struct MixerScreen: View {
                 ModesSheet(app: app)
             case .meters:
                 MeterBridge(app: app)
+            case .effects:
+                EffectsSheet(app: app)
             case .editUser1:
                 UserLayerEditor(app: app, index: 0)
             case .editUser2:
@@ -185,6 +187,7 @@ struct MixerTopBar: View {
                 TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
                     app.sheet = .meters
                 }
+                FXIcon(app: app)
                 TopIcon(systemName: "folder", label: "Scenes") {
                     app.loadScenes()
                     app.sheet = .scenes
@@ -202,6 +205,10 @@ struct MixerTopBar: View {
                     Button { DispatchQueue.main.async { showMonitor = true } } label: { Label("Solo and talkback", systemImage: "headphones") }
                     Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
                     Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
+                    Button {
+                        app.loadEffects()
+                        app.sheet = .effects
+                    } label: { Label("Effects", systemImage: "sparkles") }
                     Button {
                         app.loadScenes()
                         app.sheet = .scenes

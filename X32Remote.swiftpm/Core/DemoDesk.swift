@@ -499,6 +499,26 @@ final class DemoTransport: X32Transport {
         if address.hasPrefix("/config/mute/") { return .int(0) }
         if address.hasPrefix("/config/") && address.contains("link/") { return .int(0) }
         if address.hasPrefix("/config/linkcfg/") { return .int(1) }
+        if address.hasPrefix("/fx/") {
+            let parts = address.split(separator: "/")
+            let slot = parts.count >= 2 ? Int(parts[1]) ?? 1 : 1
+            if address.hasSuffix("/type") {
+                // Hall, Plate, Stereo Delay, Chorus in 1-4 (fed by Mix 13-16), GEQs in 5-8.
+                return .int(slot <= 4 ? Int32([0, 5, 10, 13][slot - 1]) : 0)
+            }
+            if address.hasSuffix("/source/l") || address.hasSuffix("/source/r") {
+                return .int(slot <= 4 ? Int32(12 + slot) : 0)
+            }
+            if address.contains("/par/") {
+                // Choice parameters are ints on the desk (delay mode/factors, switches).
+                let n = Int(parts.last ?? "") ?? 1
+                let type = slot <= 4 ? [0, 5, 10, 13][slot - 1] : 0
+                if let p = Effects.parameters(type: type), n <= p.count, case .choice = p[n - 1].kind {
+                    return .int(n == 4 || n == 5 ? 4 : 0)
+                }
+                return .float(0.4)
+            }
+        }
         if address == "/-show/prepos/current" { return .int(0) }
         if address == "/config/solo/level" { return .float(0.5) }
         if address == "/config/solo/dim" { return .int(0) }
