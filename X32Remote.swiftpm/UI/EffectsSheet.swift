@@ -68,6 +68,10 @@ struct EffectsSheet: View {
             .overlay {
                 ValueEditorOverlay(app: app)
             }
+            .onDisappear {
+                // Don't leave an editor open for the mixer to show after the sheet closes.
+                app.valueEditor = nil
+            }
             .navigationTitle("Effects")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -89,6 +93,7 @@ private struct SlotTile: View {
     var body: some View {
         let type = app.param(Effects.typePath(slot))
         let source = app.param(Effects.sourcePath(slot))
+        let sourceText = slot <= 4 ? (source.isKnown ? "from \(Effects.sourceName(source.int))" : " ") : "insert"
         Button(action: action) {
             VStack(alignment: .leading, spacing: 3) {
                 Text("FX \(slot)")
@@ -99,7 +104,7 @@ private struct SlotTile: View {
                     .foregroundStyle(Theme.text)
                     .lineLimit(1)
                     .minimumScaleFactor(0.7)
-                Text(source.isKnown ? "from \(Effects.sourceName(source.int))" : " ")
+                Text(sourceText)
                     .font(.system(size: 11))
                     .foregroundStyle(Theme.tertiary)
             }
@@ -140,7 +145,7 @@ private struct SlotDetail: View {
                         TypeMenu(current: type) { pendingType = $0 }
                     }
                 }
-                if source.isKnown {
+                if slot <= 4 && source.isKnown {
                     SourceRow(app: app, sourceValue: source.int, close: close)
                 }
                 ForEach(Effects.returnStrips(slot: slot)) { strip in

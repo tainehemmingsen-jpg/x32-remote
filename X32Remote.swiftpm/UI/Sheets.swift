@@ -35,6 +35,9 @@ struct ScenesSheet: View {
                     }
                 }
             }
+            .overlay(alignment: .bottom) {
+                ToastView(app: app)
+            }
             .navigationTitle("Scenes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -81,6 +84,9 @@ private struct SaveSceneRow: View {
 
     var body: some View {
         let target = number >= 0 ? number : defaultNumber
+        // Until the desk has said whether a slot is empty, assume it isn't (never overwrite blindly).
+        let targetKnown = app.param(String(format: "/-show/showfile/scene/%03d/hasdata", target)).isKnown
+        let targetUsed = usedScenes.contains(target) || !targetKnown
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 10) {
                 TextField("Scene name", text: $name)
@@ -93,7 +99,7 @@ private struct SaveSceneRow: View {
                 .labelsHidden()
                 .frame(width: 130)
                 Button("Save") {
-                    if usedScenes.contains(target) {
+                    if targetUsed {
                         confirmOverwrite = true
                     } else {
                         app.saveScene(target, name: name)
@@ -103,7 +109,9 @@ private struct SaveSceneRow: View {
                 }
                 .buttonStyle(.borderedProminent)
             }
-            Text(usedScenes.contains(target)
+            Text(!targetKnown
+                 ? "Still reading the scene list from the desk…"
+                 : usedScenes.contains(target)
                  ? String(format: "Scene %02d already has a scene in it; saving replaces it.", target)
                  : "Saves faders, mutes, EQ, dynamics and routing as they are now.")
                 .font(.system(size: 12))

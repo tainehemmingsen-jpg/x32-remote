@@ -600,7 +600,7 @@ func panText(_ v: Float) -> String {
 
 extension View {
     /// Makes a bound control readable and adjustable with VoiceOver (swipe up/down to change it).
-    func paramAccessibility(app: AppModel, title: String, address: String, spec: ParamSpec) -> some View {
+    func paramAccessibility(app: AppModel, title: String, address: String, spec: ParamSpec, enabled: Bool = true, reset: Float? = nil) -> some View {
         let p = app.param(address)
         return self
             .accessibilityElement(children: .ignore)
@@ -608,21 +608,29 @@ extension View {
             .accessibilityValue(p.isKnown ? spec.display(p.float) : "not read yet")
             .accessibilityAdjustableAction { direction in
                 let current = app.param(address)
-                guard current.isKnown else { return }
+                guard enabled, current.isKnown else { return }
                 let sign: Float
                 switch direction {
                 case .increment: sign = 1
                 case .decrement: sign = -1
                 @unknown default: return
                 }
-                var next = current.float + sign * max(1 / Float(max(spec.steps, 1)), 0.02)
+                let oneStep = 1 / Float(max(spec.steps, 1))
+                var next = current.float + sign * max(oneStep, 0.02)
                 if case .fader = spec.scale {
                     let db = X32Math.faderToDB(current.float)
                     if db.isFinite && db > -89 {
                         next = X32Math.dbToFader(db + sign)
                     }
                 }
+                // Always move at least one step on the desk's own scale.
+                if X32Math.quantize(next, steps: spec.steps) == X32Math.quantize(current.float, steps: spec.steps) {
+                    next = current.float + sign * oneStep
+                }
                 app.setFloat(address, min(max(next, 0), 1), steps: spec.steps)
+            }
+            .accessibilityAction(named: "Edit value") {
+                if enabled { app.editValue(title, address, spec, reset: reset) }
             }
     }
 }

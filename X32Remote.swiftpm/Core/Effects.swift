@@ -15,15 +15,15 @@ enum Effects {
         "HALL", "AMBI", "RPLT", "ROOM", "CHAM", "PLAT", "VREV", "VRM",
         "GATE", "RVRS", "DLY", "3TAP", "4TAP", "CRS", "FLNG", "PHAS", "DIMC", "FILT",
         "ROTA", "PAN", "SUB", "D/RV", "CR/R", "FL/R", "D/CR", "D/FL", "MODD", "GEQ2",
-        "TEQ2", "GEQ", "TEQ", "DES2", "DES", "P1A2", "P1A", "PQ5S", "PQ5", "WAVD",
-        "LIM", "CMB2", "CMB", "FAC2", "FAC1M", "FAC", "LEC2", "LEC", "ULC2", "ULC",
+        "GEQ", "TEQ2", "TEQ", "DES2", "DES", "P1A", "P1A2", "PQ5", "PQ5S", "WAVD",
+        "LIM", "CMB", "CMB2", "FAC", "FAC1M", "FAC2", "LEC", "LEC2", "ULC", "ULC2",
         "ENH2", "ENH", "EXC2", "EXC", "IMG", "EDI", "SON", "AMP2", "AMP", "DRV2",
         "DRV", "PIT2", "PIT"
     ]
 
     /// Short names for /fx/5-8/type, in desk order.
     static let typeCodes2: [String] = [
-        "GEQ2", "TEQ2", "GEQ", "TEQ", "DES2", "DES", "P1A", "P1A2",
+        "GEQ2", "GEQ", "TEQ2", "TEQ", "DES2", "DES", "P1A", "P1A2",
         "PQ5", "PQ5S", "WAVD", "LIM", "FAC", "FAC1M", "FAC2", "LEC", "LEC2", "ULC",
         "ULC2", "ENH2", "ENH", "EXC2", "EXC", "IMG", "EDI", "SON", "AMP2", "AMP",
         "DRV2", "DRV", "PHAS", "FILT", "PAN", "SUB"
@@ -272,6 +272,9 @@ enum Effects {
         var a: [String] = []
         for slot in slots {
             a.append(typePath(slot))
+        }
+        for slot in editableSlots {
+            // Only slots 1-4 have a source (5-8 are always inserts).
             a.append(sourcePath(slot))
         }
         for slot in editableSlots {

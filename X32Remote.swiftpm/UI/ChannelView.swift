@@ -878,7 +878,7 @@ struct ParamKnob: View {
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
             }
         )
-        .paramAccessibility(app: app, title: title, address: address, spec: spec)
+        .paramAccessibility(app: app, title: title, address: address, spec: spec, enabled: enabled, reset: resettable ? spec.defaultNorm : nil)
     }
 }
 
