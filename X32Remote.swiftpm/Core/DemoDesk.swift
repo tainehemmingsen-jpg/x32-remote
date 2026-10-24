@@ -259,8 +259,11 @@ final class DemoTransport: X32Transport {
     /// A moving, roughly pink spectrum with a couple of resonances (different per source).
     private func demoSpectrum(level amp: Float, seed: Int) -> [Float] {
         let base = X32Math.amplitudeToDB(amp)
-        guard base.isFinite, base > -80 else { return [Float](repeating: -97, count: RTA.bandCount) }
         let t = tickCount * 0.05
+        guard base.isFinite, base > -80 else {
+            // A running analyser on silence: a low, slightly moving floor.
+            return (0..<RTA.bandCount).map { i in -92 + 1.5 * sinf(Float(t) * 2.3 + Float(i) * 0.9) }
+        }
         let peak1 = 25 + (seed * 7) % 30
         let peak2 = 55 + (seed * 13) % 30
         return (0..<RTA.bandCount).map { i in

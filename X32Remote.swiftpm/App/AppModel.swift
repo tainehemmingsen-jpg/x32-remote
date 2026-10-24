@@ -237,6 +237,8 @@ final class AppModel {
                 syncAll()
             }
             resyncOnConnect = false
+            // The desk may have been restarted or changed while we were away.
+            applyRTASource()
             updateMeterSubscriptions()
         case .lost:
             linkLost = true
@@ -292,6 +294,10 @@ final class AppModel {
             }
             return
         }
+        if rtaWaking && (address == RTA.screenPath || address == RTA.meterPagePath) && screenReplies[address] == nil {
+            // The desk's screen as it was before showing the RTA page (read before any echo filtering).
+            screenReplies[address] = value
+        }
         let previous = store.value(address)
         if let t = lastLocalSet[address] {
             if X32Client.now() - t < 0.6 { return }
@@ -336,41 +342,77 @@ final class AppModel {
 
     /// The strip whose EQ is on screen with the analyser showing.
     @ObservationIgnored private(set) var rtaStrip: StripID?
+    /// EQ graphs that want the analyser, oldest first (two can overlap briefly while the
+    /// layout changes, so each one owns its claim).
+    @ObservationIgnored private var rtaClaims: [(id: UUID, strip: StripID)] = []
 
-    /// Called by the EQ graph as it appears, changes channel or disappears.
-    func setRTAStrip(_ strip: StripID?) {
-        let wanted = settings.showRTA ? strip.flatMap { RTA.sourceValue(for: $0) == nil ? nil : $0 } : nil
+    func claimRTA(_ id: UUID, strip: StripID) {
+        rtaClaims.removeAll { $0.id == id }
+        rtaClaims.append((id, strip))
+        updateRTA()
+    }
+
+    func releaseRTA(_ id: UUID) {
+        rtaClaims.removeAll { $0.id == id }
+        updateRTA()
+    }
+
+    private func updateRTA() {
+        let latest = rtaClaims.last?.strip
+        let wanted = settings.showRTA ? latest.flatMap { RTA.sourceValue(for: $0) == nil ? nil : $0 } : nil
         guard wanted != rtaStrip else { return }
         rtaStrip = wanted
-        if let s = wanted, let source = RTA.sourceValue(for: s) {
+        if wanted != nil {
             meters.rta.reset()
-            // Analyse after the EQ, so the picture matches what the curve is doing.
-            set(RTA.positionPath, .int(1))
-            set(RTA.sourcePath, .int(Int32(source)))
+            applyRTASource()
         }
         updateMeterSubscriptions()
     }
 
-    func setShowRTA(_ on: Bool, strip: StripID) {
-        updateSettings { $0.showRTA = on }
-        setRTAStrip(on ? strip : nil)
+    /// Points the desk's analyser at `rtaStrip`, after the EQ so the picture matches the curve.
+    private func applyRTASource() {
+        guard let s = rtaStrip, let source = RTA.sourceValue(for: s) else { return }
+        set(RTA.positionPath, .int(1))
+        set(RTA.sourcePath, .int(Int32(source)))
     }
 
+    func setShowRTA(_ on: Bool) {
+        updateSettings { $0.showRTA = on }
+        updateRTA()
+    }
+
+    /// True while the desk's screen is briefly showing its RTA page.
+    private(set) var rtaWaking = false
+    @ObservationIgnored private var screenReplies: [String: OSCArg] = [:]
+
     /// Starts the desk's analyser by showing its RTA page for a moment, then puts the desk's
-    /// screen back.
+    /// screen back exactly as it was. Does nothing if the desk's current screen can't be read.
     func wakeRTA() {
-        guard let c = client else { return }
+        guard !rtaWaking, let c = client else { return }
+        rtaWaking = true
+        screenReplies.removeAll()
         c.get([RTA.screenPath, RTA.meterPagePath])
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            guard let self else { return }
-            let screen = self.store.value(RTA.screenPath)
-            let page = self.store.value(RTA.meterPagePath)
-            self.set(RTA.screenPath, .int(Int32(RTA.metersScreen)))
-            self.set(RTA.meterPagePath, .int(Int32(RTA.rtaPage)))
+        waitForScreen(until: X32Client.now() + 2)
+    }
+
+    private func waitForScreen(until deadline: TimeInterval) {
+        if let screen = screenReplies[RTA.screenPath], let page = screenReplies[RTA.meterPagePath] {
+            set(RTA.screenPath, .int(Int32(RTA.metersScreen)))
+            set(RTA.meterPagePath, .int(Int32(RTA.rtaPage)))
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-                if let page { self?.set(RTA.meterPagePath, page) }
-                if let screen { self?.set(RTA.screenPath, screen) }
+                self?.set(RTA.meterPagePath, page)
+                self?.set(RTA.screenPath, screen)
+                self?.rtaWaking = false
             }
+            return
+        }
+        guard X32Client.now() < deadline else {
+            rtaWaking = false
+            showToast("Couldn't read the desk's screen. Open the RTA page on the desk once to start its analyser.")
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+            self?.waitForScreen(until: deadline)
         }
     }
 

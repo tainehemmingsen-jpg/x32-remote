@@ -75,6 +75,8 @@ struct GraphicEQGraph: View {
     @State private var shownBand: Int?
     @State private var lastTap: (band: Int, time: Date)?
     @State private var readoutToken = 0
+    /// Where the gesture really started (it may begin a little after the finger lands).
+    @State private var origin: CGPoint = .zero
 
     private static let labelHeight: CGFloat = 18
     private static let dbRange: Float = 15
@@ -86,7 +88,6 @@ struct GraphicEQGraph: View {
     var body: some View {
         let norms: [Float] = (0..<31).map { app.param(address($0)).float(or: 0.5) }
         let knownBands: [Bool] = (0..<31).map { app.param(address($0)).isKnown }
-        let known = knownBands.contains(true)
         GeometryReader { geo in
             let size = geo.size
             let graphHeight = max(size.height - GraphicEQGraph.labelHeight, 1)
@@ -119,6 +120,7 @@ struct GraphicEQGraph: View {
                             // Never start from a value that hasn't been read from the desk.
                             guard knownBands[band] else { return }
                             readoutToken += 1
+                            origin = g.location
                             startBand = band
                             lastBand = band
                             dragSlot = slot
@@ -131,9 +133,10 @@ struct GraphicEQGraph: View {
                         }
                         guard let start = startBand else { return }
                         let absolute = Float(1 - min(max(g.location.y, 0), graphHeight) / graphHeight)
+                        let moved = CGSize(width: g.location.x - origin.x, height: g.location.y - origin.y)
                         // Only a clear sideways move starts drawing, so a tap or an up/down drag
                         // near a column edge never touches the neighbouring band.
-                        if !drawing && band != start && abs(g.translation.width) > max(column * 0.75, 10) {
+                        if !drawing && band != start && abs(moved.width) > max(column * 0.75, 10) {
                             drawing = true
                         }
                         if drawing {
@@ -150,8 +153,10 @@ struct GraphicEQGraph: View {
                             }
                             lastNorm = absolute
                         } else {
+                            // A small dead zone, so a tap never nudges the band.
+                            guard abs(moved.height) >= 4 || !touched.isEmpty else { return }
                             let sensitivity: Float = app.fineMode ? 0.25 : 1
-                            let delta = Float(-g.translation.height / graphHeight) * sensitivity
+                            let delta = Float(-moved.height / graphHeight) * sensitivity
                             let v = min(max(startNorm + delta, 0), 1)
                             set(start, v)
                             lastNorm = v
@@ -160,7 +165,7 @@ struct GraphicEQGraph: View {
                         shownBand = drawing ? band : start
                     }
                     .onEnded { g in
-                        let tapped = abs(g.translation.width) < 4 && abs(g.translation.height) < 4
+                        let tapped = abs(g.location.x - origin.x) < 4 && abs(g.location.y - origin.y) < 4
                         if tapped, !drawing, let b = startBand {
                             if let last = lastTap, last.band == b, Date().timeIntervalSince(last.time) < 0.35 {
                                 set(b, 0.5)

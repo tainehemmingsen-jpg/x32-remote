@@ -355,11 +355,19 @@ private struct RTALayer: View {
     }
 }
 
-/// Shown when the desk's analyser hasn't been started since it was switched on.
+/// Shown when the desk's analyser hasn't been started since it was switched on: it keeps
+/// sending one flat frame even though the channel has signal.
 private struct RTAIdleNotice: View {
     let app: AppModel
+    let meter: MeterLevel
 
     var body: some View {
+        if app.meters.rta.idle && meter.level > -60 {
+            notice
+        }
+    }
+
+    private var notice: some View {
         HStack(spacing: 8) {
             Text("Desk analyser not running")
                 .font(.system(size: 11))
@@ -375,6 +383,8 @@ private struct RTAIdleNotice: View {
                     .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
             }
             .buttonStyle(.plain)
+            .disabled(app.rtaWaking)
+            .opacity(app.rtaWaking ? 0.5 : 1)
             .accessibilityHint("Briefly shows the RTA page on the desk's screen to start its analyser")
         }
         .padding(6)
@@ -392,7 +402,7 @@ struct RTAToggle: View {
     var body: some View {
         if RTA.sourceValue(for: strip) != nil {
             LitButton(title: "RTA", isOn: app.settings.showRTA, height: 40, fontSize: 13, style: .outline) {
-                app.setShowRTA(!app.settings.showRTA, strip: strip)
+                app.setShowRTA(!app.settings.showRTA)
             }
             .frame(width: width)
             .accessibilityHint("Shows the desk's analyser for this channel behind the EQ curve")
@@ -408,6 +418,7 @@ struct EQGraph: View {
     var interactive = true
 
     @GestureState private var gestureActive = false
+    @State private var rtaClaim = UUID()
     @State private var dragBand: Int?
     @State private var dragStrip: StripID?
     @State private var dragUsesGain = false
@@ -441,7 +452,9 @@ struct EQGraph: View {
         let lowCutFreq = Double(Specs.hpf.value(app.param(strip.preampPath("hpf")).float(or: 0.4)))
         let lowCutSlope = app.param(strip.preampPath("hpslope")).int
         let selected = selectedBand
-        let showRTA = interactive && app.settings.showRTA && RTA.sourceValue(for: strip) != nil
+        // Only while the desk's analyser is really looking at this strip.
+        let rtaSource = RTA.sourceValue(for: strip)
+        let showRTA = interactive && app.settings.showRTA && rtaSource != nil && app.param(RTA.sourcePath).int(or: -1) == rtaSource
         GeometryReader { geo in
             let size = geo.size
             Canvas { ctx, sz in
@@ -458,8 +471,8 @@ struct EQGraph: View {
                 }
             }
             .overlay(alignment: .topTrailing) {
-                if showRTA && app.meters.rta.idle {
-                    RTAIdleNotice(app: app)
+                if showRTA {
+                    RTAIdleNotice(app: app, meter: app.meters.meter(strip))
                 }
             }
             .contentShape(Rectangle())
@@ -500,8 +513,8 @@ struct EQGraph: View {
             )
             .onDisappear {
                 endDrag()
-                if interactive && app.rtaStrip == strip {
-                    app.setRTAStrip(nil)
+                if interactive {
+                    app.releaseRTA(rtaClaim)
                 }
             }
             .onChange(of: gestureActive) { _, active in
@@ -512,10 +525,10 @@ struct EQGraph: View {
             }
         }
         .onAppear {
-            if interactive { app.setRTAStrip(strip) }
+            if interactive { app.claimRTA(rtaClaim, strip: strip) }
         }
         .onChange(of: strip) { _, newStrip in
-            if interactive { app.setRTAStrip(newStrip) }
+            if interactive { app.claimRTA(rtaClaim, strip: newStrip) }
         }
     }
 
