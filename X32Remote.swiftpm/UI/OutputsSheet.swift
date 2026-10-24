@@ -1,11 +1,12 @@
 import SwiftUI
 
-/// The output patch: what every output carries. Changes ask first, since they move audio
-/// on stage straight away.
+/// Routing: which inputs feed the channels, and what every output carries. Changes ask first,
+/// since they move audio straight away.
 struct OutputsSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var group: Outputs.Group = .main
+    @State private var showInputs = false
     @State private var pending: PendingPatch?
     @State private var confirming = false
 
@@ -14,6 +15,7 @@ struct OutputsSheet: View {
         let output: String
         let value: Int
         let valueName: String
+        var message = "The output changes on the desk straight away."
         var id: String { address + "\(value)" }
     }
 
@@ -22,24 +24,45 @@ struct OutputsSheet: View {
             VStack(spacing: 0) {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 6) {
+                        Button {
+                            showInputs = true
+                        } label: {
+                            Text("Inputs").barChip(active: showInputs)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityAddTraits(showInputs ? .isSelected : [])
                         ForEach(Outputs.Group.allCases) { g in
                             Button {
                                 group = g
+                                showInputs = false
                             } label: {
-                                Text(g.title).barChip(active: g == group)
+                                Text(g.title).barChip(active: !showInputs && g == group)
                             }
                             .buttonStyle(.plain)
-                            .accessibilityAddTraits(g == group ? .isSelected : [])
+                            .accessibilityAddTraits(!showInputs && g == group ? .isSelected : [])
                         }
                     }
                     .padding(10)
                 }
                 ScrollView {
                     LazyVStack(spacing: 2) {
-                        ForEach(1...group.count, id: \.self) { n in
-                            OutputRow(app: app, group: group, number: n) {
-                                pending = $0
-                                confirming = true
+                        if showInputs {
+                            ForEach(InputRouting.blocks) { block in
+                                InputBlockRow(app: app, block: block) {
+                                    pending = $0
+                                    confirming = true
+                                }
+                            }
+                            Text("Each block feeds eight channels from the chosen inputs. Gain and phantom power belong to the physical inputs, so check them after a change.")
+                                .font(.system(size: 12))
+                                .foregroundStyle(Theme.tertiary)
+                                .padding(.top, 8)
+                        } else {
+                            ForEach(1...group.count, id: \.self) { n in
+                                OutputRow(app: app, group: group, number: n) {
+                                    pending = $0
+                                    confirming = true
+                                }
                             }
                         }
                     }
@@ -51,7 +74,7 @@ struct OutputsSheet: View {
             .overlay(alignment: .bottom) {
                 ToastView(app: app)
             }
-            .navigationTitle("Output patch")
+            .navigationTitle("Routing")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -64,11 +87,58 @@ struct OutputsSheet: View {
                     app.setInt(p.address, p.value)
                 }
                 Button("Cancel", role: .cancel) {}
-            } message: { _ in
-                Text("The output changes on the desk straight away.")
+            } message: { p in
+                Text(p.message)
             }
         }
         .preferredColorScheme(.dark)
+    }
+}
+
+private struct InputBlockRow: View {
+    let app: AppModel
+    let block: InputRouting.Block
+    let ask: (OutputsSheet.PendingPatch) -> Void
+
+    var body: some View {
+        let p = app.param(block.path)
+        HStack(spacing: 10) {
+            Text(block.title)
+                .font(Theme.mono(14))
+                .foregroundStyle(Theme.secondary)
+                .frame(width: 96, alignment: .leading)
+            Menu {
+                ForEach(0..<InputRouting.offered(block), id: \.self) { v in
+                    Button {
+                        if p.int != v {
+                            ask(.init(address: block.path, output: block.title, value: v, valueName: InputRouting.label(block, v),
+                                      message: "Every channel in this block hears different inputs straight away."))
+                        }
+                    } label: {
+                        if p.isKnown && p.int == v { Label(InputRouting.label(block, v), systemImage: "checkmark") } else { Text(InputRouting.label(block, v)) }
+                    }
+                }
+            } label: {
+                HStack {
+                    Text(p.isKnown ? InputRouting.label(block, p.int) : "—")
+                        .lineLimit(1)
+                        .foregroundStyle(Theme.text)
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Theme.secondary)
+                }
+                .font(.system(size: 14))
+                .padding(.horizontal, 10)
+                .frame(maxWidth: .infinity, minHeight: 38)
+                .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised))
+            }
+            .disabled(!p.isKnown)
+            .accessibilityLabel("\(block.title) inputs")
+            .accessibilityValue(p.isKnown ? InputRouting.label(block, p.int) : "not read yet")
+        }
+        .padding(8)
+        .background(Theme.panel)
     }
 }
 

@@ -601,7 +601,7 @@ final class AppModel {
     }
 
     func loadOutputs() {
-        client?.get(Outputs.addresses())
+        client?.get(InputRouting.addresses + Outputs.addresses())
     }
 
     /// Reads every parameter the slot's effect uses (64 for a dual graphic EQ).

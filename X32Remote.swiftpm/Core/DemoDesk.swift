@@ -583,6 +583,16 @@ final class DemoTransport: X32Transport {
             }
         }
         if address == "/-show/prepos/current" { return .int(0) }
+        if address.hasPrefix("/config/routing/IN/") {
+            // Local inputs on channels 1-32, local aux on the aux ins.
+            switch address.dropFirst("/config/routing/IN/".count) {
+            case "1-8": return .int(0)
+            case "9-16": return .int(1)
+            case "17-24": return .int(2)
+            case "25-32": return .int(3)
+            default: return .int(0)
+            }
+        }
         if address.hasPrefix("/outputs/") {
             // A typical patch: local outs 1-2 = LR, then the mix buses; P16 = channel direct outs.
             let parts = address.split(separator: "/")

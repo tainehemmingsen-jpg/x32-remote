@@ -83,6 +83,7 @@ enum AddressNames {
             return "\(label) \(address.dropFirst("/config/\(key)/".count)) link"
         }
         if let name = Outputs.describe(address) { return name }
+        if let block = InputRouting.blocks.first(where: { $0.path == address }) { return "\(block.title) input routing" }
         if address.hasPrefix("/config/mute/") {
             return "Mute group " + String(address.dropFirst("/config/mute/".count))
         }

@@ -998,6 +998,20 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertTrue(Recorder.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
     }
 
+    func testInputRouting() {
+        XCTAssertEqual(InputRouting.blocks.count, 5)
+        XCTAssertEqual(InputRouting.label("AN9-16"), "Local 9–16")
+        XCTAssertEqual(InputRouting.label("A33-40"), "AES50-A 33–40")
+        XCTAssertEqual(InputRouting.label("B1-8"), "AES50-B 1–8")
+        XCTAssertEqual(InputRouting.label("CARD25-32"), "Card 25–32")
+        XCTAssertEqual(InputRouting.label("AUX1-4"), "Local aux 1–4")
+        XCTAssertEqual(InputRouting.channelCodes.count, 24)
+        XCTAssertEqual(InputRouting.channelCodes[19], "CARD25-32", "the 20 options every firmware has come first")
+        XCTAssertEqual(InputRouting.auxCodes[12], "CARD1-6")
+        XCTAssertTrue(InputRouting.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+        XCTAssertEqual(AddressNames.describe("/config/routing/IN/9-16"), "Ch 9–16 input routing")
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

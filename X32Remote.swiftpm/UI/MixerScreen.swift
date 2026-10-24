@@ -352,7 +352,7 @@ struct ConsoleMenu: View {
                     app.loadOutputs()
                     app.sheet = .outputs
                 } label: {
-                    Label("Output patch", systemImage: "arrow.triangle.branch")
+                    Label("Routing", systemImage: "arrow.triangle.branch")
                 }
                 Button {
                     app.loadRecorder()
