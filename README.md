@@ -7,7 +7,7 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Sends on faders** — pick a mix bus in the right-hand panel (top-right menu on a phone) and the faders become that bus's sends (the strip tints in the bus colour so you can't mistake it for the main mix).
 - **Monitor mix mode** — one performer's mix on big faders, with only the inputs they need, lockable with a PIN.
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
-- **Effects** — the FX icon shows all eight slots: what's loaded, which mix feeds it, where it's inserted, and the return level. Reverbs, delays, chorus and flanger in slots 1–4 are fully editable, and graphic EQs (GEQ/TEQ, stereo or dual) in any slot get a 31-band editor — drag a band, or sweep across to draw a curve.
+- **Effects** — the FX icon shows all eight slots: what's loaded, which mix feeds it, where it's inserted, and the return level. Nearly every effect type can be loaded and edited (reverbs, delays, modulation, EQs, de-essers, compressors, limiters, enhancers, amps, pitch), and graphic EQs (GEQ/TEQ, stereo or dual) in any slot get a 31-band editor — drag a band, or sweep across to draw a curve.
 - **Output patch** — from the desk-name menu: what each local out, aux out, P16 (Ultranet), AES and record output carries, and the tap point for direct outs. Every change asks first.
 - **USB recorder** — play, pause, record and stop the desk's USB stick recorder from the desk-name menu.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console.
@@ -64,7 +64,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 
 ## How it was tested
 
-- `Tests/CoreTests` — 73 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
+- `Tests/CoreTests` — 74 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, and meters decode.
 - `ci/` + `.github/workflows/ios.yml` — on every push, a self-hosted GitHub Actions runner on the owner's Mac (so it costs nothing) builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 
@@ -72,8 +72,12 @@ It hasn't been run against a physical X32 yet. If something behaves differently 
 
 ## Not in this version
 
-Input routing blocks, editing the EQ/dynamics processors in FX slots 5–8 (other than graphic EQs), and the desk's own library presets.
+Input routing blocks, the Combinator / M-S Fair Compressor / Dual Enhancer effect settings (edit those on the desk), and the desk's own library presets.
 
 ---
 
 Not made by or affiliated with Behringer, Midas or Music Tribe. X32 and M32 are their trademarks.
+
+## Credits
+
+Effect parameter tables are generated (`tools/gen-fx-catalog.py`) from [x32-osc](https://github.com/markschwartzkopf/x32-osc) by Mark Schwartzkopf (MIT licence) and checked against Patrick-Gilles Maillot's X32 emulator.

@@ -37,6 +37,7 @@ struct RecorderSheet: View {
                     TransportButton(symbol: "backward.fill", label: "Rewind", tint: Theme.text, active: state == .rewind) {
                         app.setInt(Recorder.statePath, Recorder.State.rewind.rawValue)
                     }
+                    .disabled(state.isRecording)
                     TransportButton(symbol: "stop.fill", label: "Stop", tint: Theme.text, active: state == .stop) {
                         if state.isRecording { confirmStop = true } else { app.setInt(Recorder.statePath, Recorder.State.stop.rawValue) }
                     }
@@ -51,10 +52,11 @@ struct RecorderSheet: View {
                     TransportButton(symbol: "record.circle.fill", label: "Record", tint: Theme.mute, active: state.isRecording) {
                         app.setInt(Recorder.statePath, Recorder.State.record.rawValue)
                     }
-                    .disabled(state.isRecording || (mounted.isKnown && !mounted.bool))
+                    .disabled(!(state == .stop || state == .recordPaused) || (mounted.isKnown && !mounted.bool))
                     TransportButton(symbol: "forward.fill", label: "Fast forward", tint: Theme.text, active: state == .fastForward) {
                         app.setInt(Recorder.statePath, Recorder.State.fastForward.rawValue)
                     }
+                    .disabled(state.isRecording)
                 }
                 .disabled(!stateParam.isKnown)
                 Text("Records what's patched to the record outputs (Output patch → Record).")
@@ -85,7 +87,7 @@ struct RecorderSheet: View {
         .task {
             // The desk reports transport changes, but read again now and then in case one is missed.
             while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                do { try await Task.sleep(nanoseconds: 2_000_000_000) } catch { break }
                 app.loadRecorder()
             }
         }

@@ -61,14 +61,21 @@ enum PresetLibrary {
         // Decode each preset on its own, so one unreadable preset doesn't lose the rest.
         guard let items = try? JSONDecoder().decode([Lenient].self, from: data) else {
             // Keep the unreadable store rather than letting the next save overwrite it.
-            defaults.set(data, forKey: key + ".backup")
+            keepBackup(data, defaults)
             return []
         }
         let presets = items.compactMap(\.preset)
         if presets.count < items.count {
-            defaults.set(data, forKey: key + ".backup")
+            keepBackup(data, defaults)
         }
         return presets
+    }
+
+    /// The first unreadable store is kept; later failures never overwrite it.
+    private static func keepBackup(_ data: Data, _ defaults: UserDefaults) {
+        if defaults.data(forKey: key + ".backup") == nil {
+            defaults.set(data, forKey: key + ".backup")
+        }
     }
 
     private struct Lenient: Decodable {

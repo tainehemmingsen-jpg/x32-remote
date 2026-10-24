@@ -513,7 +513,8 @@ private struct MonitorPopover: View {
         ScrollView {
             content
         }
-        .frame(width: 320, height: 600)
+        .frame(width: 320)
+        .frame(idealHeight: 600)
         .background(Theme.panel)
         .presentationCompactAdaptation(.popover)
         .preferredColorScheme(.dark)
@@ -617,7 +618,8 @@ private struct TalkButton: View {
                     if wasOn || held >= 0.5 || taps == 0 {
                         app.setBool(address, false)
                     }
-                }
+                },
+                immediate: true
             )
         )
         .accessibilityElement(children: .ignore)

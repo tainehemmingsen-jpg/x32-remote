@@ -15,6 +15,9 @@ struct TouchSurface: UIViewRepresentable {
     var onMove: (CGPoint) -> Void = { _ in }
     /// (moved, tapCount)
     var onEnd: (Bool, Int) -> Void = { _, _ in }
+    /// React the instant a finger lands, even inside a scroll view (which normally holds touches
+    /// back for a moment to see whether they're a scroll). For tap tempo and talkback.
+    var immediate = false
 
     func makeUIView(context: Context) -> TouchControl {
         let view = TouchControl()
@@ -25,6 +28,7 @@ struct TouchSurface: UIViewRepresentable {
     }
 
     func updateUIView(_ view: TouchControl, context: Context) {
+        view.immediate = immediate
         view.axis = axis
         view.onBegin = onBegin
         view.onMove = onMove
@@ -38,6 +42,7 @@ struct TouchSurface: UIViewRepresentable {
         var onEnd: ((Bool, Int) -> Void)?
         var onLongPress: (() -> Void)?
         var axis: Axis?
+        var immediate = false
         private var longPressWork: DispatchWorkItem?
         private var longPressed = false
         private var activeTouch: UITouch?
@@ -71,6 +76,16 @@ struct TouchSurface: UIViewRepresentable {
         /// gesture there and then, so the finger can't keep moving a strip nobody can see.
         override func didMoveToWindow() {
             super.didMoveToWindow()
+            if immediate && window != nil {
+                var view = superview
+                while let v = view {
+                    if let scroll = v as? UIScrollView {
+                        scroll.delaysContentTouches = false
+                        break
+                    }
+                    view = v.superview
+                }
+            }
             if window == nil && activeTouch != nil {
                 longPressWork?.cancel()
                 activeTouch = nil

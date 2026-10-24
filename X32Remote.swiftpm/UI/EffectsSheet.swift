@@ -137,7 +137,7 @@ private struct SlotDetail: View {
         let typeParam = app.param(Effects.typePath(slot))
         let type = typeParam.int(or: -1)
         let source = app.param(Effects.sourcePath(slot))
-        let params = slot <= 4 ? Effects.parameters(type: type) : nil
+        let params = Effects.parameters(slot: slot, type: type)
         let geqSides = Effects.graphicEQSides(slot: slot, type: type)
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
@@ -151,9 +151,7 @@ private struct SlotDetail: View {
                             .foregroundStyle(Theme.text)
                     }
                     Spacer()
-                    if slot <= 4 {
-                        TypeMenu(current: type) { pendingType = $0 }
-                    }
+                    TypeMenu(slot: slot, current: type) { pendingType = $0 }
                 }
                 if slot <= 4 && source.isKnown {
                     SourceRow(app: app, sourceValue: source.int, close: close)
@@ -178,9 +176,7 @@ private struct SlotDetail: View {
                     }
                     .padding(.top, 4)
                 } else if typeParam.isKnown {
-                    Text(slot <= 4
-                         ? "This effect type isn't editable here yet. Its settings are on the desk's Effects screen; you can still change the type above."
-                          : "This processor isn't editable here yet. Its settings are on the desk's Effects screen.")
+                    Text("This effect's settings are on the desk's Effects screen; you can still change the type above.")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.secondary)
                 }
@@ -211,19 +207,24 @@ private struct SlotDetail: View {
 }
 
 private struct TypeMenu: View {
+    let slot: Int
     let current: Int
     let choose: (Int) -> Void
 
     var body: some View {
         Menu {
-            ForEach(Array(Effects.editableTypeNames.enumerated()), id: \.offset) { item in
-                Button {
-                    if item.offset != current { choose(item.offset) }
-                } label: {
-                    if item.offset == current {
-                        Label(item.element, systemImage: "checkmark")
-                    } else {
-                        Text(item.element)
+            ForEach(Effects.typeMenu(slot: slot), id: \.0) { title, types in
+                Menu(title) {
+                    ForEach(types, id: \.0) { value, name in
+                        Button {
+                            if value != current { choose(value) }
+                        } label: {
+                            if value == current {
+                                Label(name, systemImage: "checkmark")
+                            } else {
+                                Text(name)
+                            }
+                        }
                     }
                 }
             }
@@ -270,7 +271,7 @@ private struct TapTempoRow: View {
                 .opacity(p.isKnown ? 1 : 0.4)
                 .overlay(
                     // Timed on touch-down: how long each tap is held mustn't change the tempo.
-                    TouchSurface(onBegin: { _ in tap() }, onEnd: { _, _ in })
+                    TouchSurface(onBegin: { _ in tap() }, onEnd: { _, _ in }, immediate: true)
                 )
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Tap tempo")

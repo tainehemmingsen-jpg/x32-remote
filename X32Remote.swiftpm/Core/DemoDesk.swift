@@ -87,11 +87,16 @@ final class DemoTransport: X32Transport {
         }
 
         if message.args.isEmpty {
-            if let v = values[address] ?? DemoTransport.defaultValue(for: address) {
+            if let v = values[address] ?? effectDefault(address) ?? DemoTransport.defaultValue(for: address) {
                 reply(OSCMessage(address, [v]))
             }
         } else {
             values[address] = message.args[0]
+            if address.hasPrefix("/fx/") && address.hasSuffix("/type") {
+                // A new effect starts from its defaults.
+                let prefix = String(address.dropLast("type".count)) + "par/"
+                values = values.filter { !$0.key.hasPrefix(prefix) }
+            }
             // Like the real desk, a change to one side of a linked pair moves the other side too.
             // (Pan isn't copied: a linked pair keeps its left/right spread.)
             if !address.hasSuffix("/pan"), let partner = LinkSync.partnerAddress(for: address, isLinked: { s in s.linkPath.map { self.int($0) != 0 } ?? false }) {
@@ -520,6 +525,17 @@ final class DemoTransport: X32Transport {
     }
 
     /// What an untouched X32 reports for parameters the demo hasn't set.
+    /// After the type of a slot is changed, its parameters take the new type's shape.
+    private func effectDefault(_ address: String) -> OSCArg? {
+        let parts = address.split(separator: "/")
+        guard parts.count == 4, parts[0] == "fx", parts[2] == "par", let slot = Int(parts[1]), let n = Int(parts[3]),
+              let type = values[Effects.typePath(slot)]?.intValue else { return nil }
+        if Effects.graphicEQSides(slot: slot, type: type) != nil { return .float(0.5) }
+        guard let params = Effects.parameters(slot: slot, type: type), n >= 1, n <= params.count else { return nil }
+        if case .choice = params[n - 1].kind { return .int(0) }
+        return .float(0.5)
+    }
+
     static func defaultValue(for address: String) -> OSCArg? {
         if address.hasPrefix("/-ha/") && address.hasSuffix("/index") {
             let parts = address.split(separator: "/")
@@ -560,7 +576,7 @@ final class DemoTransport: X32Transport {
                     return .float(band == 32 ? 0.5 : Effects.geqSpec.norm(cuts[band] ?? 0))
                 }
                 let type = [0, 5, 10, 13][slot - 1]
-                if let p = Effects.parameters(type: type), n <= p.count, case .choice = p[n - 1].kind {
+                if let p = Effects.parameters(slot: slot, type: type), n <= p.count, case .choice = p[n - 1].kind {
                     return .int(n == 4 || n == 5 ? 4 : 0)
                 }
                 return .float(0.4)

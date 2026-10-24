@@ -36,14 +36,65 @@ enum Effects {
         "3-Tap Delay", "4-Tap Delay", "Stereo Chorus", "Stereo Flanger"
     ]
 
+    /// The desk's short code for a slot's type ("HALL", "GEQ2"…).
+    static func typeCode(slot: Int, type: Int) -> String? {
+        let codes = slot <= 4 ? typeCodes1 : typeCodes2
+        return codes.indices.contains(type) ? codes[type] : nil
+    }
+
+    static let friendlyNames: [String: String] = [
+        "HALL": "Hall Reverb", "AMBI": "Ambience", "RPLT": "Rich Plate", "ROOM": "Room Reverb",
+        "CHAM": "Chamber", "PLAT": "Plate Reverb", "VREV": "Vintage Reverb", "VRM": "Vintage Room",
+        "GATE": "Gated Reverb", "RVRS": "Reverse Reverb", "DLY": "Stereo Delay", "3TAP": "3-Tap Delay",
+        "4TAP": "4-Tap Delay", "CRS": "Stereo Chorus", "FLNG": "Stereo Flanger", "PHAS": "Stereo Phaser",
+        "DIMC": "Dimensional Chorus", "FILT": "Mood Filter", "ROTA": "Rotary Speaker", "PAN": "Tremolo / Panner",
+        "SUB": "Sub Octaver", "D/RV": "Delay + Chamber", "CR/R": "Chorus + Chamber", "FL/R": "Flanger + Chamber",
+        "D/CR": "Delay + Chorus", "D/FL": "Delay + Flanger", "MODD": "Modulation Delay",
+        "GEQ2": "Dual Graphic EQ", "GEQ": "Stereo Graphic EQ", "TEQ2": "Dual TruEQ", "TEQ": "Stereo TruEQ",
+        "DES2": "Dual De-esser", "DES": "Stereo De-esser", "P1A": "Stereo Xtec EQ1", "P1A2": "Dual Xtec EQ1",
+        "PQ5": "Stereo Xtec EQ5", "PQ5S": "Dual Xtec EQ5", "WAVD": "Wave Designer", "LIM": "Precision Limiter",
+        "CMB": "Stereo Combinator", "CMB2": "Dual Combinator", "FAC": "Stereo Fair Compressor",
+        "FAC1M": "M/S Fair Compressor", "FAC2": "Dual Fair Compressor", "LEC": "Stereo Leisure Compressor",
+        "LEC2": "Dual Leisure Compressor", "ULC": "Stereo Ultimo Compressor", "ULC2": "Dual Ultimo Compressor",
+        "ENH2": "Dual Enhancer", "ENH": "Stereo Enhancer", "EXC2": "Dual Exciter", "EXC": "Stereo Exciter",
+        "IMG": "Stereo Imager", "EDI": "Edison EX1", "SON": "Sound Maxer", "AMP2": "Dual Guitar Amp",
+        "AMP": "Stereo Guitar Amp", "DRV2": "Dual Tube Stage", "DRV": "Stereo Tube Stage",
+        "PIT2": "Dual Pitch Shifter", "PIT": "Stereo Pitch Shifter"
+    ]
+
     static func typeName(slot: Int, type: Int) -> String {
-        if slot <= 4 {
-            if type >= 0 && type < editableTypeNames.count { return editableTypeNames[type] }
-            if type >= 0 && type < typeCodes1.count { return typeCodes1[type] }
-        } else if type >= 0 && type < typeCodes2.count {
-            return typeCodes2[type]
+        guard let code = typeCode(slot: slot, type: type) else { return "Type \(type)" }
+        return friendlyNames[code] ?? code
+    }
+
+    /// Types whose parameter layout two references disagree on: shown by name only, edited on the desk.
+    static let uncertainTypes: Set<String> = ["CMB", "CMB2", "FAC1M", "ENH2"]
+
+    /// Every type a slot can hold, grouped for the type menu: (group, [(type value, name)]).
+    static func typeMenu(slot: Int) -> [(String, [(Int, String)])] {
+        let codes = slot <= 4 ? typeCodes1 : typeCodes2
+        func group(_ title: String, _ members: [String]) -> (String, [(Int, String)]) {
+            (title, members.compactMap { code in codes.firstIndex(of: code).map { ($0, friendlyNames[code] ?? code) } })
         }
-        return "Type \(type)"
+        let groups = [
+            group("Reverbs", ["HALL", "AMBI", "RPLT", "ROOM", "CHAM", "PLAT", "VREV", "VRM", "GATE", "RVRS"]),
+            group("Delays", ["DLY", "3TAP", "4TAP", "MODD"]),
+            group("Modulation", ["CRS", "FLNG", "PHAS", "DIMC", "FILT", "ROTA", "PAN", "SUB"]),
+            group("Combinations", ["D/RV", "CR/R", "FL/R", "D/CR", "D/FL"]),
+            group("EQ", ["GEQ2", "GEQ", "TEQ2", "TEQ", "P1A", "P1A2", "PQ5", "PQ5S"]),
+            group("Dynamics", ["DES2", "DES", "WAVD", "LIM", "CMB", "CMB2", "FAC", "FAC1M", "FAC2", "LEC", "LEC2", "ULC", "ULC2"]),
+            group("Enhancers and amps", ["ENH2", "ENH", "EXC2", "EXC", "IMG", "EDI", "SON", "AMP2", "AMP", "DRV2", "DRV", "PIT2", "PIT"])
+        ]
+        return groups.filter { !$0.1.isEmpty }
+    }
+
+    /// Parameters for a slot's type, or nil where the app can't edit it (graphic EQs have their own
+    /// editor and aren't listed here).
+    static func parameters(slot: Int, type: Int) -> [Param]? {
+        if slot <= 4, let hand = parameters(type: type) { return hand }
+        guard let code = typeCode(slot: slot, type: type), !uncertainTypes.contains(code),
+              graphicEQSides(slot: slot, type: type) == nil else { return nil }
+        return catalog[code]
     }
 
     /// "/fx/3/par/02" -> "FX 3 Time" (using the slot's current type), "/fx/1/type" -> "FX 1 type".
@@ -62,7 +113,7 @@ enum Effects {
                     let sideLabel = graphicEQSides(slot: slot, type: t) == 2 ? (side == 0 ? " A" : " B") : ""
                     return band == 31 ? "FX \(slot) GEQ\(sideLabel) level" : "FX \(slot) GEQ\(sideLabel) \(geqBandLabel(band)) Hz"
                 }
-                if slot <= 4, let p = parameters(type: t), n >= 1, n <= p.count {
+                if let p = parameters(slot: slot, type: t), n >= 1, n <= p.count {
                     return "FX \(slot) \(p[n - 1].name)"
                 }
             }
@@ -131,7 +182,7 @@ enum Effects {
     /// How many /par/NN values a slot's current type uses (what to read when it's opened).
     static func parameterCount(slot: Int, type: Int) -> Int {
         if let sides = graphicEQSides(slot: slot, type: type) { return sides * 32 }
-        return 16
+        return max(parameters(slot: slot, type: type)?.count ?? 16, 1)
     }
 
     /// "INS", "Mix 1"…"Mix 16", "M/C" for /fx/N/source/l.

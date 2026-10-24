@@ -779,11 +779,57 @@ final class EffectsTests: XCTestCase {
         XCTAssertNil(Effects.parameters(type: 15))
     }
 
+    /// Each type's parameters as the X32 emulator sends them ('f' float, 'i' int).
+    let wire: [String: String] = [
+        "HALL": "ffffffffffff", "AMBI": "ffffffffff", "RPLT": "ffffffffffffffff", "ROOM": "ffffffffffffffff",
+        "CHAM": "ffffffffffffffff", "PLAT": "ffffffffffff", "VREV": "fffiifffff", "VRM": "ffffffffffffi",
+        "GATE": "ffffffffff", "RVRS": "fffffffff", "DLY": "ffiiifffffff", "CRS": "fffffffffff", "FLNG": "ffffffffffff",
+        "PHAS": "ffffffffffff", "DIMC": "iiiiiii", "FILT": "ffffififffffii", "ROTA": "ffffffii", "PAN": "fffffffff",
+        "SUB": "iifffiifff", "MODD": "fifffffiiffff", "DES2": "ffffii", "DES": "ffffii", "P1A": "iffifffifii",
+        "P1A2": "iffifffifiiiffifffifii", "PQ5": "ififififi", "PQ5S": "ififififiififififi", "WAVD": "ffffff",
+        "LIM": "ffffffii", "FAC": "iffffff", "FAC2": "iffffffiffffff", "LEC": "iffif", "LEC2": "iffififfif",
+        "ULC": "iffffi", "ULC2": "iffffiiffffi", "ENH": "ffffffffi", "EXC2": "ffffffiffffffi", "EXC": "ffffffi",
+        "IMG": "fffffff", "EDI": "iiifffff", "SON": "ifffifff", "AMP2": "ffffffffiffffffffi", "AMP": "ffffffffi",
+        "DRV2": "ffffffffffffffffffff", "DRV": "ffffffffff", "PIT2": "ffffffffffff", "PIT": "ffffff"
+    ]
+
+    func testEveryEditableTypeMatchesTheDesk() {
+        var editable = 0
+        for (slot, codes) in [(1, Effects.typeCodes1), (5, Effects.typeCodes2)] {
+            for (type, code) in codes.enumerated() {
+                guard let params = Effects.parameters(slot: slot, type: type) else { continue }
+                editable += 1
+                let kinds = params.map { p -> Character in
+                    if case .choice = p.kind { return "i" } else { return "f" }
+                }
+                if let expected = wire[code] {
+                    XCTAssertEqual(String(kinds), expected, "\(code) in slot \(slot)")
+                }
+                XCTAssertEqual(params.map(\.number), Array(1...params.count))
+                XCTAssertEqual(Effects.parameterCount(slot: slot, type: type), params.count)
+            }
+        }
+        XCTAssertGreaterThan(editable, 80)
+        for code in Effects.uncertainTypes {
+            let t = Effects.typeCodes1.firstIndex(of: code)!
+            XCTAssertNil(Effects.parameters(slot: 1, type: t), code)
+        }
+        XCTAssertNil(Effects.parameters(slot: 5, type: 0), "graphic EQs use their own editor")
+        XCTAssertEqual(Effects.parameterCount(slot: 5, type: 0), 64)
+        // Every type appears exactly once in the type menu.
+        for (slot, codes) in [(1, Effects.typeCodes1), (5, Effects.typeCodes2)] {
+            let listed = Effects.typeMenu(slot: slot).flatMap { $0.1.map(\.0) }
+            XCTAssertEqual(listed.sorted(), Array(0..<codes.count), "slot \(slot)")
+        }
+        XCTAssertEqual(Set(Effects.typeCodes1).subtracting(Effects.friendlyNames.keys), [])
+    }
+
     func testNamesAndSources() {
         XCTAssertEqual(Effects.typeName(slot: 1, type: 0), "Hall Reverb")
         XCTAssertEqual(Effects.typeName(slot: 3, type: 10), "Stereo Delay")
-        XCTAssertEqual(Effects.typeName(slot: 2, type: 27), "GEQ2")
-        XCTAssertEqual(Effects.typeName(slot: 6, type: 0), "GEQ2")
+        XCTAssertEqual(Effects.typeName(slot: 2, type: 27), "Dual Graphic EQ")
+        XCTAssertEqual(Effects.typeName(slot: 6, type: 0), "Dual Graphic EQ")
+        XCTAssertEqual(Effects.typeName(slot: 6, type: 11), "Precision Limiter")
         XCTAssertEqual(Effects.typeCodes1.count, 61)
         XCTAssertEqual(Effects.sourceName(0), "Insert")
         XCTAssertEqual(Effects.sourceName(13), "Mix 13")
@@ -816,7 +862,7 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(Effects.geqParNumber(side: 1, band: 1), 33)
         XCTAssertEqual(Effects.geqMasterNumber(side: 1), 64)
         XCTAssertEqual(Effects.parameterCount(slot: 5, type: 0), 64)
-        XCTAssertEqual(Effects.parameterCount(slot: 1, type: 0), 16)
+        XCTAssertEqual(Effects.parameterCount(slot: 1, type: 0), 12, "Hall has 12")
         XCTAssertEqual(Effects.parPath(5, 64), "/fx/5/par/64")
         XCTAssertEqual(Effects.geqBandLabel(0), "20")
         XCTAssertEqual(Effects.geqBandLabel(2), "31.5")
