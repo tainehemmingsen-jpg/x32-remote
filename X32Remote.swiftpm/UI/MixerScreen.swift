@@ -854,12 +854,7 @@ struct StripView: View {
                 .frame(height: 22)
             FaderReadout(app: app, address: target.address, spec: target.spec)
             StripFader(app: app, strip: strip, target: target)
-            Text(strip.footLabel)
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.text.opacity(0.8))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(height: 14)
+            StripFoot(app: app, strip: strip)
         }
         .padding(.horizontal, 3)
         .padding(.vertical, 4)
@@ -868,6 +863,29 @@ struct StripView: View {
         .overlay(
             Rectangle().strokeBorder(selected ? Theme.on : Color.clear, lineWidth: 1.5)
         )
+    }
+}
+
+/// "Ch 1" under the fader, with a link mark when it's part of a stereo pair.
+private struct StripFoot: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        HStack(spacing: 2) {
+            if app.isLinked(strip) {
+                Image(systemName: "link")
+                    .font(.system(size: 8, weight: .bold))
+                    .foregroundStyle(Theme.accent)
+                    .accessibilityLabel("Linked")
+            }
+            Text(strip.footLabel)
+                .font(.system(size: 11))
+                .foregroundStyle(Theme.text.opacity(0.8))
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(height: 14)
     }
 }
 

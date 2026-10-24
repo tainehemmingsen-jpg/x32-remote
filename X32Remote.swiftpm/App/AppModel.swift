@@ -335,6 +335,7 @@ final class AppModel {
             a.append("/config/mute/\(n)")
         }
         a += ["/config/solo/level", "/config/solo/dim", "/-stat/talk/A", "/-stat/talk/B", "/config/talk/A/level", "/config/talk/B/level"]
+        a += StripID.allLinkPaths
         a.append("/-show/prepos/current")
         a.append("/-stat/solo")
         c.get(a)
@@ -500,6 +501,66 @@ final class AppModel {
         store.applyLocal(address, value)
         lastLocalSet[address] = X32Client.now()
         client?.set(address, value)
+        refreshLinkedPartner(of: address)
+    }
+
+    // MARK: - Stereo links
+
+    /// Changing a channel's source can change which preamp feeds it, so read that again.
+    func setSource(_ strip: StripID, _ value: Int) {
+        setInt(strip.sourcePath, value)
+        guard let ha = strip.headampIndexPath else { return }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.client?.get(ha)
+        }
+    }
+
+    /// Linking copies one channel onto the other on the desk; read both again afterwards.
+    func reloadAfterLink(_ a: StripID, _ b: StripID) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+            self?.loadDetail(a)
+            self?.loadDetail(b)
+        }
+    }
+
+    func isLinked(_ strip: StripID) -> Bool {
+        guard let path = strip.linkPath else { return false }
+        return store.param(path).bool
+    }
+
+    @ObservationIgnored private var partnerRefresh: Set<String> = []
+    @ObservationIgnored private var partnerRefreshScheduled = false
+
+    /// The desk mirrors changes onto a linked partner but doesn't always tell us, so ask shortly after.
+    private func refreshLinkedPartner(of address: String) {
+        var partner = LinkSync.partnerAddress(for: address) { isLinked($0) }
+        if partner == nil, address.hasPrefix("/headamp/"), address.hasSuffix("/gain") {
+            partner = linkedHeadampPartner(address)
+        }
+        guard let p = partner else { return }
+        partnerRefresh.insert(p)
+        guard !partnerRefreshScheduled else { return }
+        partnerRefreshScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self else { return }
+            self.partnerRefreshScheduled = false
+            let list = Array(self.partnerRefresh)
+            self.partnerRefresh.removeAll()
+            self.client?.get(list)
+        }
+    }
+
+    /// Preamp gain lives on the headamp, so find the channel using it and its linked partner's headamp.
+    private func linkedHeadampPartner(_ address: String) -> String? {
+        let parts = address.split(separator: "/")
+        guard parts.count >= 3, let ha = Int(parts[1]) else { return nil }
+        for s in StripID.all(.channel) + StripID.all(.auxIn) {
+            guard let path = s.headampIndexPath, store.param(path).int(or: -1) == ha, isLinked(s),
+                  let partner = s.linkPartner, let pPath = partner.headampIndexPath else { continue }
+            let pha = store.param(pPath).int(or: -1)
+            return pha >= 0 && pha < 128 ? StripID.headampGainPath(pha) : nil
+        }
+        return nil
     }
 
     /// When each parameter was last changed from this app. Replies to older requests that arrive

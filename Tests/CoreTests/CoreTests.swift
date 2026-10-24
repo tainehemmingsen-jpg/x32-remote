@@ -683,3 +683,42 @@ final class ClipboardTests: XCTestCase {
     }
 }
 
+final class LinkTests: XCTestCase {
+    func testLinkPathsAndPartners() {
+        XCTAssertEqual(StripID(.channel, 1).linkPath, "/config/chlink/1-2")
+        XCTAssertEqual(StripID(.channel, 2).linkPath, "/config/chlink/1-2")
+        XCTAssertEqual(StripID(.channel, 32).linkPartner, StripID(.channel, 31))
+        XCTAssertEqual(StripID(.auxIn, 7).linkPath, "/config/auxlink/7-8")
+        XCTAssertEqual(StripID(.fxReturn, 3).linkPartner, StripID(.fxReturn, 4))
+        XCTAssertEqual(StripID(.bus, 16).linkPath, "/config/buslink/15-16")
+        XCTAssertEqual(StripID(.matrix, 5).linkPath, "/config/mtxlink/5-6")
+        XCTAssertNil(StripID.mainLR.linkPath)
+        XCTAssertNil(StripID(.dca, 1).linkPartner)
+        // 16 + 4 + 4 + 8 + 3 pairs, plus the four link settings.
+        XCTAssertEqual(StripID.allLinkPaths.count, 35 + 4)
+        XCTAssertEqual(Set(StripID.allLinkPaths).count, StripID.allLinkPaths.count)
+    }
+
+    func testPartnerAddressOnlyWhenLinked() {
+        let linked: Set<StripID> = [StripID(.channel, 1), StripID(.channel, 2)]
+        let isLinked: (StripID) -> Bool = { linked.contains($0) }
+        XCTAssertEqual(LinkSync.partnerAddress(for: "/ch/01/mix/fader", isLinked: isLinked), "/ch/02/mix/fader")
+        XCTAssertEqual(LinkSync.partnerAddress(for: "/ch/02/eq/3/g", isLinked: isLinked), "/ch/01/eq/3/g")
+        XCTAssertNil(LinkSync.partnerAddress(for: "/ch/03/mix/fader", isLinked: isLinked))
+        XCTAssertNil(LinkSync.partnerAddress(for: "/ch/01/config/name", isLinked: isLinked), "names stay separate")
+        XCTAssertNil(LinkSync.partnerAddress(for: "/main/st/mix/fader", isLinked: { _ in true }))
+        XCTAssertNil(LinkSync.partnerAddress(for: "/config/chlink/1-2", isLinked: { _ in true }))
+    }
+
+    func testLinkUndoNames() {
+        XCTAssertEqual(AddressNames.describe("/config/chlink/3-4"), "Ch 3-4 link")
+        XCTAssertEqual(AddressNames.describe("/config/buslink/1-2"), "Mix 1-2 link")
+    }
+
+    func testDemoAnswersLinkState() {
+        for p in StripID.allLinkPaths {
+            XCTAssertNotNil(DemoTransport.defaultValue(for: p), p)
+        }
+    }
+}
+

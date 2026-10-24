@@ -74,6 +74,10 @@ enum AddressNames {
         let special = ["/config/solo/level": "Solo level", "/config/solo/dim": "Solo dim",
                        "/config/talk/A/level": "Talk A level", "/config/talk/B/level": "Talk B level"]
         if let name = special[address] { return name }
+        let linkKinds = ["chlink": "Ch", "auxlink": "Aux", "fxlink": "FX", "buslink": "Mix", "mtxlink": "Mtx"]
+        for (key, label) in linkKinds where address.hasPrefix("/config/\(key)/") {
+            return "\(label) \(address.dropFirst("/config/\(key)/".count)) link"
+        }
         if address.hasPrefix("/config/mute/") {
             return "Mute group " + String(address.dropFirst("/config/mute/".count))
         }

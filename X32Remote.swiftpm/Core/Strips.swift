@@ -328,3 +328,53 @@ enum MixerLayer: String, CaseIterable, Identifiable, Codable {
         }
     }
 }
+
+// MARK: - Stereo links
+
+extension StripID {
+    /// The X32 address that links this strip with its odd/even neighbour, e.g. "/config/chlink/1-2".
+    var linkPath: String? {
+        let name: String
+        switch kind {
+        case .channel: name = "chlink"
+        case .auxIn: name = "auxlink"
+        case .fxReturn: name = "fxlink"
+        case .bus: name = "buslink"
+        case .matrix: name = "mtxlink"
+        default: return nil
+        }
+        let first = index % 2 == 1 ? index : index - 1
+        return "/config/\(name)/\(first)-\(first + 1)"
+    }
+
+    /// The other half of this strip's odd/even pair (whether or not it is linked).
+    var linkPartner: StripID? {
+        guard linkPath != nil else { return nil }
+        let other = index % 2 == 1 ? index + 1 : index - 1
+        guard other >= 1 && other <= kind.count else { return nil }
+        return StripID(kind, other)
+    }
+
+    /// Every link switch on the desk, plus what links apply to.
+    static var allLinkPaths: [String] {
+        var paths: [String] = []
+        for kind in [StripKind.channel, .auxIn, .fxReturn, .bus, .matrix] {
+            for n in stride(from: 1, through: kind.count, by: 2) {
+                if let p = StripID(kind, n).linkPath { paths.append(p) }
+            }
+        }
+        return paths + ["/config/linkcfg/hadly", "/config/linkcfg/eq", "/config/linkcfg/dyn", "/config/linkcfg/fdrmute"]
+    }
+}
+
+/// When two strips are linked the desk copies a change to the partner itself; the app then asks the
+/// desk for the partner's value so the screen shows what the desk really did.
+enum LinkSync {
+    static func partnerAddress(for address: String, isLinked: (StripID) -> Bool) -> String? {
+        guard let (strip, rest) = AddressNames.split(address), !rest.isEmpty, rest != "/",
+              let partner = strip.linkPartner, isLinked(strip) else { return nil }
+        // Names, colours and sources are per channel even when linked.
+        if rest.hasPrefix("/config/") { return nil }
+        return partner.base + rest
+    }
+}

@@ -334,6 +334,16 @@ struct SetupPage: View {
                 Panel(title: "Colour") {
                     ColorPicker32(app: app, address: strip.colorPath)
                 }
+                if strip.kind == .channel {
+                    Panel(title: "Input source") {
+                        SourcePicker(app: app, strip: strip)
+                    }
+                }
+                if strip.linkPath != nil, let partner = strip.linkPartner {
+                    Panel(title: "Stereo link") {
+                        LinkSwitch(app: app, strip: strip, partner: partner)
+                    }
+                }
                 if let dca = strip.dcaGroupsPath {
                     Panel(title: "DCA groups") {
                         BitToggles(app: app, address: dca, count: 8, prefix: "DCA", color: Theme.accent)
@@ -351,6 +361,78 @@ struct SetupPage: View {
                 }
             }
             .padding(16)
+        }
+    }
+}
+
+/// Which input feeds a channel (local inputs, aux, USB, FX returns, buses).
+private struct SourcePicker: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        let p = app.param(strip.sourcePath)
+        HStack(spacing: 12) {
+            Menu {
+                ForEach(0...64, id: \.self) { v in
+                    Button {
+                        app.setSource(strip, v)
+                    } label: {
+                        if p.isKnown && p.int == v {
+                            Label(X32Enums.sourceName(v), systemImage: "checkmark")
+                        } else {
+                            Text(X32Enums.sourceName(v))
+                        }
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(p.isKnown ? X32Enums.sourceName(p.int) : "—")
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Theme.secondary)
+                }
+                .barChip()
+            }
+            Text("Changes what this channel hears. Undo puts it back.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.tertiary)
+        }
+    }
+}
+
+/// Links an odd/even pair into a stereo channel.
+private struct LinkSwitch: View {
+    let app: AppModel
+    let strip: StripID
+    let partner: StripID
+    @State private var confirm = false
+
+    var body: some View {
+        let first = strip.index < partner.index ? strip : partner
+        let second = strip.index < partner.index ? partner : strip
+        let linked = app.isLinked(strip)
+        HStack(spacing: 12) {
+            LitButton(title: linked ? "Linked" : "Link", isOn: linked, height: 40, fontSize: 13, style: .outline) {
+                confirm = true
+            }
+            .frame(width: 100)
+            Text("\(first.footLabel) + \(second.footLabel)")
+                .font(.system(size: 14))
+                .foregroundStyle(Theme.text)
+        }
+        .confirmationDialog(linked ? "Unlink \(first.footLabel) and \(second.footLabel)?" : "Link \(first.footLabel) and \(second.footLabel)?", isPresented: $confirm, titleVisibility: .visible) {
+            Button(linked ? "Unlink" : "Link", role: .destructive) {
+                if let path = strip.linkPath {
+                    app.setBool(path, !linked)
+                    app.reloadAfterLink(first, second)
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(linked
+                 ? "They'll go back to being two separate channels."
+                 : "The desk copies \(first.footLabel)'s settings onto \(second.footLabel) and then moves them together.")
         }
     }
 }

@@ -83,6 +83,10 @@ final class DemoTransport: X32Transport {
             }
         } else {
             values[address] = message.args[0]
+            // Like the real desk, a change to one side of a linked pair moves the other side too.
+            if let partner = LinkSync.partnerAddress(for: address, isLinked: { s in s.linkPath.map { self.int($0) != 0 } ?? false }) {
+                values[partner] = message.args[0]
+            }
             if address.hasPrefix("/-stat/solosw/") {
                 let anySolo = (1...80).contains { n in
                     (values[String(format: "/-stat/solosw/%02d", n)]?.intValue ?? 0) != 0
@@ -352,6 +356,11 @@ final class DemoTransport: X32Transport {
         values[kick.dynPath("thr")] = .float(X32Math.linInverse(-14, -60, 0))
         values[kick.dynPath("ratio")] = .int(5)
 
+        // Stereo sources are linked pairs, like on a real desk.
+        for path in ["/config/chlink/13-14", "/config/chlink/25-26", "/config/chlink/27-28", "/config/auxlink/1-2", "/config/auxlink/7-8"] {
+            values[path] = .int(1)
+        }
+
         // Typical processing elsewhere, so every strip's pictures look like a real show.
         let compOn: [Int] = [2, 4, 5, 8, 9, 10, 11, 12, 15, 17, 18, 19, 20, 21, 22]
         for n in compOn {
@@ -488,6 +497,7 @@ final class DemoTransport: X32Transport {
         if address.hasPrefix("/-stat/solosw/") || address == "/-stat/solo" { return .int(0) }
         if address.hasPrefix("/config/mute/") { return .int(0) }
         if address.hasPrefix("/config/") && address.contains("link/") { return .int(0) }
+        if address.hasPrefix("/config/linkcfg/") { return .int(1) }
         if address == "/-show/prepos/current" { return .int(0) }
         if address == "/config/solo/level" { return .float(0.5) }
         if address == "/config/solo/dim" { return .int(0) }
