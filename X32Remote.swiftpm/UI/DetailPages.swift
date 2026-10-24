@@ -376,11 +376,13 @@ private struct InsertControls: View {
     let strip: StripID
 
     var body: some View {
-        HStack(spacing: 12) {
-            OnSwitch(app: app, address: strip.insertPath("on"), title: "Insert", width: 100)
-            EnumMenu(app: app, address: strip.insertPath("sel"), options: X32Enums.insertSelections)
-            EnumMenu(app: app, address: strip.insertPath("pos"), options: X32Enums.prePost)
-            Spacer()
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 12) {
+                OnSwitch(app: app, address: strip.insertPath("on"), title: "Insert", width: 84)
+                Spacer()
+                EnumMenu(app: app, address: strip.insertPath("sel"), options: X32Enums.insertSelections)
+            }
+            LabeledChoice(app: app, title: "Position", address: strip.insertPath("pos"), options: X32Enums.prePost)
         }
     }
 }

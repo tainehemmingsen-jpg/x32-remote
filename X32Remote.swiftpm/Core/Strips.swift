@@ -170,6 +170,18 @@ struct StripID: Hashable, Codable, Identifiable {
     func insertPath(_ field: String) -> String { base + "/insert/\(field)" }
     /// The compressor's sidechain can listen to another source on channels and buses.
     var hasDynKeySource: Bool { kind == .channel || kind == .bus }
+
+    /// The strip a gate/compressor key source value (/…/keysrc) points at: 0 is the strip itself,
+    /// then channels 1-32, aux ins 1-8, FX returns 1-8 and mix buses 1-16.
+    static func keySource(_ value: Int) -> StripID? {
+        switch value {
+        case 1...32: return StripID(.channel, value)
+        case 33...40: return StripID(.auxIn, value - 32)
+        case 41...48: return StripID(.fxReturn, value - 40)
+        case 49...64: return StripID(.bus, value - 48)
+        default: return nil
+        }
+    }
     func delayPath(_ field: String) -> String { base + "/delay/\(field)" }
     var hasInputPage: Bool { kind == .channel || kind == .auxIn }
     var hasSendsPage: Bool { sendCount > 0 }

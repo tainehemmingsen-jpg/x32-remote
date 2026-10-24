@@ -96,6 +96,7 @@ shot "$IPAD" 49-landscape-input 9 0 -autoDemo YES -autoMode mixer -autoDetail ch
 shot "$IPAD" 50-landscape-bus-layer 9 0 -autoDemo YES -autoMode mixer -autoLayer buses -autoOrientation landscape
 shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1 -autoOrientation landscape
 shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple -autoOrientation landscape
+shot "$IPAD" 51-landscape-geq 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 5 -autoOrientation landscape
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
 sleep 3
 

@@ -52,8 +52,10 @@ let detail: [String] = {
     var a: [String] = []
     for s in [StripID(.channel, 1), StripID(.bus, 1), StripID.mainLR] {
         if s.hasEQ { a.append(s.eqOnPath); for b in 1...s.eqBandCount { for f in ["type", "f", "g", "q"] { a.append(s.eqPath(b, f)) } } }
-        if s.hasGate { for f in ["on", "mode", "thr", "range", "attack", "hold", "release"] { a.append(s.gatePath(f)) } }
-        if s.hasDynamics { for f in ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto"] { a.append(s.dynPath(f)) } }
+        if s.hasGate { for f in ["on", "mode", "thr", "range", "attack", "hold", "release", "keysrc", "filter/on", "filter/type", "filter/f"] { a.append(s.gatePath(f)) } }
+        if s.hasDynamics { for f in ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto", "pos", "filter/on", "filter/type", "filter/f"] { a.append(s.dynPath(f)) } }
+        if s.hasDynKeySource { a.append(s.dynPath("keysrc")) }
+        if s.hasInsert { a += ["on", "pos", "sel"].map { s.insertPath($0) } }
         for n in 1...s.sendCount { a.append(s.sendLevelPath(n)); a.append(s.sendOnPath(n)); if n % 2 == 1 { a.append(s.sendTypePath(n)) } }
         if s.hasTrim { a.append(s.preampPath("trim")) }
         if s.hasHighPass { a += [s.preampPath("hpon"), s.preampPath("hpf"), s.preampPath("hpslope")] }

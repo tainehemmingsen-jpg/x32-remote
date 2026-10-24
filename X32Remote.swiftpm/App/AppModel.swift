@@ -59,6 +59,10 @@ final class AppModel {
     var valueEditor: ValueEditRequest?
     /// A channel to open once the current sheet has finished closing.
     @ObservationIgnored var pendingDetail: StripID?
+    /// The page to open `pendingDetail` on.
+    @ObservationIgnored var pendingDetailTab: DetailTab = .overview
+    /// The slot the effects sheet opens on.
+    @ObservationIgnored var effectsSlot = 1
     /// The channel the open channel page is showing now (it can step prev/next).
     @ObservationIgnored var visibleDetailStrip: StripID?
 
@@ -501,8 +505,14 @@ final class AppModel {
     func setEffectType(slot: Int, type: Int) {
         setInt(Effects.typePath(slot), type)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
-            self?.client?.get((1...16).map { Effects.parPath(slot, $0) })
+            self?.loadEffectParameters(slot: slot, type: type)
         }
+    }
+
+    /// Reads every parameter the slot's effect uses (64 for a dual graphic EQ).
+    func loadEffectParameters(slot: Int, type: Int) {
+        let count = Effects.parameterCount(slot: slot, type: type)
+        client?.get((1...count).map { Effects.parPath(slot, $0) })
     }
 
     func loadScenes() {
@@ -794,8 +804,9 @@ final class AppModel {
     /// Sets several parameters as one undoable step (e.g. pasting an EQ).
     func applyBatch(_ changes: [(String, OSCArg)], label: String) {
         var previous: [UndoEntry.Change] = []
-        for (address, _) in changes {
-            if let v = store.value(address) {
+        for (address, value) in changes {
+            // Nothing to undo for values that were already there.
+            if let v = store.value(address), v != value {
                 previous.append(UndoEntry.Change(address: address, previous: v))
             }
         }
@@ -1049,6 +1060,11 @@ final class AppModel {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
                 if s == .scenes {
                     self?.loadScenes()
+                }
+                if s == .effects {
+                    let slot = d.integer(forKey: "autoFXSlot")
+                    if Effects.slots.contains(slot) { self?.effectsSlot = slot }
+                    self?.loadEffects()
                 }
                 self?.sheet = s
             }

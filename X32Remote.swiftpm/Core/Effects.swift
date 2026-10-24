@@ -46,6 +46,53 @@ enum Effects {
         return "Type \(type)"
     }
 
+    // MARK: Graphic EQs
+
+    /// The 31 ISO third-octave bands of the graphic EQs.
+    static let geqBands: [Float] = [20, 25, 31.5, 40, 50, 63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800,
+                                    1000, 1250, 1600, 2000, 2500, 3150, 4000, 5000, 6300, 8000, 10000, 12500, 16000, 20000]
+    /// Each band and the master: -15…+15 dB in 0.5 dB steps.
+    static let geqSpec = ParamSpec(.linear(-15, 15), steps: 60, unit: "dB", decimals: 1, defaultNorm: 0.5)
+
+    /// How many independent graphic EQs a type holds: 2 for the dual GEQ/TEQ, 1 for the stereo
+    /// ones, nil for everything else.
+    static func graphicEQSides(slot: Int, type: Int) -> Int? {
+        let base = slot <= 4 ? 27 : 0   // GEQ2, GEQ, TEQ2, TEQ
+        switch type - base {
+        case 0, 2: return 2
+        case 1, 3: return 1
+        default: return nil
+        }
+    }
+
+    /// Parameter number of a band (1…31) on side 0 (A / stereo) or 1 (B).
+    static func geqParNumber(side: Int, band: Int) -> Int { side * 32 + band }
+    /// Parameter number of a side's master level.
+    static func geqMasterNumber(side: Int) -> Int { side * 32 + 32 }
+
+    private static let geqLabels = ["20", "25", "31.5", "40", "50", "63", "80", "100", "125", "160", "200", "250", "315",
+                                    "400", "500", "630", "800", "1k", "1.25k", "1.6k", "2k", "2.5k", "3.15k", "4k", "5k",
+                                    "6.3k", "8k", "10k", "12.5k", "16k", "20k"]
+
+    static func geqBandLabel(_ i: Int) -> String {
+        geqLabels.indices.contains(i) ? geqLabels[i] : ""
+    }
+
+    /// Strips whose insert is on and points at this slot (either side). `insertSel` reads a
+    /// strip's /insert/sel value, nil if not read yet.
+    static func insertedOn(slot: Int, insertSel: (String) -> Int?) -> [StripID] {
+        StripID.everything.filter { strip in
+            guard strip.hasInsert, let sel = insertSel(strip.insertPath("sel")) else { return false }
+            return sel == slot * 2 - 1 || sel == slot * 2
+        }
+    }
+
+    /// How many /par/NN values a slot's current type uses (what to read when it's opened).
+    static func parameterCount(slot: Int, type: Int) -> Int {
+        if let sides = graphicEQSides(slot: slot, type: type) { return sides * 32 }
+        return 16
+    }
+
     /// "INS", "Mix 1"…"Mix 16", "M/C" for /fx/N/source/l.
     static func sourceName(_ v: Int) -> String {
         switch v {
@@ -279,6 +326,10 @@ enum Effects {
         }
         for slot in editableSlots {
             for n in 1...16 { a.append(parPath(slot, n)) }
+        }
+        // Where each slot is inserted.
+        for strip in StripID.everything where strip.hasInsert {
+            a.append(strip.insertPath("sel"))
         }
         return a
     }

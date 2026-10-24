@@ -813,7 +813,7 @@ private struct KeyControls: View {
                 .padding(.top, 6)
             if hasSource {
                 LabeledChoice(app: app, title: "Source", address: strip.base + "/\(block)/keysrc",
-                              options: (0...64).map { $0 == 0 ? "Self" : X32Enums.sourceName($0) })
+                              options: (0...64).map { v in StripID.keySource(v).map { app.stripTitle($0) } ?? "Self" })
             }
             HStack(spacing: 10) {
                 OnSwitch(app: app, address: strip.base + "/\(block)/filter/on", title: "Filter", width: 90)

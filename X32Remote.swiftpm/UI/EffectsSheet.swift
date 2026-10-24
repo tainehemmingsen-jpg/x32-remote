@@ -25,7 +25,12 @@ struct FXIcon: View {
 struct EffectsSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
-    @State private var slot = 1
+    @State private var slot: Int
+
+    init(app: AppModel) {
+        self.app = app
+        _slot = State(initialValue: app.effectsSlot)
+    }
 
     var body: some View {
         NavigationStack {
@@ -71,6 +76,8 @@ struct EffectsSheet: View {
             .onDisappear {
                 // Don't leave an editor open for the mixer to show after the sheet closes.
                 app.valueEditor = nil
+                // Reopen on the same slot next time.
+                app.effectsSlot = slot
             }
             .navigationTitle("Effects")
             .navigationBarTitleDisplayMode(.inline)
@@ -129,6 +136,7 @@ private struct SlotDetail: View {
         let type = typeParam.int(or: -1)
         let source = app.param(Effects.sourcePath(slot))
         let params = slot <= 4 ? Effects.parameters(type: type) : nil
+        let geqSides = Effects.graphicEQSides(slot: slot, type: type)
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
                 HStack(spacing: 12) {
@@ -151,7 +159,12 @@ private struct SlotDetail: View {
                 ForEach(Effects.returnStrips(slot: slot)) { strip in
                     ReturnRow(app: app, strip: strip)
                 }
-                if let params {
+                InsertedOnRow(app: app, slot: slot, close: close)
+                if let geqSides {
+                    GraphicEQPanel(app: app, slot: slot, sides: geqSides)
+                        .id(slot)
+                        .padding(.top, 4)
+                } else if let params {
                     ControlGrid(minimumWidth: 240) {
                         ForEach(params, id: \.number) { p in
                             EffectParamControl(app: app, slot: slot, param: p)
@@ -161,7 +174,7 @@ private struct SlotDetail: View {
                 } else if typeParam.isKnown {
                     Text(slot <= 4
                          ? "This effect type isn't editable here yet. Its settings are on the desk's Effects screen; you can still change the type above."
-                         : "Slots 5-8 hold EQs and processors. Edit them on the desk's Effects screen.")
+                          : "This processor isn't editable here yet. Its settings are on the desk's Effects screen.")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.secondary)
                 }
@@ -169,6 +182,10 @@ private struct SlotDetail: View {
             .padding(16)
         }
         .background(Theme.panel)
+        .task(id: "\(slot)-\(type)") {
+            // Read this effect's parameters whenever it's shown (graphic EQs use up to 64).
+            if type >= 0 { app.loadEffectParameters(slot: slot, type: type) }
+        }
         .confirmationDialog(
             pendingType.map { "Change FX \(slot) to \(Effects.typeName(slot: slot, type: $0))?" } ?? "",
             isPresented: Binding(get: { pendingType != nil }, set: { if !$0 { pendingType = nil } }),
@@ -211,6 +228,38 @@ private struct TypeMenu: View {
                     .font(.system(size: 10, weight: .bold))
             }
             .barChip()
+        }
+    }
+}
+
+/// The strips this slot is inserted on (tap to open one).
+private struct InsertedOnRow: View {
+    let app: AppModel
+    let slot: Int
+    let close: () -> Void
+
+    var body: some View {
+        let strips = Effects.insertedOn(slot: slot) { app.param($0).isKnown ? app.param($0).int : nil }
+        if !strips.isEmpty {
+            HStack(spacing: 8) {
+                Text("Inserted on")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.text)
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(strips) { strip in
+                            Button {
+                                app.pendingDetail = strip
+                                app.pendingDetailTab = .setup
+                                close()
+                            } label: {
+                                Text(app.stripTitle(strip)).barChip()
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
         }
     }
 }

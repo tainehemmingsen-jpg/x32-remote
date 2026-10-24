@@ -62,8 +62,10 @@ struct MixerScreen: View {
         }
         .sheet(item: $app.sheet, onDismiss: {
             if let strip = app.pendingDetail {
+                let tab = app.pendingDetailTab
                 app.pendingDetail = nil
-                app.openDetail(strip, tab: .overview)
+                app.pendingDetailTab = .overview
+                app.openDetail(strip, tab: tab)
             }
         }) { sheet in
             switch sheet {

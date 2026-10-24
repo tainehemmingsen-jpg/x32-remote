@@ -513,7 +513,7 @@ final class DemoTransport: X32Transport {
             let slot = parts.count >= 2 ? Int(parts[1]) ?? 1 : 1
             if address.hasSuffix("/type") {
                 // Hall, Plate, Stereo Delay, Chorus in 1-4 (fed by Mix 13-16), GEQs in 5-8.
-                return .int(slot <= 4 ? Int32([0, 5, 10, 13][slot - 1]) : 0)
+                return .int(slot <= 4 ? Int32([0, 5, 10, 13][slot - 1]) : Int32([0, 0, 1, 2][slot - 5]))
             }
             if address.hasSuffix("/source/l") || address.hasSuffix("/source/r") {
                 return .int(slot <= 4 ? Int32(12 + slot) : 0)
@@ -521,7 +521,13 @@ final class DemoTransport: X32Transport {
             if address.contains("/par/") {
                 // Choice parameters are ints on the desk (delay mode/factors, switches).
                 let n = Int(parts.last ?? "") ?? 1
-                let type = slot <= 4 ? [0, 5, 10, 13][slot - 1] : 0
+                if slot >= 5 {
+                    // Graphic EQs: a typical wedge curve (a few notches), masters at 0 dB.
+                    let band = (n - 1) % 32 + 1
+                    let cuts: [Int: Float] = [9: -3, 13: -4.5, 17: -2, 21: -6, 23: -3.5, 27: -2.5]
+                    return .float(band == 32 ? 0.5 : Effects.geqSpec.norm(cuts[band] ?? 0))
+                }
+                let type = [0, 5, 10, 13][slot - 1]
                 if let p = Effects.parameters(type: type), n <= p.count, case .choice = p[n - 1].kind {
                     return .int(n == 4 || n == 5 ? 4 : 0)
                 }
@@ -546,6 +552,13 @@ final class DemoTransport: X32Transport {
         if address.hasSuffix("/mix/fader") || address.hasSuffix("/fader") {
             if address.hasPrefix("/dca/") || address.hasPrefix("/main/") { return .float(X32Math.unityFader) }
             return .float(0)
+        }
+        if address.hasPrefix("/bus/0") && address.contains("/insert/") {
+            // Wedges on Mix 1-4 run through the graphic EQs in FX 5 and 6.
+            if let n = Int(address.dropFirst(5).prefix(2)), (1...4).contains(n) {
+                if address.hasSuffix("/on") { return .int(1) }
+                if address.hasSuffix("/sel") { return .int(Int32(8 + n)) }
+            }
         }
         if address.hasSuffix("/on") {
             if address.contains("/eq/") || address.contains("/gate/") || address.contains("/dyn/") || address.contains("/insert/") || address.contains("/delay/") {

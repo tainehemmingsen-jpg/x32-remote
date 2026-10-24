@@ -247,9 +247,9 @@ private struct EQSideControls: View {
             .buttonStyle(.plain)
             .confirmationDialog("Set every EQ band's gain to 0 dB?", isPresented: $confirmFlatten, titleVisibility: .visible) {
                 Button("Flatten EQ", role: .destructive) {
-                    for b in 1...max(strip.eqBandCount, 1) {
-                        app.setFloat(strip.eqPath(b, "g"), 0.5, steps: Specs.eqGain.steps)
-                    }
+                    // One undo step for the whole flatten.
+                    let changes = (1...max(strip.eqBandCount, 1)).map { (strip.eqPath($0, "g"), OSCArg.float(0.5)) }
+                    app.applyBatch(changes, label: "\(app.stripTitle(strip)) EQ flatten")
                 }
                 Button("Cancel", role: .cancel) {}
             }

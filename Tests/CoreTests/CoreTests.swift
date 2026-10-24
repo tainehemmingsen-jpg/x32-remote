@@ -803,6 +803,44 @@ final class EffectsTests: XCTestCase {
 }
 
 final class SceneSaveTests: XCTestCase {
+    func testGraphicEQLayout() {
+        XCTAssertEqual(Effects.geqBands.count, 31)
+        XCTAssertEqual(Effects.graphicEQSides(slot: 1, type: 27), 2, "GEQ2 in slots 1-4")
+        XCTAssertEqual(Effects.graphicEQSides(slot: 2, type: 30), 1, "TEQ in slots 1-4")
+        XCTAssertNil(Effects.graphicEQSides(slot: 1, type: 0))
+        XCTAssertEqual(Effects.graphicEQSides(slot: 5, type: 0), 2, "GEQ2 in slots 5-8")
+        XCTAssertEqual(Effects.graphicEQSides(slot: 8, type: 1), 1)
+        XCTAssertNil(Effects.graphicEQSides(slot: 6, type: 4), "De-esser")
+        XCTAssertEqual(Effects.typeCodes1[27], "GEQ2")
+        XCTAssertEqual(Effects.typeCodes2[3], "TEQ")
+        XCTAssertEqual(Effects.geqParNumber(side: 1, band: 1), 33)
+        XCTAssertEqual(Effects.geqMasterNumber(side: 1), 64)
+        XCTAssertEqual(Effects.parameterCount(slot: 5, type: 0), 64)
+        XCTAssertEqual(Effects.parameterCount(slot: 1, type: 0), 16)
+        XCTAssertEqual(Effects.parPath(5, 64), "/fx/5/par/64")
+        XCTAssertEqual(Effects.geqBandLabel(0), "20")
+        XCTAssertEqual(Effects.geqBandLabel(2), "31.5")
+        XCTAssertEqual(Effects.geqBandLabel(17), "1k")
+        XCTAssertEqual(Effects.geqBandLabel(18), "1.25k")
+        XCTAssertEqual(Effects.geqBandLabel(30), "20k")
+        XCTAssertEqual(Effects.geqSpec.value(0), -15, accuracy: 0.001)
+        XCTAssertEqual(Effects.geqSpec.value(1), 15, accuracy: 0.001)
+    }
+
+    func testInsertedOnAndKeySources() {
+        let sel: [String: Int] = ["/bus/01/insert/sel": 9, "/bus/02/insert/sel": 10, "/ch/05/insert/sel": 3]
+        XCTAssertEqual(Effects.insertedOn(slot: 5) { sel[$0] }, [StripID(.bus, 1), StripID(.bus, 2)])
+        XCTAssertEqual(Effects.insertedOn(slot: 2) { sel[$0] }, [StripID(.channel, 5)])
+        XCTAssertTrue(Effects.addresses().contains("/main/st/insert/sel"))
+        XCTAssertNil(StripID.keySource(0))
+        XCTAssertEqual(StripID.keySource(1), StripID(.channel, 1))
+        XCTAssertEqual(StripID.keySource(40), StripID(.auxIn, 8))
+        XCTAssertEqual(StripID.keySource(41), StripID(.fxReturn, 1))
+        XCTAssertEqual(StripID.keySource(64), StripID(.bus, 16))
+        XCTAssertEqual(DemoTransport.defaultValue(for: "/bus/02/insert/sel"), .int(10))
+        XCTAssertEqual(DemoTransport.defaultValue(for: "/bus/05/insert/on"), .int(0))
+    }
+
     func testDemoDeskSavesScenes() {
         let demo = DemoTransport()
         var received: [OSCMessage] = []
