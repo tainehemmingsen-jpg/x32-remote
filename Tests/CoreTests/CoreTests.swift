@@ -771,3 +771,19 @@ final class EffectsTests: XCTestCase {
     }
 }
 
+final class SceneSaveTests: XCTestCase {
+    func testDemoDeskSavesScenes() {
+        let demo = DemoTransport()
+        var received: [OSCMessage] = []
+        demo.onMessage = { received.append($0) }
+        demo.send(OSCMessage("/save", [.string("scene"), .int(7), .string("Band"), .string("")]))
+        let deadline = Date().addingTimeInterval(2)
+        while !received.contains(where: { $0.address == "/save" }) && Date() < deadline {
+            RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        }
+        XCTAssertTrue(received.contains(OSCMessage("/-show/showfile/scene/007/name", [.string("Band")])))
+        XCTAssertTrue(received.contains(OSCMessage("/-show/showfile/scene/007/hasdata", [.int(1)])))
+        demo.close()
+    }
+}
+

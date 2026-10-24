@@ -677,6 +677,20 @@ final class AppModel {
         store.applyLocal("/-stat/solo", .int(0))
     }
 
+    /// Stores the desk's current state as scene `n` (0-99) with a name.
+    func saveScene(_ n: Int, name: String) {
+        guard (0..<100).contains(n) else { return }
+        let trimmed = String(name.trimmingCharacters(in: .whitespaces).prefix(31))
+        client?.send(OSCMessage("/save", [.string("scene"), .int(Int32(n)), .string(trimmed), .string("")]))
+        // Show it straight away, then read the list back from the desk.
+        store.applyLocal(String(format: "/-show/showfile/scene/%03d/name", n), .string(trimmed))
+        store.applyLocal(String(format: "/-show/showfile/scene/%03d/hasdata", n), .int(1))
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.loadScenes()
+        }
+        showToast(String(format: "Saved scene %02d", n) + (trimmed.isEmpty ? "" : " “\(trimmed)”"))
+    }
+
     func recallScene(_ n: Int) {
         clearUndo()
         client?.send(OSCMessage("/-action/goscene", [.int(Int32(n))]))

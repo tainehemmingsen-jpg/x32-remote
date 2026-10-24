@@ -12,6 +12,11 @@ struct ScenesSheet: View {
         let scenes = (0..<100).filter { app.param(String(format: "/-show/showfile/scene/%03d/hasdata", $0)).bool }
         NavigationStack {
             List {
+                Section {
+                    SaveSceneRow(app: app, current: current, usedScenes: Set(scenes))
+                } header: {
+                    Text("Save the desk as a scene")
+                }
                 if scenes.isEmpty {
                     if app.pendingRequests > 0 {
                         HStack(spacing: 10) {
@@ -63,6 +68,65 @@ struct ScenesSheet: View {
         guard let n = confirmScene else { return "Recall scene?" }
         let name = app.param(String(format: "/-show/showfile/scene/%03d/name", n)).string
         return String(format: "Recall scene %02d", n) + (name.isEmpty ? "?" : " “\(name)”?")
+    }
+}
+
+private struct SaveSceneRow: View {
+    let app: AppModel
+    let current: Int
+    let usedScenes: Set<Int>
+    @State private var name = ""
+    @State private var number = -1
+    @State private var confirmOverwrite = false
+
+    var body: some View {
+        let target = number >= 0 ? number : defaultNumber
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 10) {
+                TextField("Scene name", text: $name)
+                    .textInputAutocapitalization(.words)
+                Picker("Number", selection: Binding(get: { target }, set: { number = $0 })) {
+                    ForEach(0..<100, id: \.self) { n in
+                        Text(String(format: "%02d", n) + (usedScenes.contains(n) ? " (used)" : "")).tag(n)
+                    }
+                }
+                .labelsHidden()
+                .frame(width: 130)
+                Button("Save") {
+                    if usedScenes.contains(target) {
+                        confirmOverwrite = true
+                    } else {
+                        app.saveScene(target, name: name)
+                        name = ""
+                        number = -1
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            Text(usedScenes.contains(target)
+                 ? String(format: "Scene %02d already has a scene in it; saving replaces it.", target)
+                 : "Saves faders, mutes, EQ, dynamics and routing as they are now.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondary)
+        }
+        .confirmationDialog(String(format: "Replace scene %02d?", target), isPresented: $confirmOverwrite, titleVisibility: .visible) {
+            Button("Replace", role: .destructive) {
+                app.saveScene(target, name: name)
+                name = ""
+                number = -1
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("The scene that's there now will be lost.")
+        }
+    }
+
+    /// The first empty slot after the current scene (or the first empty one).
+    private var defaultNumber: Int {
+        let start = max(current, -1) + 1
+        for n in start..<100 where !usedScenes.contains(n) { return n }
+        for n in 0..<100 where !usedScenes.contains(n) { return n }
+        return max(current, 0)
     }
 }
 

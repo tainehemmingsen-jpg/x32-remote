@@ -67,6 +67,15 @@ final class DemoTransport: X32Transport {
                 recallScene(n)
             }
             return
+        case "/save":
+            // /save ,siss scene <n> <name> <note>
+            if message.args.count >= 3, case .string(let kind) = message.args[0], kind == "scene",
+               let n = message.args[1].intValue, case .string(let name) = message.args[2] {
+                change(String(format: "/-show/showfile/scene/%03d/name", n), .string(name))
+                change(String(format: "/-show/showfile/scene/%03d/hasdata", n), .int(1))
+                reply(OSCMessage("/save", [.string("scene"), .int(1)]))
+            }
+            return
         case "/-action/clearsolo":
             for n in 1...80 {
                 change(String(format: "/-stat/solosw/%02d", n), .int(0))
