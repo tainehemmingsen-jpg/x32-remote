@@ -496,7 +496,7 @@ private struct MonitorPopover: View {
             Text("Solo and talkback")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.text)
-            ParamKnob(app: app, address: "/config/solo/level", spec: Specs.fader, title: "Solo / phones level", editable: false)
+            ParamKnob(app: app, address: "/config/solo/level", spec: Specs.send, title: "Solo / phones level", editable: false)
             HStack(spacing: 8) {
                 OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 90)
                 ClearSoloButton(app: app)
@@ -506,8 +506,8 @@ private struct MonitorPopover: View {
                 TalkButton(app: app, channel: "A")
                 TalkButton(app: app, channel: "B")
             }
-            ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.fader, title: "Talk A level", editable: false)
-            ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.fader, title: "Talk B level", editable: false)
+            ParamKnob(app: app, address: "/config/talk/A/level", spec: Specs.send, title: "Talk A level", editable: false)
+            ParamKnob(app: app, address: "/config/talk/B/level", spec: Specs.send, title: "Talk B level", editable: false)
         }
         .padding(16)
         .frame(width: 320)
