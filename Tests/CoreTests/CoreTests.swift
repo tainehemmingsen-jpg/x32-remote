@@ -583,6 +583,37 @@ final class LayerAndEntryTests: XCTestCase {
         XCTAssertEqual(Specs.delay.value(0), 0.3, accuracy: 0.001)
         XCTAssertEqual(Specs.delay.value(1), 500, accuracy: 0.001)
     }
+
+    func testInsertAndKeyAddressesHaveDemoValuesAndNames() {
+        var missing: [String] = []
+        for strip in StripID.everything {
+            var addresses: [String] = []
+            if strip.hasInsert { addresses += ["on", "pos", "sel"].map { strip.insertPath($0) } }
+            if strip.hasGate { addresses += ["keysrc", "filter/on", "filter/type", "filter/f"].map { strip.gatePath($0) } }
+            if strip.hasDynamics { addresses += ["pos", "filter/on", "filter/type", "filter/f"].map { strip.dynPath($0) } }
+            if strip.hasDynKeySource { addresses.append(strip.dynPath("keysrc")) }
+            missing += addresses.filter { DemoTransport.defaultValue(for: $0) == nil }
+        }
+        XCTAssertEqual(missing, [])
+        XCTAssertTrue(StripID.mainLR.hasInsert)
+        XCTAssertFalse(StripID(.auxIn, 1).hasInsert)
+        XCTAssertFalse(StripID(.matrix, 1).hasDynKeySource)
+        XCTAssertEqual(StripID(.channel, 4).insertPath("sel"), "/ch/04/insert/sel")
+        XCTAssertEqual(X32Enums.insertSelections.count, 23)
+        XCTAssertEqual(X32Enums.keyFilterTypes.count, 9)
+        XCTAssertEqual(AddressNames.describe("/ch/04/insert/sel"), "Ch 4 insert slot")
+        XCTAssertEqual(AddressNames.describe("/ch/04/gate/keysrc"), "Ch 4 gate key source")
+        XCTAssertEqual(AddressNames.describe("/bus/02/dyn/filter/f"), "Mix 2 comp key filter freq")
+        XCTAssertEqual(AddressNames.describe("/ch/01/dyn/pos"), "Ch 1 comp position")
+    }
+
+    func testDynamicsCopyCarriesKeySettings() {
+        let ch = StripID(.channel, 1)
+        XCTAssertTrue(ch.relativePaths(.gate).contains("/gate/keysrc"))
+        XCTAssertTrue(ch.relativePaths(.comp).contains("/dyn/filter/f"))
+        XCTAssertTrue(ch.relativePaths(.comp).contains("/dyn/keysrc"))
+        XCTAssertFalse(StripID(.matrix, 1).relativePaths(.comp).contains("/dyn/keysrc"))
+    }
 }
 
 final class UndoTests: XCTestCase {

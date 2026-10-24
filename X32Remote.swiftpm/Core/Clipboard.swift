@@ -33,7 +33,9 @@ extension StripID {
             if hasHighPass { p += ["/preamp/hpon", "/preamp/hpf", "/preamp/hpslope"] }
             if hasDelay { p += ["/delay/on", "/delay/time"] }
         case .gate:
-            if hasGate { p = ["on", "mode", "thr", "range", "attack", "hold", "release"].map { "/gate/" + $0 } }
+            if hasGate {
+                p = ["on", "mode", "thr", "range", "attack", "hold", "release", "keysrc", "filter/on", "filter/type", "filter/f"].map { "/gate/" + $0 }
+            }
         case .eq:
             if hasEQ {
                 p.append("/eq/on")
@@ -43,7 +45,9 @@ extension StripID {
             }
         case .comp:
             if hasDynamics {
-                p = ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto"].map { "/dyn/" + $0 }
+                p = ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto",
+                     "pos", "filter/on", "filter/type", "filter/f"].map { "/dyn/" + $0 }
+                if hasDynKeySource { p.append("/dyn/keysrc") }
             }
         case .sends:
             if sendCount > 0 {

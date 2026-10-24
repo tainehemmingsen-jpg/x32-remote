@@ -450,13 +450,21 @@ final class AppModel {
             }
         }
         if s.hasGate {
-            for field in ["on", "mode", "thr", "range", "attack", "hold", "release"] {
+            for field in ["on", "mode", "thr", "range", "attack", "hold", "release", "keysrc", "filter/on", "filter/type", "filter/f"] {
                 a.append(s.gatePath(field))
             }
         }
         if s.hasDynamics {
-            for field in ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto"] {
+            for field in ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto", "pos", "filter/on", "filter/type", "filter/f"] {
                 a.append(s.dynPath(field))
+            }
+            if s.hasDynKeySource {
+                a.append(s.dynPath("keysrc"))
+            }
+        }
+        if s.hasInsert {
+            for field in ["on", "pos", "sel"] {
+                a.append(s.insertPath(field))
             }
         }
         if s.sendCount > 0 {

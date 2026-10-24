@@ -165,6 +165,11 @@ struct StripID: Hashable, Codable, Identifiable {
     var hasPolarity: Bool { kind == .channel || kind == .auxIn || kind == .matrix }
     var hasHighPass: Bool { kind == .channel }
     var hasDelay: Bool { kind == .channel }
+    /// Channels, buses, matrices and the mains can insert an effect or aux loop.
+    var hasInsert: Bool { [.channel, .bus, .matrix, .main, .mono].contains(kind) }
+    func insertPath(_ field: String) -> String { base + "/insert/\(field)" }
+    /// The compressor's sidechain can listen to another source on channels and buses.
+    var hasDynKeySource: Bool { kind == .channel || kind == .bus }
     func delayPath(_ field: String) -> String { base + "/delay/\(field)" }
     var hasInputPage: Bool { kind == .channel || kind == .auxIn }
     var hasSendsPage: Bool { sendCount > 0 }

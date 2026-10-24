@@ -756,6 +756,7 @@ struct GatePage: View {
             ParamKnob(app: app, address: strip.gatePath("hold"), spec: Specs.hold, title: "Hold", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", enabled: on)
             ReductionMeter(meter: app.meters.meter(strip), gate: true)
+            KeyControls(app: app, strip: strip, block: "gate", hasSource: true)
         }
     }
 }
@@ -789,6 +790,54 @@ struct CompPage: View {
             ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("mix"), spec: Specs.dynMix, title: "Mix", enabled: on)
             ReductionMeter(meter: app.meters.meter(strip))
+            LabeledChoice(app: app, title: "Position", address: strip.dynPath("pos"), options: ["Pre EQ", "Post EQ"])
+            KeyControls(app: app, strip: strip, block: "dyn", hasSource: strip.hasDynKeySource)
+        }
+    }
+}
+
+/// Sidechain ("key") source and filter for the gate or compressor.
+private struct KeyControls: View {
+    let app: AppModel
+    let strip: StripID
+    /// "gate" or "dyn"
+    let block: String
+    let hasSource: Bool
+
+    var body: some View {
+        let filterOn = app.param(strip.base + "/\(block)/filter/on").bool
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Key (sidechain)")
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.secondary)
+                .padding(.top, 6)
+            if hasSource {
+                LabeledChoice(app: app, title: "Source", address: strip.base + "/\(block)/keysrc",
+                              options: (0...64).map { $0 == 0 ? "Self" : X32Enums.sourceName($0) })
+            }
+            HStack(spacing: 10) {
+                OnSwitch(app: app, address: strip.base + "/\(block)/filter/on", title: "Filter", width: 90)
+                EnumMenu(app: app, address: strip.base + "/\(block)/filter/type", options: X32Enums.keyFilterTypes)
+            }
+            ParamKnob(app: app, address: strip.base + "/\(block)/filter/f", spec: Specs.eqFreq, title: "Filter freq", enabled: filterOn)
+        }
+    }
+}
+
+/// A label with a dropdown on the right.
+struct LabeledChoice: View {
+    let app: AppModel
+    let title: String
+    let address: String
+    let options: [String]
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .font(.system(size: 13))
+                .foregroundStyle(Theme.text)
+            Spacer()
+            EnumMenu(app: app, address: address, options: options)
         }
     }
 }

@@ -135,10 +135,18 @@ enum AddressNames {
                 let field = ["f": "freq", "g": "gain", "q": "Q", "type": "type"][p[2]] ?? p[2]
                 return "EQ \(p[1]) \(field)"
             }
-        case "gate":
-            if p.count == 2 { return "gate " + (dynNames[p[1]] ?? p[1]) }
-        case "dyn":
-            if p.count == 2 { return "comp " + (dynNames[p[1]] ?? p[1]) }
+        case "gate", "dyn":
+            let block = first == "gate" ? "gate" : "comp"
+            if p.count == 2 {
+                if p[1] == "keysrc" { return block + " key source" }
+                if p[1] == "pos" { return block + " position" }
+                return block + " " + (dynNames[p[1]] ?? p[1])
+            }
+            if p.count == 3 && p[1] == "filter" {
+                return block + " key filter " + (["on": "on", "type": "type", "f": "freq"][p[2]] ?? p[2])
+            }
+        case "insert":
+            if p.count == 2 { return "insert " + (["on": "on", "pos": "position", "sel": "slot"][p[1]] ?? p[1]) }
         case "preamp":
             if p.count == 2 {
                 return ["trim": "trim", "invert": "polarity", "hpon": "low cut", "hpf": "low cut freq", "hpslope": "low cut slope"][p[1]] ?? p[1]

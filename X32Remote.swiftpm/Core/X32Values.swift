@@ -245,6 +245,14 @@ enum X32Enums {
     static let ratioValues: [Float] = [1.1, 1.3, 1.5, 2, 2.5, 3, 4, 5, 7, 10, 20, 100]
     static let hpfSlopes = ["12", "18", "24"]
     static let sendTaps = ["In/LC", "<-EQ", "EQ->", "Pre", "Post", "Group"]
+    /// /…/insert/sel
+    static let insertSelections = ["Off", "FX1L", "FX1R", "FX2L", "FX2R", "FX3L", "FX3R", "FX4L", "FX4R",
+                                   "FX5L", "FX5R", "FX6L", "FX6R", "FX7L", "FX7R", "FX8L", "FX8R",
+                                   "Aux 1", "Aux 2", "Aux 3", "Aux 4", "Aux 5", "Aux 6"]
+    /// /…/insert/pos and /…/dyn/pos
+    static let prePost = ["Pre", "Post"]
+    /// Sidechain filter types for gate and compressor keys.
+    static let keyFilterTypes = ["LC6", "LC12", "HC6", "HC12", "BP 1.0", "BP 2.0", "BP 3.0", "BP 5.0", "BP 10.0"]
 
     /// /ch/xx/config/source values.
     static func sourceName(_ v: Int) -> String {

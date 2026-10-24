@@ -562,6 +562,9 @@ final class DemoTransport: X32Transport {
         if address.hasSuffix("/panFollow") { return .int(0) }
 
         if address.hasSuffix("/delay/time") { return .float(0) }
+        if address.hasSuffix("/insert/pos") || address.hasSuffix("/insert/sel") { return .int(0) }
+        if address.hasSuffix("/keysrc") || address.hasSuffix("/filter/type") || address.hasSuffix("/dyn/pos") { return .int(0) }
+        if address.hasSuffix("/filter/f") { return .float(0.5) }
         if address.contains("/preamp/") {
             if address.hasSuffix("/trim") { return .float(0.5) }
             if address.hasSuffix("/invert") { return .int(0) }

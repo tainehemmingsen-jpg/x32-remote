@@ -339,6 +339,11 @@ struct SetupPage: View {
                         SourcePicker(app: app, strip: strip)
                     }
                 }
+                if strip.hasInsert {
+                    Panel(title: "Insert") {
+                        InsertControls(app: app, strip: strip)
+                    }
+                }
                 if strip.linkPath != nil, let partner = strip.linkPartner {
                     Panel(title: "Stereo link") {
                         LinkSwitch(app: app, strip: strip, partner: partner)
@@ -361,6 +366,21 @@ struct SetupPage: View {
                 }
             }
             .padding(16)
+        }
+    }
+}
+
+/// Patch an effect (or an aux loop) into the strip.
+private struct InsertControls: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        HStack(spacing: 12) {
+            OnSwitch(app: app, address: strip.insertPath("on"), title: "Insert", width: 100)
+            EnumMenu(app: app, address: strip.insertPath("sel"), options: X32Enums.insertSelections)
+            EnumMenu(app: app, address: strip.insertPath("pos"), options: X32Enums.prePost)
+            Spacer()
         }
     }
 }
