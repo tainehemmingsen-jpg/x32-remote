@@ -510,14 +510,51 @@ private struct MonitorPopover: View {
     }
 }
 
+/// Talkback: tap to latch on (tap again for off), or hold to talk and let go to stop.
 private struct TalkButton: View {
     let app: AppModel
     let channel: String
+    @State private var pressedAt: Date?
+    @State private var wasOn = false
 
     var body: some View {
         let address = "/-stat/talk/\(channel)"
         let on = app.param(address).bool
-        LitButton(title: "Talk \(channel)", isOn: on, color: Theme.solo, height: 52, fontSize: 15, offColor: Theme.soloOff) {
+        VStack(spacing: 2) {
+            Text("Talk \(channel)")
+                .font(.system(size: 15))
+            Text(on ? "ON" : "tap or hold")
+                .font(.system(size: 10))
+                .opacity(0.75)
+        }
+        .foregroundStyle(on ? Color.black.opacity(0.82) : Theme.text.opacity(0.85))
+        .frame(maxWidth: .infinity, minHeight: 56, maxHeight: 56)
+        .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(on ? Theme.solo : Theme.soloOff))
+        .overlay(
+            TouchSurface(
+                onBegin: { _ in
+                    pressedAt = Date()
+                    wasOn = on
+                    if !on {
+                        app.setBool(address, true)
+                        Haptics.tick()
+                    }
+                },
+                onEnd: { _, _ in
+                    let held = pressedAt.map { Date().timeIntervalSince($0) } ?? 0
+                    pressedAt = nil
+                    // Already latched: a tap turns it off. Held down: it was push-to-talk, so stop.
+                    if wasOn || held >= 0.5 {
+                        app.setBool(address, false)
+                    }
+                }
+            )
+        )
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Talkback \(channel)")
+        .accessibilityValue(on ? "on" : "off")
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction {
             app.setBool(address, !on)
         }
     }

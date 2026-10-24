@@ -67,6 +67,8 @@ struct AppSettings: Codable, Equatable {
     /// The two custom layers: strip ids ("channel-5") and names.
     var userLayers: [[String]] = [[], []]
     var userLayerNames: [String] = ["User 1", "User 2"]
+    /// Opening a channel in the app also selects it on the desk's own screen.
+    var selectOnDesk: Bool = false
 
     static let defaultSimpleControls: [SimpleControl] = [
         SimpleControl(strip: StripID(.auxIn, 1), label: "Music", maxDB: 0),
@@ -79,7 +81,7 @@ struct AppSettings: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case lastHost, recentHosts, mode, pin, locked, monitorBus, monitorShowAll, monitorHidden
         case simpleTitle, simpleControls, hapticAtUnity, keepAwake, showFaderScale, autoConnect
-        case userLayers, userLayerNames
+        case userLayers, userLayerNames, selectOnDesk
     }
 
     init(from decoder: Decoder) throws {
@@ -104,6 +106,7 @@ struct AppSettings: Codable, Equatable {
         var names = try c.decodeIfPresent([String].self, forKey: .userLayerNames) ?? []
         while names.count < 2 { names.append("User \(names.count + 1)") }
         userLayerNames = names
+        selectOnDesk = try c.decodeIfPresent(Bool.self, forKey: .selectOnDesk) ?? false
     }
 
     private static let key = "X32Remote.settings.v1"

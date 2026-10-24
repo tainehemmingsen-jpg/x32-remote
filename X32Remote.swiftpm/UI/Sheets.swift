@@ -196,7 +196,14 @@ struct SettingsSheet: View {
                 } header: {
                     Text("Faders")
                 } footer: {
-                    Text("Tip: slide your finger sideways off a fader while dragging for fine control.")
+                    Text("Tips: slide your finger sideways off a fader for fine control. Double-tap a fader, or long-press any slider, to type an exact value.")
+                }
+                Section {
+                    Toggle("Select the channel on the desk when I open it", isOn: binding(\.selectOnDesk))
+                } header: {
+                    Text("Desk")
+                } footer: {
+                    Text("Handy when someone is standing at the desk: its screen jumps to the channel you're working on.")
                 }
                 Section {
                     SecureField(app.hasPIN ? "Change PIN" : "Set a PIN (4+ digits)", text: $newPIN)

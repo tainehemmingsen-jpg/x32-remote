@@ -816,6 +816,14 @@ final class AppModel {
         valueEditor = nil
         selectedStrip = strip
         detailStrip = strip
+        selectOnDesk(strip)
+    }
+
+    /// Selects the strip on the desk's own screen, if that's turned on in Settings.
+    func selectOnDesk(_ strip: StripID) {
+        guard settings.selectOnDesk, strip.kind != .dca else { return }
+        // The desk numbers strips 0-71 in the same order as its solo switches (1-72).
+        client?.set("/-stat/selidx", .int(Int32(strip.soloIndex - 1)))
     }
 
     func selectLayer(_ newLayer: MixerLayer) {

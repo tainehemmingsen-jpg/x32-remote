@@ -55,6 +55,7 @@ struct ChannelView: View {
             app.visibleDetailStrip = newStrip
             app.selectedStrip = newStrip
             app.loadDetail(newStrip)
+            app.selectOnDesk(newStrip)
         }
     }
 }
