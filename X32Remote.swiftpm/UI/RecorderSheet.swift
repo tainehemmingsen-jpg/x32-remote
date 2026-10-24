@@ -59,7 +59,7 @@ struct RecorderSheet: View {
                     .disabled(state.isRecording)
                 }
                 .disabled(!stateParam.isKnown)
-                Text("Records what's patched to the record outputs (Output patch → Record).")
+                Text("Records what's patched to the record outputs (Routing → Record).")
                     .font(.system(size: 12))
                     .foregroundStyle(Theme.tertiary)
                     .multilineTextAlignment(.center)
