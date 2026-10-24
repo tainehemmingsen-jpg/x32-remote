@@ -67,8 +67,9 @@ enum Effects {
         return friendlyNames[code] ?? code
     }
 
-    /// Types whose parameter layout two references disagree on: shown by name only, edited on the desk.
-    static let uncertainTypes: Set<String> = ["CMB", "CMB2", "FAC1M", "ENH2"]
+    /// Types whose parameter layout or ranges two references disagree on: shown by name only,
+    /// edited on the desk.
+    static let uncertainTypes: Set<String> = ["CMB", "CMB2", "FAC", "FAC1M", "FAC2", "ENH2", "PIT2"]
 
     /// Every type a slot can hold, grouped for the type menu: (group, [(type value, name)]).
     static func typeMenu(slot: Int) -> [(String, [(Int, String)])] {

@@ -81,6 +81,44 @@ if case .int(let ha)? = values["/-ha/00/index"] {
     check(values[StripID.headampGainPath(Int(ha))] != nil, "headamp gain for ch1 (headamp \(ha))")
 }
 
+// Effects, routing, monitoring, recorder and analyser settings.
+let extras = Effects.addresses() + Outputs.addresses() + InputRouting.addresses + Monitoring.addresses + Recorder.addresses
+    + [RTA.sourcePath, RTA.positionPath, RTA.screenPath, RTA.meterPagePath]
+let extrasStart = Date()
+client.get(extras)
+while client.pendingRequests > 0 && Date().timeIntervalSince(extrasStart) < 20 { spin(0.02) }
+let extrasMissing = extras.filter { values[$0] == nil }
+check(extrasMissing.isEmpty, "effects/routing/monitor params answered \(extras.count - extrasMissing.count)/\(extras.count)")
+if !extrasMissing.isEmpty { print("  unanswered: \(extrasMissing.prefix(30))") }
+
+// Load effect types and check every parameter comes back as the type the app sends (int or float).
+// (Slots 5-8 stop at type 11: the emulator's own table for later 5-8 types is out of step with its type list.)
+for (slot, type) in [(1, 15), (2, 21), (3, 55), (4, 47), (5, 11), (6, 6)] {
+    client.set(Effects.typePath(slot), .int(Int32(type)))
+    spin(0.2)
+    guard let params = Effects.parameters(slot: slot, type: type) else {
+        check(false, "FX \(slot) type \(type) has parameters")
+        continue
+    }
+    let paths = params.map { Effects.parPath(slot, $0.number) }
+    paths.forEach { values[$0] = nil }
+    client.get(paths)
+    let t0 = Date()
+    while client.pendingRequests > 0 && Date().timeIntervalSince(t0) < 5 { spin(0.02) }
+    var wrong: [String] = []
+    for p in params {
+        let v = values[Effects.parPath(slot, p.number)]
+        let isInt: Bool
+        if case .choice = p.kind { isInt = true } else { isInt = false }
+        switch v {
+        case .int?: if !isInt { wrong.append(p.name) }
+        case .float?: if isInt { wrong.append(p.name) }
+        default: wrong.append(p.name + " (no answer)")
+        }
+    }
+    check(wrong.isEmpty, "FX \(slot) \(Effects.typeName(slot: slot, type: type)): \(params.count) parameters match the desk \(wrong)")
+}
+
 // Changes from the app reach the desk (checked from a second, independent client).
 client.set("/ch/01/mix/fader", .float(X32Math.quantize(0.75, steps: 1023)))
 client.set("/ch/02/mix/on", .int(0))
@@ -89,13 +127,16 @@ client.set("/ch/04/mix/05/level", .float(X32Math.quantize(X32Math.dbToFader(-6),
 client.set("/ch/05/config/color", .int(4))
 client.set("/ch/06/eq/2/g", .float(X32Math.quantize(X32Math.linInverse(6, -15, 15), steps: 120)))
 client.set("/config/mute/3", .int(1))
+client.set(Outputs.path(.main, 5, "src"), .int(30))
+client.set(Monitoring.talkDestinationPath("A"), .int(0b11))
 for i in 0..<40 { client.set("/ch/07/mix/fader", .float(Float(i) / 40)) }
 spin(0.3)
 
 let other = X32Client(transport: try UDPTransport(host: host))
 var otherValues: [String: OSCArg] = [:]
 other.onMessage = { m in if let v = m.args.first { otherValues[m.address] = v } }
-let checks = ["/ch/01/mix/fader", "/ch/02/mix/on", "/ch/03/config/name", "/ch/04/mix/05/level", "/ch/05/config/color", "/ch/06/eq/2/g", "/config/mute/3", "/ch/07/mix/fader"]
+let checks = ["/ch/01/mix/fader", "/ch/02/mix/on", "/ch/03/config/name", "/ch/04/mix/05/level", "/ch/05/config/color", "/ch/06/eq/2/g", "/config/mute/3", "/ch/07/mix/fader",
+              Outputs.path(.main, 5, "src"), Monitoring.talkDestinationPath("A")]
 spin(0.3)
 other.get(checks)
 spin(0.6)
@@ -105,6 +146,8 @@ check(otherValues["/ch/03/config/name"] == .string("SelfTest"), "name reached de
 check(otherValues["/ch/05/config/color"] == .int(4), "colour reached desk")
 check(otherValues["/config/mute/3"] == .int(1), "mute group reached desk")
 check(otherValues["/ch/07/mix/fader"] == .float(39.0 / 40.0), "rapid fader moves end on the last value")
+check(otherValues[Outputs.path(.main, 5, "src")] == .int(30), "output patch reached desk")
+check(otherValues[Monitoring.talkDestinationPath("A")] == .int(0b11), "talkback destinations reached desk")
 
 // A change made elsewhere (the "desk") arrives through /xremote.
 values["/ch/08/mix/fader"] = nil

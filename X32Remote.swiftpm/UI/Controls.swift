@@ -16,7 +16,8 @@ struct TouchSurface: UIViewRepresentable {
     /// (moved, tapCount)
     var onEnd: (Bool, Int) -> Void = { _, _ in }
     /// React the instant a finger lands, even inside a scroll view (which normally holds touches
-    /// back for a moment to see whether they're a scroll). For tap tempo and talkback.
+    /// back for a moment to see whether they're a scroll). For buttons only (tap tempo,
+    /// talkback): begin/end come from a gesture recogniser, and moves aren't reported.
     var immediate = false
 
     func makeUIView(context: Context) -> TouchControl {
@@ -24,11 +25,18 @@ struct TouchSurface: UIViewRepresentable {
         view.backgroundColor = .clear
         view.isOpaque = false
         view.isMultipleTouchEnabled = false
+        if immediate {
+            view.immediate = true
+            // Gesture recognisers see a touch straight away, whatever a scroll view's delay.
+            let press = UILongPressGestureRecognizer(target: view, action: #selector(TouchControl.pressed(_:)))
+            press.minimumPressDuration = 0
+            press.cancelsTouchesInView = false
+            view.addGestureRecognizer(press)
+        }
         return view
     }
 
     func updateUIView(_ view: TouchControl, context: Context) {
-        view.immediate = immediate
         view.axis = axis
         view.onBegin = onBegin
         view.onMove = onMove
@@ -51,7 +59,28 @@ struct TouchSurface: UIViewRepresentable {
         private var directionDecided = false
         private var ignoringMoves = false
 
+        private var pressing = false
+
+        @objc func pressed(_ g: UILongPressGestureRecognizer) {
+            switch g.state {
+            case .began:
+                pressing = true
+                onBegin?(g.location(in: self))
+            case .ended:
+                guard pressing else { return }
+                pressing = false
+                onEnd?(false, 1)
+            case .cancelled, .failed:
+                guard pressing else { return }
+                pressing = false
+                onEnd?(true, 0)
+            default:
+                break
+            }
+        }
+
         override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+            if immediate { return }
             guard activeTouch == nil, let touch = touches.first else { return }
             activeTouch = touch
             moved = false
@@ -76,15 +105,9 @@ struct TouchSurface: UIViewRepresentable {
         /// gesture there and then, so the finger can't keep moving a strip nobody can see.
         override func didMoveToWindow() {
             super.didMoveToWindow()
-            if immediate && window != nil {
-                var view = superview
-                while let v = view {
-                    if let scroll = v as? UIScrollView {
-                        scroll.delaysContentTouches = false
-                        break
-                    }
-                    view = v.superview
-                }
+            if window == nil && pressing {
+                pressing = false
+                onEnd?(true, 0)
             }
             if window == nil && activeTouch != nil {
                 longPressWork?.cancel()

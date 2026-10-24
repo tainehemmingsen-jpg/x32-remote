@@ -809,7 +809,7 @@ final class EffectsTests: XCTestCase {
                 XCTAssertEqual(Effects.parameterCount(slot: slot, type: type), params.count)
             }
         }
-        XCTAssertGreaterThan(editable, 80)
+        XCTAssertGreaterThan(editable, 70)
         for code in Effects.uncertainTypes {
             let t = Effects.typeCodes1.firstIndex(of: code)!
             XCTAssertNil(Effects.parameters(slot: 1, type: t), code)

@@ -31,7 +31,7 @@ def unit(p):
     """Units only where the name and range leave no doubt."""
     name = p["_name"].lower()
     lo, hi = float(p.get("_min", 0)), float(p.get("_max", 0))
-    if p.get("_freq") or (("freq" in name or "cut" in name) and lo >= 1):
+    if p.get("_freq") or (("freq" in name or "cut" in name) and p["_type"] == "exponential" and lo >= 1):
         return "Hz"
     if ("gain" in name or "level" in name) and lo < 0:
         return "dB"
@@ -71,6 +71,7 @@ for code, params in tables.items():
                 steps = round((float(hi) - float(lo)) / float(p["_step"]))
                 scale = f".linear({num(lo)}, {num(hi)})"
             else:
+                assert p["_type"] == "exponential", p
                 steps = int(p["_steps"])
                 scale = f".logarithmic({num(lo)}, {num(hi)})"
             out.append(f"            ({swift_str(p['_name'])}, .value(ParamSpec({scale}, steps: {steps}, unit: {swift_str(unit(p))}, "

@@ -907,7 +907,11 @@ extension KeyControls {
         let base = X32Enums.sourceName(v)
         guard let strip = StripID.keySource(v) else { return base }
         // Input N is channel N's only when the channel is still patched to it.
-        if strip.kind == .channel, app.param(strip.sourcePath).int(or: -1) != v { return base }
+        if strip.kind == .channel || strip.kind == .auxIn {
+            // A channel or aux in carries that input only while it's still patched to it (both use
+            // the same source numbers as the key source).
+            if app.param(strip.sourcePath).int(or: -1) != v { return base }
+        }
         let name = app.param(strip.namePath).string
         return name.isEmpty ? base : "\(base) · \(name)"
     }
