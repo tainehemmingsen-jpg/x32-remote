@@ -79,6 +79,8 @@ struct MixerScreen: View {
                 MeterBridge(app: app)
             case .effects:
                 EffectsSheet(app: app)
+            case .outputs:
+                OutputsSheet(app: app)
             case .editUser1:
                 UserLayerEditor(app: app, index: 0)
             case .editUser2:
@@ -343,6 +345,12 @@ struct ConsoleMenu: View {
                     app.sheet = .settings
                 } label: {
                     Label("Settings", systemImage: "gearshape")
+                }
+                Button {
+                    app.loadOutputs()
+                    app.sheet = .outputs
+                } label: {
+                    Label("Output patch", systemImage: "arrow.triangle.branch")
                 }
             }
             Button(role: .destructive) {

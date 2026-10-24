@@ -17,6 +17,7 @@ final class AppModel {
         case modes
         case meters
         case effects
+        case outputs
         case editUser1
         case editUser2
         var id: String { rawValue }
@@ -549,6 +550,10 @@ final class AppModel {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
             self?.loadEffectParameters(slot: slot, type: type)
         }
+    }
+
+    func loadOutputs() {
+        client?.get(Outputs.addresses())
     }
 
     /// Reads every parameter the slot's effect uses (64 for a dual graphic EQ).
@@ -1142,6 +1147,9 @@ final class AppModel {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
                 if s == .scenes {
                     self?.loadScenes()
+                }
+                if s == .outputs {
+                    self?.loadOutputs()
                 }
                 if s == .effects {
                     let slot = d.integer(forKey: "autoFXSlot")

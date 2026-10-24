@@ -888,6 +888,30 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(PresetLibrary.sorted([ChannelPreset(name: "b", clip: clip), ChannelPreset(name: "A", clip: clip)]).map(\.name), ["A", "b"])
     }
 
+    func testOutputPatch() {
+        XCTAssertEqual(Outputs.sourceNames.count, 77)
+        XCTAssertEqual(Outputs.sourceName(0), "Off")
+        XCTAssertEqual(Outputs.sourceName(4), "Mix 1")
+        XCTAssertEqual(Outputs.sourceName(25), "Mtx 6")
+        XCTAssertEqual(Outputs.sourceName(26), "Ch 1 direct")
+        XCTAssertEqual(Outputs.sourceName(66), "FX 1L direct")
+        XCTAssertEqual(Outputs.sourceName(73), "FX 4R direct")
+        XCTAssertEqual(Outputs.sourceName(76), "Talkback")
+        XCTAssertEqual(Outputs.sourceStrip(19), StripID(.bus, 16))
+        XCTAssertEqual(Outputs.sourceStrip(57), StripID(.channel, 32))
+        XCTAssertEqual(Outputs.sourceStrip(65), StripID(.auxIn, 8))
+        XCTAssertNil(Outputs.sourceStrip(74))
+        XCTAssertTrue(Outputs.isDirectOut(26))
+        XCTAssertFalse(Outputs.isDirectOut(19))
+        XCTAssertEqual(Outputs.tapNames.count, 9)
+        XCTAssertEqual(Outputs.path(.p16, 3, "src"), "/outputs/p16/03/src")
+        XCTAssertEqual(Outputs.addresses().count, 84)
+        XCTAssertEqual(AddressNames.describe("/outputs/main/03/src"), "Out 3 source")
+        XCTAssertEqual(AddressNames.describe("/outputs/p16/12/pos"), "P16 12 tap point")
+        XCTAssertTrue(Outputs.addresses().allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+        XCTAssertEqual(Set(Outputs.sourceGroups.flatMap { Array($0.1) }).count, 76, "every source but Off is in a group")
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

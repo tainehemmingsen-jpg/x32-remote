@@ -78,6 +78,7 @@ enum AddressNames {
         for (key, label) in linkKinds where address.hasPrefix("/config/\(key)/") {
             return "\(label) \(address.dropFirst("/config/\(key)/".count)) link"
         }
+        if let name = Outputs.describe(address) { return name }
         if address.hasPrefix("/config/mute/") {
             return "Mute group " + String(address.dropFirst("/config/mute/".count))
         }

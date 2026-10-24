@@ -564,6 +564,21 @@ final class DemoTransport: X32Transport {
             }
         }
         if address == "/-show/prepos/current" { return .int(0) }
+        if address.hasPrefix("/outputs/") {
+            // A typical patch: local outs 1-2 = LR, then the mix buses; P16 = channel direct outs.
+            let parts = address.split(separator: "/")
+            guard parts.count == 4, let n = Int(parts[2]) else { return nil }
+            if parts[3] == "pos" { return .int(6) }
+            if parts[3] != "src" { return nil }
+            switch parts[1] {
+            case "main": return .int(Int32(n <= 2 ? n : n + 1))
+            case "aux": return .int(Int32(n + 3))
+            case "p16": return .int(Int32(25 + n))
+            case "aes": return .int(Int32(n))
+            case "rec": return .int(Int32(n))
+            default: return nil
+            }
+        }
         if address == RTA.sourcePath || address == RTA.screenPath || address == RTA.meterPagePath { return .int(0) }
         if address == RTA.positionPath { return .int(1) }
         if address == "/config/solo/level" { return .float(0.5) }
