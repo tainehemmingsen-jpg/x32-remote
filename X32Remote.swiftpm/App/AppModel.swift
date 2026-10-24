@@ -279,6 +279,14 @@ final class AppModel {
     private func handle(_ message: OSCMessage) {
         guard let value = message.args.first else { return }
         let address = message.address
+        if address == "/save" {
+            // The desk answers a scene save with ("scene", 1) for OK or ("scene", 0) for failure.
+            if message.args.count >= 2, message.args[1].intValue == 0 {
+                showToast("The desk couldn't save that scene")
+                loadScenes()
+            }
+            return
+        }
         let previous = store.value(address)
         if let t = lastLocalSet[address] {
             if X32Client.now() - t < 0.6 { return }
