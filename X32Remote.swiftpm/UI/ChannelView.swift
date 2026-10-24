@@ -888,7 +888,7 @@ private struct KeyControls: View {
                 .padding(.top, 6)
             if hasSource {
                 LabeledChoice(app: app, title: "Source", address: strip.base + "/\(block)/keysrc",
-                              options: (0...64).map { v in StripID.keySource(v).map { app.stripTitle($0) } ?? "Self" })
+                              options: (0...64).map(keySourceLabel))
             }
             HStack(spacing: 10) {
                 OnSwitch(app: app, address: strip.base + "/\(block)/filter/on", title: "Filter", width: 90)
@@ -896,6 +896,20 @@ private struct KeyControls: View {
             }
             ParamKnob(app: app, address: strip.base + "/\(block)/filter/f", spec: Specs.eqFreq, title: "Filter freq", enabled: filterOn)
         }
+    }
+}
+
+extension KeyControls {
+    /// The desk names key sources like input sources ("In 5", "USB L", "Bus 3"). Where it's clear
+    /// which strip carries that signal, its name is added.
+    func keySourceLabel(_ v: Int) -> String {
+        if v == 0 { return "Self" }
+        let base = X32Enums.sourceName(v)
+        guard let strip = StripID.keySource(v) else { return base }
+        // Input N is channel N's only when the channel is still patched to it.
+        if strip.kind == .channel, app.param(strip.sourcePath).int(or: -1) != v { return base }
+        let name = app.param(strip.namePath).string
+        return name.isEmpty ? base : "\(base) · \(name)"
     }
 }
 
