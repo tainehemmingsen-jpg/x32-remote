@@ -232,3 +232,19 @@ extension View {
             )
     }
 }
+
+/// Shows just the icon on phones, icon and title elsewhere.
+struct AdaptiveLabelStyle: LabelStyle {
+    let iconOnly: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        if iconOnly {
+            configuration.icon
+        } else {
+            HStack(spacing: 6) {
+                configuration.icon
+                configuration.title
+            }
+        }
+    }
+}

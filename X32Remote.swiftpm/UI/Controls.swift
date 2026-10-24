@@ -309,6 +309,8 @@ struct HFader: View {
     var maxValue: Float = 1
     var hapticAtUnity: Bool = true
     var fine: Bool = false
+    /// Double-tap (without moving) opens the precision editor.
+    var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
@@ -390,9 +392,12 @@ struct HFader: View {
                         dragValue = next
                         onChange(next)
                     },
-                    onEnd: { _, _ in
+                    onEnd: { moved, taps in
                         touching = false
                         onTouch(false)
+                        if !moved && taps == 2 {
+                            onLongPress?()
+                        }
                     }
                 )
             )

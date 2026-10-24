@@ -110,7 +110,7 @@ struct SimpleScreen: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
-        .background(Theme.panel)
+        .background(Theme.topBar)
     }
 }
 
@@ -142,6 +142,7 @@ private struct SimpleColumn: View {
                     maxValue: cap,
                     showScale: false,
                     hapticAtUnity: app.settings.hapticAtUnity,
+                    capTint: color,
                     onChange: { v in app.dragSet(strip.faderPath, drag, min(v, cap), steps: 1023) },
                     onTouch: { began in
                         if began { app.beginDrag(strip.faderPath, drag) } else { app.endDrag(drag) }

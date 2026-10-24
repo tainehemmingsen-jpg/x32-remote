@@ -5,9 +5,11 @@ struct MonitorScreen: View {
     @Bindable var app: AppModel
     @State private var editing = false
     @State private var askPIN = false
+    @Environment(\.horizontalSizeClass) private var sizeClass
 
     var body: some View {
         let bus = app.settings.monitorBus
+        let compact = sizeClass == .compact
         let busStrip = StripID(.bus, bus)
         let busName = app.param(busStrip.namePath).string
         let busColor = Theme.scribble(app.param(busStrip.colorPath).int)
@@ -27,11 +29,15 @@ struct MonitorScreen: View {
                         .lineLimit(1)
                 }
                 Spacer()
+                UndoButton(app: app)
+                FineButton(app: app, height: 34)
+                    .frame(width: 64)
                 if app.settings.locked {
                     Button {
                         askPIN = true
                     } label: {
                         Label("Locked", systemImage: "lock.fill")
+                            .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
                     .buttonStyle(.plain)
@@ -40,6 +46,7 @@ struct MonitorScreen: View {
                         editing = true
                     } label: {
                         Label("Choose", systemImage: "slider.horizontal.3")
+                            .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
                     .buttonStyle(.plain)
@@ -47,6 +54,7 @@ struct MonitorScreen: View {
                         app.setMode(.mixer)
                     } label: {
                         Label("Mixer", systemImage: "slider.vertical.3")
+                            .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
                     .buttonStyle(.plain)
@@ -54,7 +62,7 @@ struct MonitorScreen: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Theme.panel)
+            .background(Theme.topBar)
 
             MonitorMasterRow(app: app, bus: bus, color: busColor)
                 .padding(.horizontal, 14)
@@ -77,6 +85,13 @@ struct MonitorScreen: View {
             }
         }
         .background(Theme.background)
+        .overlay(alignment: .bottom) {
+            ToastView(app: app)
+        }
+        .overlay {
+            ValueEditorOverlay(app: app)
+        }
+        .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .onAppear {
             app.loadSends(bus: bus)
         }
@@ -126,6 +141,8 @@ private struct MonitorMasterRow: View {
                 value: fader.float,
                 tint: color,
                 hapticAtUnity: app.settings.hapticAtUnity,
+                fine: app.fineMode,
+                onLongPress: { app.editValue("\(app.stripTitle(strip)) · Overall level", strip.faderPath, Specs.fader) },
                 onChange: { v in app.dragSet(strip.faderPath, drag, v, steps: 1023) },
                 onTouch: { began in
                     if began { app.beginDrag(strip.faderPath, drag) } else { app.endDrag(drag) }
@@ -163,6 +180,8 @@ private struct MonitorRow: View {
             value: level.float,
             tint: color,
             hapticAtUnity: app.settings.hapticAtUnity,
+            fine: app.fineMode,
+            onLongPress: { app.editValue("\(name.isEmpty ? source.footLabel : name) in my mix", levelAddress, Specs.send) },
             onChange: { v in app.dragSet(levelAddress, drag, v, steps: 160) },
             onTouch: { began in
                 if began { app.beginDrag(levelAddress, drag) } else { app.endDrag(drag) }
@@ -203,7 +222,7 @@ private struct MonitorRow: View {
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 6)
-        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
+        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.panel))
     }
 }
 
