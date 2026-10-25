@@ -83,6 +83,10 @@ struct MixerScreen: View {
                 OutputsSheet(app: app)
             case .recorder:
                 RecorderSheet(app: app)
+            case .generator:
+                GeneratorSheet(app: app)
+            case .help:
+                HelpSheet()
             case .editUser1:
                 UserLayerEditor(app: app, index: 0)
             case .editUser2:
@@ -242,6 +246,15 @@ struct MixerTopBar: View {
         .padding(.horizontal, 8)
         .frame(height: 46)
         .background(Theme.topBar)
+        .onChange(of: app.autoPopover) { _, name in
+            // Automated screenshots only.
+            guard let name else { return }
+            app.autoPopover = nil
+            DispatchQueue.main.async {
+                if name == "monitor" { showMonitor = true }
+                if name == "mutegroups" { showMuteGroups = true }
+            }
+        }
     }
 }
 
@@ -359,6 +372,17 @@ struct ConsoleMenu: View {
                     app.sheet = .recorder
                 } label: {
                     Label("USB recorder", systemImage: "record.circle")
+                }
+                Button {
+                    app.loadGenerator()
+                    app.sheet = .generator
+                } label: {
+                    Label("Signal generator", systemImage: "waveform")
+                }
+                Button {
+                    app.sheet = .help
+                } label: {
+                    Label("How to use the app", systemImage: "questionmark.circle")
                 }
             }
             Button(role: .destructive) {

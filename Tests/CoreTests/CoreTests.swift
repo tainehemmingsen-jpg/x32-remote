@@ -1030,6 +1030,24 @@ final class SceneSaveTests: XCTestCase {
         XCTAssertEqual(AddressNames.describe("/config/routing/AES50B/9-16"), "AES50 B 9–16 routing")
     }
 
+    func testAutomixAndOscillator() {
+        XCTAssertEqual(Automix.groupPath(StripID(.channel, 7)), "/ch/07/automix/group")
+        XCTAssertNil(Automix.groupPath(StripID(.bus, 1)), "only channels have automix")
+        XCTAssertEqual(Automix.weightSpec.value(Automix.weightSpec.norm(3.5)), 3.5, accuracy: 0.01)
+        XCTAssertEqual(Automix.addresses(StripID(.channel, 1)).count, 2)
+        XCTAssertTrue((Automix.globalAddresses + Automix.addresses(StripID(.channel, 1))).allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+        XCTAssertEqual(Oscillator.destinations.count, 26)
+        XCTAssertEqual(Oscillator.destinationName(16), "Main L")
+        XCTAssertEqual(Oscillator.destinationName(19), "M/C")
+        XCTAssertEqual(Oscillator.destinationName(25), "Mtx 6")
+        XCTAssertEqual(Oscillator.frequencySpec.value(0), 20, accuracy: 0.01)
+        XCTAssertEqual(Oscillator.frequencySpec.value(1), 20000, accuracy: 1)
+        XCTAssertEqual(Oscillator.frequencySpec.steps, 120)
+        XCTAssertTrue(Oscillator.addresses.allSatisfy { DemoTransport.defaultValue(for: $0) != nil })
+        XCTAssertEqual(AddressNames.describe(Oscillator.onPath), "Generator on")
+        XCTAssertEqual(AddressNames.describe("/ch/03/automix/weight"), "Ch 3 automix weight")
+    }
+
     func testTapTempo() {
         var t = TapTempo()
         XCTAssertNil(t.tap(at: 10))

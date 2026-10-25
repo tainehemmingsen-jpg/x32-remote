@@ -18,7 +18,8 @@ struct ShowSheet: View {
     init(app: AppModel) {
         self.app = app
         // Open on whatever the desk's own GO button works with.
-        _tab = State(initialValue: Show.Control(rawValue: app.param(Show.controlPath).int(or: 1)) ?? .scenes)
+        let deskTab = Show.Control(rawValue: app.param(Show.controlPath).int(or: 1)) ?? .scenes
+        _tab = State(initialValue: app.autoShowTab ?? deskTab)
     }
 
     var body: some View {

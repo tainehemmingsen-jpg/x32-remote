@@ -98,6 +98,14 @@ shot "$IPAD" 44-landscape-monitor 10 0 -autoDemo YES -autoMode monitor -autoMoni
 shot "$IPAD" 45-landscape-simple 9 0 -autoDemo YES -autoMode simple -autoOrientation landscape
 shot "$IPAD" 52-landscape-eq-rta 10 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab eq -autoRTA YES -autoOrientation landscape
 shot "$IPAD" 51-landscape-geq 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 5 -autoOrientation landscape
+shot "$IPAD" 53-landscape-cues 10 0 -autoDemo YES -autoMode mixer -autoSheet scenes -autoShowTab cues -autoOrientation landscape
+shot "$IPAD" 54-landscape-routing 10 0 -autoDemo YES -autoMode mixer -autoSheet outputs -autoOrientation landscape
+shot "$IPAD" 55-landscape-fx-amp 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 1 -autoFXType 55 -autoOrientation landscape
+shot "$IPAD" 56-recorder 9 0 -autoDemo YES -autoMode mixer -autoSheet recorder
+shot "$IPAD" 57-generator 9 0 -autoDemo YES -autoMode mixer -autoSheet generator
+shot "$IPAD" 58-help 9 0 -autoDemo YES -autoMode mixer -autoSheet help
+shot "$IPAD" 59-setup-automix 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-2 -autoTab setup
+shot "$IPAD" 60-solo-popover 9 0 -autoDemo YES -autoMode mixer -autoPopover monitor
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 123 using command down' >> "$OUT/rotate.log" 2>&1 || true
 sleep 3
 
@@ -124,6 +132,10 @@ if [ -n "$IPHONE" ]; then
   shot "$IPHONE" 30-iphone-monitor 10 0 -autoDemo YES -autoMode monitor -autoMonitorBus 1
   shot "$IPHONE" 31-iphone-simple 10 0 -autoDemo YES -autoMode simple
   shot "$IPHONE" 32-iphone-connect 10 0 -autoMode mixer
+  shot "$IPHONE" 33-iphone-mixer 10 0 -autoDemo YES -autoMode mixer
+  shot "$IPHONE" 34-iphone-eq 10 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab eq
+  shot "$IPHONE" 35-iphone-cues 10 0 -autoDemo YES -autoMode mixer -autoSheet scenes -autoShowTab cues
+  shot "$IPHONE" 36-iphone-geq 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 5
 fi
 
 xcrun simctl spawn "$IPAD" log show --last 5m --predicate 'process == "X32Remote" OR process == "X32 Remote"' --style compact > "$OUT/app-log.txt" 2>/dev/null || true

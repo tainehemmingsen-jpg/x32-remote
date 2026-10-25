@@ -29,15 +29,7 @@ check(client.status == .connected, "connected to \(host) in \(String(format: "%.
 check(info != nil, "console info: \(info.map { "\($0.name) \($0.model) \($0.firmware)" } ?? "none")")
 
 // The same requests the app makes when it connects.
-var addresses: [String] = []
-for s in StripID.everything {
-    addresses += [s.namePath, s.colorPath, s.faderPath, s.onPath, s.soloPath]
-    if let p = s.panPath { addresses.append(p) }
-    if let p = s.lrAssignPath { addresses.append(p) }
-    if let p = s.dcaGroupsPath { addresses.append(p) }
-    if let p = s.muteGroupsPath { addresses.append(p) }
-}
-for n in 1...6 { addresses.append("/config/mute/\(n)") }
+let addresses = Requests.sync() + Requests.stripOverview() + Requests.sends(bus: 1)
 let syncStart = Date()
 client.get(addresses)
 while client.pendingRequests > 0 && Date().timeIntervalSince(syncStart) < 20 { spin(0.02) }
@@ -47,49 +39,26 @@ let missing = addresses.filter { values[$0] == nil }
 if !missing.isEmpty { print("  unanswered: \(missing.prefix(20))") }
 check(values["/ch/13/config/name"] == .string("Lead Vox"), "reads seeded name ch13 = \(String(describing: values["/ch/13/config/name"]))")
 
-// Detail page requests for a channel and a bus.
+// Every strip's channel page, plus every sheet and tool. A desk answers all of these; an address
+// it doesn't know would leave a control showing "—" forever.
 let detail: [String] = {
     var a: [String] = []
-    for s in [StripID(.channel, 1), StripID(.bus, 1), StripID.mainLR] {
-        if s.hasEQ { a.append(s.eqOnPath); for b in 1...s.eqBandCount { for f in ["type", "f", "g", "q"] { a.append(s.eqPath(b, f)) } } }
-        if s.hasGate { for f in ["on", "mode", "thr", "range", "attack", "hold", "release", "keysrc", "filter/on", "filter/type", "filter/f"] { a.append(s.gatePath(f)) } }
-        if s.hasDynamics { for f in ["on", "mode", "det", "env", "thr", "ratio", "knee", "mgain", "attack", "hold", "release", "mix", "auto", "pos", "filter/on", "filter/type", "filter/f"] { a.append(s.dynPath(f)) } }
-        if s.hasDynKeySource { a.append(s.dynPath("keysrc")) }
-        if s.hasInsert { a += ["on", "pos", "sel"].map { s.insertPath($0) } }
-        for n in 1...s.sendCount { a.append(s.sendLevelPath(n)); a.append(s.sendOnPath(n)); if n % 2 == 1 { a.append(s.sendTypePath(n)) } }
-        if s.hasTrim { a.append(s.preampPath("trim")) }
-        if s.hasHighPass { a += [s.preampPath("hpon"), s.preampPath("hpf"), s.preampPath("hpslope")] }
-        if let ha = s.headampIndexPath { a.append(ha) }
-        if let p = s.monoLevelPath { a.append(p) }
-    }
-    for n in 0..<100 {
-        a.append(String(format: "/-show/showfile/scene/%03d/hasdata", n))
-        a.append(String(format: "/-show/showfile/scene/%03d/name", n))
-    }
-    a.append("/-show/prepos/current")
-    return a
+    for s in StripID.everything { a += Requests.detail(s) }
+    a += Requests.everythingElse()
+    var seen = Set<String>()
+    return a.filter { seen.insert($0).inserted }
 }()
 let detailStart = Date()
 client.get(detail)
 while client.pendingRequests > 0 && Date().timeIntervalSince(detailStart) < 20 { spin(0.02) }
 let detailMissing = detail.filter { values[$0] == nil }
-check(detailMissing.isEmpty, "detail params answered \(detail.count - detailMissing.count)/\(detail.count)")
+check(detailMissing.isEmpty, "every address the app can ask for is answered: \(detail.count - detailMissing.count)/\(detail.count)")
 if !detailMissing.isEmpty { print("  unanswered: \(detailMissing.prefix(30))") }
 if case .int(let ha)? = values["/-ha/00/index"] {
     client.get([StripID.headampGainPath(Int(ha)), StripID.headampPhantomPath(Int(ha))])
     spin(0.3)
     check(values[StripID.headampGainPath(Int(ha))] != nil, "headamp gain for ch1 (headamp \(ha))")
 }
-
-// Effects, routing, monitoring, recorder and analyser settings.
-let extras = Effects.addresses() + Outputs.addresses() + InputRouting.addresses + Monitoring.addresses + Recorder.addresses
-    + [RTA.sourcePath, RTA.positionPath, RTA.screenPath, RTA.meterPagePath]
-let extrasStart = Date()
-client.get(extras)
-while client.pendingRequests > 0 && Date().timeIntervalSince(extrasStart) < 20 { spin(0.02) }
-let extrasMissing = extras.filter { values[$0] == nil }
-check(extrasMissing.isEmpty, "effects/routing/monitor params answered \(extras.count - extrasMissing.count)/\(extras.count)")
-if !extrasMissing.isEmpty { print("  unanswered: \(extrasMissing.prefix(30))") }
 
 // Load effect types and check every parameter comes back as the type the app sends (int or float).
 // (Slots 5-8 stop at type 11: the emulator's own table for later 5-8 types is out of step with its type list.)

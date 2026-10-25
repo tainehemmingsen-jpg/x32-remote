@@ -83,6 +83,11 @@ enum AddressNames {
             return "\(label) \(address.dropFirst("/config/\(key)/".count)) link"
         }
         if let name = Outputs.describe(address) { return name }
+        let tools = [Oscillator.onPath: "Generator on", Oscillator.levelPath: "Generator level", Oscillator.f1Path: "Generator F1",
+                     Oscillator.f2Path: "Generator F2", Oscillator.selectPath: "Generator frequency select",
+                     Oscillator.typePath: "Generator type", Oscillator.destinationPath: "Generator destination",
+                     Automix.enablePath("X"): "Automix X", Automix.enablePath("Y"): "Automix Y"]
+        if let name = tools[address] { return name }
         if let block = InputRouting.blocks.first(where: { $0.path == address }) { return "\(block.title) input routing" }
         if let block = OutputRouting.play.first(where: { $0.path == address }) { return "\(block.title) playback routing" }
         if let block = OutputRouting.sections.flatMap({ $0.1 }).first(where: { $0.path == address }) { return "\(block.title) routing" }
@@ -168,6 +173,8 @@ enum AddressNames {
             }
         case "grp":
             if p.count == 2 { return p[1] == "dca" ? "DCA groups" : "mute groups" }
+        case "automix":
+            if p.count == 2 { return "automix " + p[1] }
         default:
             break
         }

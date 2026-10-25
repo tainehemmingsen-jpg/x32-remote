@@ -364,8 +364,36 @@ struct SetupPage: View {
                         MainAssign(app: app, strip: strip)
                     }
                 }
+                if let group = Automix.groupPath(strip), let weight = Automix.weightPath(strip) {
+                    Panel(title: "Automix") {
+                        AutomixControls(app: app, groupPath: group, weightPath: weight)
+                    }
+                }
             }
             .padding(16)
+        }
+    }
+}
+
+/// Automix group and weight for a channel, plus the two group switches.
+private struct AutomixControls: View {
+    let app: AppModel
+    let groupPath: String
+    let weightPath: String
+
+    var body: some View {
+        let group = app.param(groupPath).int(or: 0)
+        VStack(alignment: .leading, spacing: 10) {
+            LabeledChoice(app: app, title: "Group", address: groupPath, options: Automix.groupNames)
+            ParamKnob(app: app, address: weightPath, spec: Automix.weightSpec, title: "Weight", bipolar: true, enabled: group > 0)
+            HStack(spacing: 10) {
+                OnSwitch(app: app, address: Automix.enablePath("X"), title: "Automix X on", width: 120)
+                OnSwitch(app: app, address: Automix.enablePath("Y"), title: "Automix Y on", width: 120)
+                Spacer()
+            }
+            Text("Channels in a group share one gain budget: whoever is loudest comes through and the others come down. Weight favours a channel within its group.")
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.tertiary)
         }
     }
 }

@@ -664,6 +664,13 @@ final class DemoTransport: X32Transport {
         if address == RTA.positionPath { return .int(1) }
         if address == "/config/solo/level" { return .float(0.5) }
         if address == Monitoring.sourcePath { return .int(1) }
+        if address.hasSuffix("/automix/group") || address.hasPrefix("/config/amixenable/") { return .int(0) }
+        if address.hasSuffix("/automix/weight") { return .float(0.5) }
+        if address == Oscillator.onPath || address == Oscillator.selectPath || address == Oscillator.typePath { return .int(0) }
+        if address == Oscillator.levelPath { return .float(X32Math.dbToFader(-20)) }
+        if address == Oscillator.f1Path { return .float(Oscillator.frequencySpec.norm(1000)) }
+        if address == Oscillator.f2Path { return .float(Oscillator.frequencySpec.norm(100)) }
+        if address == Oscillator.destinationPath { return .int(18) }
         if address == Recorder.statePath { return .int(0) }
         if address == Recorder.mountedPath { return .int(1) }
         if address == Recorder.filePath { return .string("R_20261024-201500.wav") }
