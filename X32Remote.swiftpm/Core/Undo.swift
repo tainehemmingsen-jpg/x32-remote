@@ -84,6 +84,9 @@ enum AddressNames {
         }
         if let name = Outputs.describe(address) { return name }
         if let block = InputRouting.blocks.first(where: { $0.path == address }) { return "\(block.title) input routing" }
+        if let block = OutputRouting.play.first(where: { $0.path == address }) { return "\(block.title) playback routing" }
+        if let block = OutputRouting.sections.flatMap({ $0.1 }).first(where: { $0.path == address }) { return "\(block.title) routing" }
+        if address == OutputRouting.switchPath { return "Record/play routing" }
         if address.hasPrefix("/config/mute/") {
             return "Mute group " + String(address.dropFirst("/config/mute/".count))
         }

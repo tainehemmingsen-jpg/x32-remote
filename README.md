@@ -8,7 +8,7 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Monitor mix mode** — one performer's mix on big faders, with only the inputs they need, lockable with a PIN.
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
 - **Effects** — the FX icon shows all eight slots: what's loaded, which mix feeds it, where it's inserted, and the return level. Nearly every effect type can be loaded and edited (reverbs, delays, modulation, EQs, de-essers, compressors, limiters, enhancers, amps, pitch), and graphic EQs (GEQ/TEQ, stereo or dual) in any slot get a 31-band editor — drag a band, or sweep across to draw a curve.
-- **Routing** — from the desk-name menu: which inputs (local, AES50 A/B, card) feed each block of channels and the aux ins, and what each local out, aux out, P16 (Ultranet), AES and record output carries, with the tap point for direct outs. Every change asks first.
+- **Routing** — from the desk-name menu: which inputs (local, AES50 A/B, card) feed each block of channels and the aux ins (record and play sets), what each local out, aux out, P16 (Ultranet), AES and record output carries (tap point, polarity, and delay on the local outs), and the output blocks for the local XLRs, AES50 A/B and the card. Every patch change asks first.
 - **USB recorder** — play, pause, record and stop the desk's USB stick recorder from the desk-name menu.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console.
 
@@ -72,7 +72,7 @@ It hasn't been run against a physical X32 yet. If something behaves differently 
 
 ## Not in this version
 
-Output blocks for AES50/card, the Combinator, Fair Compressor, Dual Enhancer and Dual Pitch Shifter effect settings (edit those on the desk), and the desk's own library presets.
+The Combinator, Fair Compressor, Dual Enhancer and Dual Pitch Shifter effect settings (edit those on the desk), and the desk's own library presets.
 
 ---
 

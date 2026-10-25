@@ -66,9 +66,16 @@ enum Outputs {
         ("Channel direct outs", 26...57), ("Aux direct outs", 58...65), ("FX direct outs", 66...73), ("Monitor", 74...76)
     ]
 
+    /// Only the local XLR outs have a delay (for delay towers and fills).
+    static func hasDelay(_ group: Group) -> Bool { group == .main }
+
     static func addresses() -> [String] {
         Group.allCases.flatMap { g in
-            (1...g.count).flatMap { n in [path(g, n, "src"), path(g, n, "pos")] }
+            (1...g.count).flatMap { n -> [String] in
+                var a = [path(g, n, "src"), path(g, n, "pos"), path(g, n, "invert")]
+                if hasDelay(g) { a += [path(g, n, "delay/on"), path(g, n, "delay/time")] }
+                return a
+            }
         }
     }
 }
@@ -95,7 +102,11 @@ extension Outputs {
     /// "/outputs/main/03/src" -> "Out 3 source".
     static func describe(_ address: String) -> String? {
         let parts = address.split(separator: "/")
-        guard parts.count == 4, parts[0] == "outputs", let g = Group(rawValue: String(parts[1])), let n = Int(parts[2]) else { return nil }
+        guard parts.count >= 4, parts[0] == "outputs", let g = Group(rawValue: String(parts[1])), let n = Int(parts[2]) else { return nil }
+        if parts.count == 5 && parts[3] == "delay" {
+            return "\(g.shortLabel) \(n) delay" + (parts[4] == "time" ? " time" : "")
+        }
+        guard parts.count == 4 else { return nil }
         let field = ["src": "source", "pos": "tap point", "invert": "polarity"][String(parts[3])] ?? String(parts[3])
         return "\(g.shortLabel) \(n) \(field)"
     }

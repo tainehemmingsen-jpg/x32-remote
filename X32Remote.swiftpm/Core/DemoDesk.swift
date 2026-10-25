@@ -620,6 +620,19 @@ final class DemoTransport: X32Transport {
             }
         }
         if address == "/-show/prepos/current" { return .int(0) }
+        if address.hasPrefix("/config/routing/OUT/") {
+            // Local XLR outs carry the 16 "Out" signals.
+            return .int(20)
+        }
+        if address.hasPrefix("/config/routing/AES50A/") || address.hasPrefix("/config/routing/AES50B/") || address.hasPrefix("/config/routing/CARD/") {
+            let block = Int(address.split(separator: "/").last?.split(separator: "-").first ?? "1") ?? 1
+            return .int(Int32((block - 1) / 8))   // local inputs, block by block
+        }
+        if address == OutputRouting.switchPath { return .int(0) }
+        if address.hasPrefix("/config/routing/PLAY/") {
+            let tail = address.dropFirst("/config/routing/PLAY/".count)
+            return .int(Int32(["1-8": 16, "9-16": 17, "17-24": 18, "25-32": 19, "AUX": 10][String(tail)] ?? 0))
+        }
         if address.hasPrefix("/config/routing/IN/") {
             // Local inputs on channels 1-32, local aux on the aux ins.
             switch address.dropFirst("/config/routing/IN/".count) {
@@ -633,8 +646,10 @@ final class DemoTransport: X32Transport {
         if address.hasPrefix("/outputs/") {
             // A typical patch: local outs 1-2 = LR, then the mix buses; P16 = channel direct outs.
             let parts = address.split(separator: "/")
+            if parts.count == 5, parts[3] == "delay" { return parts[4] == "on" ? .int(0) : .float(0) }
             guard parts.count == 4, let n = Int(parts[2]) else { return nil }
             if parts[3] == "pos" { return .int(6) }
+            if parts[3] == "invert" { return .int(0) }
             if parts[3] != "src" { return nil }
             switch parts[1] {
             case "main": return .int(Int32(n <= 2 ? n : n + 1))
