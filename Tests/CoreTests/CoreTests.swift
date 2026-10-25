@@ -1063,6 +1063,48 @@ final class SceneSaveTests: XCTestCase {
         client.close()
     }
 
+    func testShowCuesAndPositions() {
+        XCTAssertEqual(Show.cueNumber(100), "1.0.0")
+        XCTAssertEqual(Show.cueNumber(123), "1.2.3")
+        XCTAssertEqual(Show.cueNumber(1000), "10.0.0")
+        XCTAssertEqual(Show.cueNumber(-1), "—")
+        XCTAssertEqual(Show.cuePath(7, "numb"), "/-show/showfile/cue/007/numb")
+        XCTAssertEqual(Show.snippetPath(3, "hasdata"), "/-show/showfile/snippet/003/hasdata")
+        XCTAssertEqual(Show.Control.cues.goAction, "/-action/gocue")
+        XCTAssertEqual(Show.listAddresses(.cues).count, 2 + 500 * 2)
+        XCTAssertEqual(Show.listAddresses(.snippets).count, 2 + 100 * 2)
+        XCTAssertNil(Show.cueScene(scene: -1))
+        XCTAssertEqual(Show.cueSnippet(bit: 4), 4)
+        // GO skips cues flagged skip and stops at the end; unknown entries mean "not read yet".
+        let exists: [Int: Bool] = [0: true, 1: true, 2: false, 3: true]
+        XCTAssertEqual(Show.nextCue(after: 0, exists: { exists[$0] ?? false }, skipped: { $0 == 1 }), 3)
+        XCTAssertEqual(Show.nextCue(after: -1, exists: { exists[$0] ?? false }, skipped: { _ in false }), 0)
+        XCTAssertNil(Show.nextCue(after: 3, exists: { exists[$0] ?? false }, skipped: { _ in false }))
+        XCTAssertNil(Show.nextCue(after: 0, exists: { $0 == 1 ? nil : (exists[$0] ?? false) }, skipped: { _ in false }), "unread cue")
+        for a in Show.listAddresses(.cues) + Show.listAddresses(.snippets) + Show.cueDetailAddresses(0) + [Show.namePath] {
+            XCTAssertNotNil(DemoTransport.defaultValue(for: a), a)
+        }
+    }
+
+    func testDemoDeskFiresCues() {
+        let demo = DemoTransport()
+        let client = X32Client(transport: demo)
+        var values: [String: OSCArg] = [:]
+        client.onMessage = { m in if let v = m.args.first { values[m.address] = v } }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        client.get([Show.cuePath(2, "name"), Show.cuePath(2, "scene"), Show.controlPath, Show.snippetPath(0, "hasdata")])
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertEqual(values[Show.cuePath(2, "name")], .string("Band on"))
+        XCTAssertEqual(values[Show.cuePath(2, "scene")], .int(1))
+        XCTAssertEqual(values[Show.snippetPath(0, "hasdata")], .int(1))
+        // Cue 1 fires scene 3 ("Speeches": band muted). Show control is scenes, so the position follows the scene.
+        client.send(OSCMessage("/-action/gocue", [.int(1)]))
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertEqual(values["/ch/01/mix/on"], .int(0))
+        XCTAssertEqual(values[Show.currentPath], .int(3))
+        client.close()
+    }
+
     func testDemoDeskSavesScenes() {
         let demo = DemoTransport()
         var received: [OSCMessage] = []

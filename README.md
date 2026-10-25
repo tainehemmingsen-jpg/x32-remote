@@ -59,12 +59,12 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Tap tempo:** delays in the effects rack have a TAP button — tap along to the music to set the delay time.
 - **Graphic EQ:** on a GEQ in the effects rack, drag a band up or down; sweep sideways to draw a curve; double-tap a band to reset it.
 - **48 V** asks for confirmation before switching on.
-- **Scenes** ask before recalling, then the app re-reads the desk.
+- **Show:** the folder icon has the cue list (with GO to the next cue), scenes (recall and save) and snippets. Every recall asks first, then the app re-reads the desk.
 - **Locking:** in Monitor or Simple mode, set a PIN and lock. The mixer is then hidden until someone enters the PIN.
 
 ## How it was tested
 
-- `Tests/CoreTests` — 75 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
+- `Tests/CoreTests` — 77 unit tests for the OSC codec, X32 value scales (fader law, EQ, dynamics, typed values), addresses, meters, the client (request window, retries, coalescing, reconnect), undo, copy/paste, stereo links, DCA spill, layers and the demo desk.
 - `Tests/Integration` — drives the real networking code against [Patrick‑Gilles Maillot's X32 emulator](https://github.com/pmaillot/X32-Behringer) over UDP: connects, reads ~680 parameters plus ~390 channel-page parameters, checks changes reach the desk, updates from another client arrive, meters decode, and loaded effects answer with the parameter types the app sends.
 - `ci/` + `.github/workflows/ios.yml` — on every push, a self-hosted GitHub Actions runner on the owner's Mac (so it costs nothing) builds the app with Xcode, runs the tests, screenshots every screen in the iPad and iPhone simulators, and runs the app against the emulator to check its changes reach the "desk". Results (logs + screenshots) land on the `ci-results` branch.
 

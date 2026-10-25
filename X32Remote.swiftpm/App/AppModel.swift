@@ -312,12 +312,28 @@ final class AppModel {
         if address.hasPrefix("/-ha/") && address.hasSuffix("/index"), let ha = value.intValue, ha >= 0, ha < 128 {
             client?.get([StripID.headampGainPath(ha), StripID.headampPhantomPath(ha)])
         }
-        if address == "/-show/prepos/current", let scene = value.intValue, scene >= 0, scene < 100 {
-            client?.get(String(format: "/-show/showfile/scene/%03d/name", scene))
-            // A scene recalled on the desk changes almost everything: read it all again.
+        if address == Show.currentPath, let position = value.intValue {
+            // The position is a cue, scene or snippet index depending on the desk's show-control mode.
+            let control = Show.Control(rawValue: store.value(Show.controlPath)?.intValue ?? -1) ?? .scenes
+            if position >= 0 && position < control.count {
+                client?.get(control.path(position, "name"))
+            }
+            // Something recalled on the desk can change almost everything: read it all again.
             if let old = previous, old != value {
                 clearUndo()
                 scheduleResync()
+            }
+        }
+        if address.hasPrefix("/-show/showfile/cue/"), address.hasSuffix("/name") || address.hasSuffix("/numb") {
+            // Once a cue is known to exist, read what it fires.
+            let parts = address.split(separator: "/")
+            if parts.count == 5, let n = Int(parts[3]), n >= 0, n < Show.Control.cues.count {
+                let name = store.value(Show.cuePath(n, "name"))?.stringValue ?? ""
+                let numb = store.value(Show.cuePath(n, "numb"))?.intValue ?? 0
+                if !name.isEmpty || numb > 0 {
+                    let details = Show.cueDetailAddresses(n).filter { store.value($0) == nil }
+                    if !details.isEmpty { client?.get(details) }
+                }
             }
         }
     }
@@ -438,8 +454,8 @@ final class AppModel {
         }
         a += ["/config/solo/level", "/config/solo/dim", "/-stat/talk/A", "/-stat/talk/B", "/config/talk/A/level", "/config/talk/B/level"]
         a += Monitoring.addresses
+        a += [Show.controlPath, Show.currentPath, Show.namePath]
         a += StripID.allLinkPaths
-        a.append("/-show/prepos/current")
         a.append("/-stat/solo")
         c.get(a)
 
@@ -611,11 +627,15 @@ final class AppModel {
     }
 
     func loadScenes() {
+        loadShow(.scenes)
+    }
+
+    /// Reads the list for one part of the show (cues also need the scene and snippet names they refer to).
+    func loadShow(_ control: Show.Control) {
         guard let c = client else { return }
-        var a: [String] = ["/-show/prepos/current"]
-        for n in 0..<100 {
-            a.append(String(format: "/-show/showfile/scene/%03d/hasdata", n))
-            a.append(String(format: "/-show/showfile/scene/%03d/name", n))
+        var a = Show.listAddresses(control) + [Show.namePath]
+        if control == .cues {
+            a += (0..<100).flatMap { [Show.scenePath($0, "name"), Show.snippetPath($0, "name")] }
         }
         c.get(a)
     }
@@ -813,9 +833,18 @@ final class AppModel {
     }
 
     func recallScene(_ n: Int) {
+        recall(.scenes, n)
+    }
+
+    /// Fires a cue, scene or snippet on the desk.
+    func recall(_ control: Show.Control, _ n: Int) {
+        guard (0..<control.count).contains(n) else { return }
         clearUndo()
-        client?.send(OSCMessage("/-action/goscene", [.int(Int32(n))]))
-        store.applyLocal("/-show/prepos/current", .int(Int32(n)))
+        client?.send(OSCMessage(control.goAction, [.int(Int32(n))]))
+        // The desk's "current position" only follows the kind its show control is set to.
+        if Show.Control(rawValue: store.value(Show.controlPath)?.intValue ?? -1) == control {
+            store.applyLocal(Show.currentPath, .int(Int32(n)))
+        }
         scheduleResync()
     }
 

@@ -67,6 +67,19 @@ final class DemoTransport: X32Transport {
                 recallScene(n)
             }
             return
+        case "/-action/gocue":
+            if let n = message.args.first?.intValue, (0..<Show.Control.cues.count).contains(n) {
+                if let scene = Show.cueScene(scene: int(Show.cuePath(n, "scene"))) {
+                    recallScene(scene)
+                }
+                if int(Show.controlPath) == Show.Control.cues.rawValue { change(Show.currentPath, .int(Int32(n))) }
+            }
+            return
+        case "/-action/gosnippet":
+            if let n = message.args.first?.intValue, (0..<100).contains(n) {
+                if int(Show.controlPath) == Show.Control.snippets.rawValue { change(Show.currentPath, .int(Int32(n))) }
+            }
+            return
         case "/save":
             // /save ,siss scene <n> <name> <note>
             if message.args.count >= 3, case .string(let kind) = message.args[0], kind == "scene",
@@ -131,7 +144,8 @@ final class DemoTransport: X32Transport {
 
     private func recallScene(_ n: Int) {
         guard n >= 0, n < sceneNames.count else { return }
-        change("/-show/prepos/current", .int(Int32(n)))
+        // The desk's position follows scenes only while its show control is set to scenes.
+        if int(Show.controlPath) == Show.Control.scenes.rawValue { change(Show.currentPath, .int(Int32(n))) }
         let bandChannels = Array(1...21)
         switch n {
         case 3:
@@ -518,10 +532,26 @@ final class DemoTransport: X32Transport {
         values["/main/m/config/name"] = .string("Sub/Center")
 
         for (i, name) in sceneNames.enumerated() {
-            values[String(format: "/-show/showfile/scene/%03d/name", i)] = .string(name)
-            values[String(format: "/-show/showfile/scene/%03d/hasdata", i)] = .int(1)
+            values[Show.scenePath(i, "name")] = .string(name)
+            values[Show.scenePath(i, "hasdata")] = .int(1)
         }
-        values["/-show/prepos/current"] = .int(1)
+        values[Show.currentPath] = .int(1)
+        values[Show.controlPath] = .int(Int32(Show.Control.scenes.rawValue))
+        values[Show.namePath] = .string("Saturday gig")
+        // A small cue list: (number, name, scene, snippet)
+        let cues: [(Int, String, Int, Int)] = [(100, "Doors", 4, -1), (200, "Welcome", 3, -1), (300, "Band on", 1, 0),
+                                               (310, "Acoustic", 2, -1), (320, "Full band", 1, 1), (400, "Encore", 1, 0), (500, "Walk-out", 4, -1)]
+        for (i, cue) in cues.enumerated() {
+            values[Show.cuePath(i, "numb")] = .int(Int32(cue.0))
+            values[Show.cuePath(i, "name")] = .string(cue.1)
+            values[Show.cuePath(i, "scene")] = .int(Int32(cue.2))
+            values[Show.cuePath(i, "bit")] = .int(Int32(cue.3))
+            values[Show.cuePath(i, "skip")] = .int(i == 5 ? 1 : 0)
+        }
+        for (i, name) in ["FX on", "FX off", "Vox EQ tweak"].enumerated() {
+            values[Show.snippetPath(i, "name")] = .string(name)
+            values[Show.snippetPath(i, "hasdata")] = .int(1)
+        }
     }
 
     /// What an untouched X32 reports for parameters the demo hasn't set.
@@ -548,10 +578,17 @@ final class DemoTransport: X32Transport {
             if address.hasSuffix("/gain") { return .float(X32Math.linInverse(20, -12, 60)) }
             if address.hasSuffix("/phantom") { return .int(0) }
         }
-        if address.hasPrefix("/-show/showfile/scene/") {
+        if address.hasPrefix("/-show/showfile/scene/") || address.hasPrefix("/-show/showfile/snippet/") {
             if address.hasSuffix("/name") { return .string("") }
             if address.hasSuffix("/hasdata") { return .int(0) }
         }
+        if address.hasPrefix("/-show/showfile/cue/") {
+            if address.hasSuffix("/name") { return .string("") }
+            if address.hasSuffix("/numb") || address.hasSuffix("/skip") { return .int(0) }
+            if address.hasSuffix("/scene") || address.hasSuffix("/bit") { return .int(-1) }
+        }
+        if address == Show.controlPath { return .int(1) }
+        if address == Show.namePath { return .string("") }
         if address.hasPrefix("/-stat/solosw/") || address == "/-stat/solo" { return .int(0) }
         if address.hasPrefix("/config/mute/") { return .int(0) }
         if address.hasPrefix("/config/") && address.contains("link/") { return .int(0) }

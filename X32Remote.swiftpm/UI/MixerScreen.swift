@@ -70,7 +70,7 @@ struct MixerScreen: View {
         }) { sheet in
             switch sheet {
             case .scenes:
-                ScenesSheet(app: app)
+                ShowSheet(app: app)
             case .settings:
                 SettingsSheet(app: app)
             case .modes:
@@ -194,7 +194,7 @@ struct MixerTopBar: View {
                     app.sheet = .meters
                 }
                 FXIcon(app: app)
-                TopIcon(systemName: "folder", label: "Scenes") {
+                TopIcon(systemName: "folder", label: "Show: cues, scenes and snippets") {
                     app.loadScenes()
                     app.sheet = .scenes
                 }
@@ -218,7 +218,7 @@ struct MixerTopBar: View {
                     Button {
                         app.loadScenes()
                         app.sheet = .scenes
-                    } label: { Label("Scenes", systemImage: "folder") }
+                    } label: { Label("Show", systemImage: "folder") }
                     Button { app.sheet = .settings } label: { Label("Settings", systemImage: "gearshape") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
