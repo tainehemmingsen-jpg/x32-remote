@@ -203,6 +203,11 @@ private struct DynamicsDragLayer: View {
     @State private var handle: Handle?
     @State private var dragStrip: StripID?
     @State private var label: String?
+    /// Handle position minus where the finger landed, so the handle doesn't jump to the finger.
+    @State private var grabOffset: CGSize = .zero
+    /// Depth when the drag began (its handle can sit pinned at the bottom of the graph).
+    @State private var startDepth: Double = 0
+    @State private var labelToken = 0
     @GestureState private var active = false
 
     private var range: Double { kind == .gate ? 80 : 60 }
@@ -222,8 +227,10 @@ private struct DynamicsDragLayer: View {
         app.endGesture([a], label: app.undoName(a))
         handle = nil
         dragStrip = nil
+        labelToken += 1
+        let token = labelToken
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
-            if handle == nil { label = nil }
+            if handle == nil && labelToken == token { label = nil }
         }
     }
 
@@ -264,36 +271,45 @@ private struct DynamicsDragLayer: View {
                                 case .comp:
                                     let comp = Dynamics.Comp(app: app, strip: strip)
                                     candidates.append((.threshold, CGPoint(x: xFor(comp.threshold), y: yFor(comp.output(comp.threshold)))))
-                                    candidates.append((.ratio, CGPoint(x: xFor(0), y: yFor(comp.output(0)))))
+                                    // In expander mode the top end doesn't move with the ratio, so there's no ratio handle.
+                                    if !comp.expander {
+                                        candidates.append((.ratio, CGPoint(x: xFor(0), y: yFor(comp.output(0)))))
+                                    }
                                 }
                                 let start = g.startLocation
                                 guard let best = candidates.min(by: { hypot($0.1.x - start.x, $0.1.y - start.y) < hypot($1.1.x - start.x, $1.1.y - start.y) }),
-                                      hypot(best.1.x - start.x, best.1.y - start.y) < 80 else { return }
+                                      hypot(best.1.x - start.x, best.1.y - start.y) < 60 else { return }
+                                // Only grab once the finger actually moves: a tap changes nothing.
+                                guard hypot(g.translation.width, g.translation.height) >= 3 else { return }
                                 let a = address(best.0, strip)
                                 guard app.param(a).isKnown else { return }
                                 handle = best.0
                                 dragStrip = strip
+                                grabOffset = CGSize(width: best.1.x - start.x, height: best.1.y - start.y)
+                                startDepth = Double(Specs.gateRange.value(app.param(strip.gatePath("range")).float(or: 1)))
                                 app.touch(a, true)
                                 app.beginGesture([a])
                             }
                             guard let h = handle, let s = dragStrip else { return }
                             let a = address(h, s)
+                            let at = CGPoint(x: g.location.x + grabOffset.width, y: g.location.y + grabOffset.height)
                             switch h {
                             case .threshold:
-                                let db = dbAtX(g.location.x)
+                                let db = dbAtX(at.x)
                                 let spec = kind == .gate ? Specs.gateThreshold : Specs.dynThreshold
                                 app.setFloat(a, spec.norm(Float(db)), steps: spec.steps)
                                 label = "Threshold " + spec.display(app.param(a).float)
                             case .range:
                                 // The bottom of the step: depth is how far below the threshold it sits.
-                                let gate = Dynamics.Gate(app: app, strip: s)
-                                let depth = min(max(gate.threshold - dbAtY(g.location.y), 3), 60)
+                                // Down makes it deeper, from wherever it started.
+                                let dbPerPoint = r / Double(rect.height)
+                                let depth = min(max(startDepth + Double(g.translation.height) * dbPerPoint, 3), 60)
                                 app.setFloat(a, Specs.gateRange.norm(Float(depth)), steps: Specs.gateRange.steps)
                                 label = "Depth " + Specs.gateRange.display(app.param(a).float)
                             case .ratio:
                                 // Output at 0 dB in = threshold + (0 - threshold) / ratio.
                                 let comp = Dynamics.Comp(app: app, strip: s)
-                                let out = min(dbAtY(g.location.y), -0.01)
+                                let out = min(dbAtY(at.y), -0.01)
                                 let rise = out - comp.threshold
                                 let ratio = rise <= 0.05 ? 100 : -comp.threshold / rise
                                 let values = X32Enums.ratioValues.map(Double.init)
@@ -310,6 +326,7 @@ private struct DynamicsDragLayer: View {
                 .onChange(of: active) { _, isActive in
                     if !isActive { finish() }
                 }
+                .onChange(of: strip) { _, _ in finish() }
                 .onDisappear { finish() }
         }
         .accessibilityHidden(true)

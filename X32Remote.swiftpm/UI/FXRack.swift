@@ -119,6 +119,8 @@ struct RackUnit<Content: View>: View {
             )
             RackEar()
         }
+        // Ears run the full height of the panel even inside a scroll view.
+        .fixedSize(horizontal: false, vertical: true)
         .clipShape(RoundedRectangle(cornerRadius: 3))
         .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.black.opacity(0.8), lineWidth: 1))
         .shadow(color: .black.opacity(0.5), radius: 6, y: 3)
@@ -181,7 +183,7 @@ struct FXFaceplate: View {
                 }
             }
             if !choices.isEmpty {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 112), spacing: 10)], alignment: .leading, spacing: 10) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), spacing: 10)], alignment: .leading, spacing: 10) {
                     ForEach(choices, id: \.number) { p in
                         RackChoice(app: app, address: Effects.parPath(slot, p.number), name: p.name, options: choiceOptions(p), look: look)
                     }
@@ -392,7 +394,7 @@ struct RackFader: View {
             .frame(height: height)
             RackLCD(text: p.isKnown ? spec.display(p.float) : "—", look: look, active: touching)
         }
-        .frame(minWidth: 70, maxWidth: .infinity)
+        .frame(minWidth: 40, maxWidth: .infinity)
         .paramAccessibility(app: app, title: name, address: address, spec: spec)
     }
 
@@ -417,7 +419,7 @@ struct RackLCD: View {
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .padding(.horizontal, 6)
-            .frame(minWidth: 64, minHeight: 22)
+            .frame(maxWidth: .infinity, minHeight: 22)
             .background(RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.85)))
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(active ? look.accent : Color.white.opacity(0.1), lineWidth: 1))
     }
@@ -567,7 +569,7 @@ private struct RackTapDisplay: View {
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 8)
-            .frame(minWidth: 180, alignment: .trailing)
+            .frame(minWidth: 120, alignment: .trailing)
             .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.9)))
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
             Text("TAP")
