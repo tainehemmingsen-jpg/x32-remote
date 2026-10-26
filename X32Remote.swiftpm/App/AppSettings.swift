@@ -93,7 +93,7 @@ struct AppSettings: Codable, Equatable {
         mode = try c.decodeIfPresent(AppMode.self, forKey: .mode) ?? .mixer
         pin = try c.decodeIfPresent(String.self, forKey: .pin) ?? ""
         locked = try c.decodeIfPresent(Bool.self, forKey: .locked) ?? false
-        monitorBus = try c.decodeIfPresent(Int.self, forKey: .monitorBus) ?? 1
+        monitorBus = min(max(try c.decodeIfPresent(Int.self, forKey: .monitorBus) ?? 1, 1), 16)
         monitorShowAll = try c.decodeIfPresent(Bool.self, forKey: .monitorShowAll) ?? false
         monitorHidden = try c.decodeIfPresent([String].self, forKey: .monitorHidden) ?? []
         simpleTitle = try c.decodeIfPresent(String.self, forKey: .simpleTitle) ?? "Sound"

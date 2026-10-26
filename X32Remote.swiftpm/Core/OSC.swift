@@ -102,7 +102,9 @@ enum OSCCodec {
                 args.append(.int(Int32(bitPattern: v)))
             case "f":
                 guard let v = readUInt32(bytes, &offset) else { return nil }
-                args.append(.float(Float(bitPattern: v)))
+                let f = Float(bitPattern: v)
+                // A malformed packet's NaN/infinity would crash later conversions: read it as 0.
+                args.append(.float(f.isFinite ? f : 0))
             case "s":
                 guard let s = readString(bytes, &offset) else { return nil }
                 args.append(.string(s))

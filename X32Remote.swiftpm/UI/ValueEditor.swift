@@ -195,7 +195,7 @@ private struct ValueEditorCard: View {
         if t == "C" || t == "0" { return 0.5 }
         var sign: Float = 1
         if t.hasPrefix("L") { sign = -1; t.removeFirst() } else if t.hasPrefix("R") { t.removeFirst() }
-        guard let v = Float(t.trimmingCharacters(in: .whitespaces)) else { return nil }
+        guard let v = Float(t.trimmingCharacters(in: .whitespaces)), v.isFinite else { return nil }
         let amount = min(max(sign * v, -100), 100)
         return X32Math.quantize((amount + 100) / 200, steps: 100)
     }

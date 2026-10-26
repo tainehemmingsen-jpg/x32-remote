@@ -502,7 +502,8 @@ struct EQGraph: View {
                         let freqNorm = Float(x / max(size.width, 1))
                         app.setFloat(s.eqPath(b, "f"), freqNorm, steps: Specs.eqFreq.steps)
                         if dragUsesGain {
-                            let db = (Double(size.height) / 2 - Double(y)) / (Double(size.height) / 2) * EQGraph.dbRange
+                            let half = max(Double(size.height), 2) / 2
+                            let db = (half - Double(y)) / half * EQGraph.dbRange
                             let clamped = Float(min(max(db, -15), 15))
                             app.setFloat(s.eqPath(b, "g"), Specs.eqGain.norm(clamped), steps: Specs.eqGain.steps)
                         }

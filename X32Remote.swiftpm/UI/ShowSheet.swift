@@ -376,9 +376,9 @@ struct SaveSceneRow: View {
 
     /// The first empty slot after the current scene (or the first empty one).
     private var defaultNumber: Int {
-        let start = max(current, -1) + 1
+        let start = min(max(current, -1) + 1, 100)
         for n in start..<100 where !usedScenes.contains(n) { return n }
         for n in 0..<100 where !usedScenes.contains(n) { return n }
-        return max(current, 0)
+        return min(max(current, 0), 99)
     }
 }

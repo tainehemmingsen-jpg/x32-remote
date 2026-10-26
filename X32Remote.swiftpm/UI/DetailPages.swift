@@ -510,7 +510,7 @@ private struct NameEditor: View {
                 }
                 .onChange(of: text) { _, newValue in
                     if newValue.count > 12 {
-                        text = String(newValue.prefix(12))
+                        text = DeskName.limit(newValue)
                     }
                 }
             Button("Save") {
@@ -534,7 +534,7 @@ private struct NameEditor: View {
     }
 
     private func commit() {
-        let trimmed = String(text.trimmingCharacters(in: .whitespaces).prefix(12))
+        let trimmed = DeskName.limit(text.trimmingCharacters(in: .whitespaces))
         app.setString(strip.namePath, trimmed)
     }
 }
@@ -654,5 +654,17 @@ private struct MainAssign: View {
                     .frame(maxWidth: 420)
             }
         }
+    }
+}
+
+/// Scribble-strip names: at most 12 bytes on the desk, so count bytes, not characters.
+enum DeskName {
+    static func limit(_ text: String) -> String {
+        var out = ""
+        for ch in text {
+            if out.utf8.count + String(ch).utf8.count > 12 { break }
+            out.append(ch)
+        }
+        return out
     }
 }

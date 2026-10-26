@@ -35,7 +35,9 @@ enum X32Math {
     static let unityFader: Float = 0.75
 
     static func quantize(_ f: Float, steps: Int) -> Float {
-        guard steps > 0 else { return f }
+        // Never let NaN or infinity reach the desk (or a later Int() conversion).
+        guard f.isFinite else { return 0 }
+        guard steps > 0 else { return min(max(f, 0), 1) }
         let s = Float(steps)
         return min(max((f * s).rounded() / s, 0), 1)
     }

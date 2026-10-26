@@ -1094,7 +1094,7 @@ final class AppModel {
         }
         if let detail = d.string(forKey: "autoDetail") {
             let parts = detail.split(separator: "-")
-            if parts.count == 2, let kind = StripKind(rawValue: String(parts[0])), let n = Int(parts[1]) {
+            if parts.count == 2, let kind = StripKind(rawValue: String(parts[0])), let n = Int(parts[1]), (1...kind.count).contains(n) {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) { [weak self] in
                     self?.openDetail(StripID(kind, n))
                 }
