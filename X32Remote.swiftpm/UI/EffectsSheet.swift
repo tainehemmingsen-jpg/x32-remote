@@ -118,7 +118,14 @@ private struct SlotTile: View {
                     .foregroundStyle(Theme.tertiary)
             }
             .padding(10)
+            .padding(.leading, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .background(alignment: .leading) {
+                // The effect family's colour, like the faceplate.
+                if type.isKnown, let code = Effects.typeCode(slot: slot, type: type.int) {
+                    Rectangle().fill(FXFamily.of(code).look.accent).frame(width: 5)
+                }
+            }
             .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Theme.raised2 : Theme.raised))
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Theme.on : Color.white.opacity(0.07), lineWidth: selected ? 2 : 1))
             .contentShape(Rectangle())
@@ -132,6 +139,7 @@ private struct SlotDetail: View {
     let slot: Int
     let close: () -> Void
     @State private var pendingType: Int?
+    @State private var showPicker = false
 
     var body: some View {
         let typeParam = app.param(Effects.typePath(slot))
@@ -151,7 +159,18 @@ private struct SlotDetail: View {
                             .foregroundStyle(Theme.text)
                     }
                     Spacer()
-                    TypeMenu(slot: slot, current: type) { pendingType = $0 }
+                    Button {
+                        showPicker = true
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: "square.grid.2x2")
+                            Text("Effects")
+                        }
+                        .barChip()
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!typeParam.isKnown)
+                    .accessibilityLabel("Choose an effect")
                 }
                 if slot <= 4 && source.isKnown {
                     SourceRow(app: app, sourceValue: source.int, close: close)
@@ -165,16 +184,9 @@ private struct SlotDetail: View {
                         .id(slot)
                         .padding(.top, 4)
                 } else if let params {
-                    if let timePar = Effects.tapTimeParameter(slot: slot, type: type) {
-                        TapTempoRow(app: app, address: Effects.parPath(slot, timePar))
-                            .id(slot)
-                    }
-                    ControlGrid(minimumWidth: 240) {
-                        ForEach(params, id: \.number) { p in
-                            EffectParamControl(app: app, slot: slot, param: p)
-                        }
-                    }
-                    .padding(.top, 4)
+                    FXFaceplate(app: app, slot: slot, type: type, params: params)
+                        .id("\(slot)-\(type)")
+                        .padding(.top, 4)
                 } else if typeParam.isKnown {
                     Text("This effect's settings are on the desk's Effects screen; you can still change the type above.")
                         .font(.system(size: 13))
@@ -184,6 +196,12 @@ private struct SlotDetail: View {
             .padding(16)
         }
         .background(Theme.panel)
+        .sheet(isPresented: $showPicker) {
+            EffectPicker(slot: slot, current: type) { chosen in
+                // Ask after the picker has closed (a dialog can't show over a closing sheet).
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) { pendingType = chosen }
+            }
+        }
         .task(id: "\(slot)-\(type)") {
             // Read this effect's parameters whenever it's shown (graphic EQs use up to 64).
             if type >= 0 { app.loadEffectParameters(slot: slot, type: type) }

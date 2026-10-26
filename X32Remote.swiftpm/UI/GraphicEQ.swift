@@ -10,6 +10,8 @@ struct GraphicEQPanel: View {
 
     var body: some View {
         let shownSide = min(side, sides - 1)
+        let code = Effects.typeCode(slot: slot, type: app.param(Effects.typePath(slot)).int) ?? "GEQ"
+        RackUnit(title: Effects.typeName(slot: slot, type: app.param(Effects.typePath(slot)).int), code: code, look: FXFamily.eq.look) {
         VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 if sides == 2 {
@@ -51,6 +53,7 @@ struct GraphicEQPanel: View {
             Text("Drag a band up or down to adjust it. Sweep sideways to draw a curve. Double-tap a band to reset it.")
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.tertiary)
+        }
         }
     }
 }
@@ -262,11 +265,19 @@ struct GraphicEQGraph: View {
             let x0 = CGFloat(i) * column
             let top = y(db)
             let zero = y(0)
-            let bar = CGRect(x: x0 + column * 0.2, y: min(top, zero), width: column * 0.6, height: max(abs(zero - top), 1))
             let lit = i == highlighted
-            ctx.fill(Path(bar), with: .color(Theme.accent.opacity(lit ? 0.75 : 0.45)))
-            let cap = CGRect(x: x0 + column * 0.12, y: top - 1.5, width: column * 0.76, height: 3)
-            ctx.fill(Path(roundedRect: cap, cornerRadius: 1.5), with: .color(lit ? Color.white : Theme.accent))
+            // A fader slot per band, with a chrome cap at the band's gain (like a hardware graphic EQ).
+            let slotRect = CGRect(x: x0 + column / 2 - 1.5, y: y(dbRange), width: 3, height: y(-dbRange) - y(dbRange))
+            ctx.fill(Path(roundedRect: slotRect, cornerRadius: 1.5), with: .color(Color.black.opacity(0.85)))
+            let bar = CGRect(x: x0 + column / 2 - 1.5, y: min(top, zero), width: 3, height: max(abs(zero - top), 1))
+            ctx.fill(Path(bar), with: .color(Theme.accent.opacity(lit ? 0.9 : 0.6)))
+            let capH = min(max(column * 0.45, 8), 14)
+            let cap = CGRect(x: x0 + column * 0.14, y: top - capH / 2, width: column * 0.72, height: capH)
+            ctx.fill(Path(roundedRect: cap.offsetBy(dx: 0, dy: 1.5), cornerRadius: 2), with: .color(Color.black.opacity(0.5)))
+            ctx.fill(Path(roundedRect: cap, cornerRadius: 2), with: .linearGradient(
+                Gradient(colors: lit ? [Color.white, Color(white: 0.8)] : [Color(white: 0.9), Color(white: 0.6), Color(white: 0.78)]),
+                startPoint: CGPoint(x: cap.midX, y: cap.minY), endPoint: CGPoint(x: cap.midX, y: cap.maxY)))
+            ctx.fill(Path(CGRect(x: cap.minX + 2, y: cap.midY - 0.75, width: cap.width - 4, height: 1.5)), with: .color(lit ? Theme.accent : Color.black.opacity(0.7)))
             points.append(CGPoint(x: x0 + column / 2, y: top))
         }
         // Smooth curve through the bands
