@@ -56,7 +56,6 @@ final class AppModel {
     /// Fine mode: every fader, slider and pan moves 4x more slowly.
     var fineMode = false
     /// When off, the mute buttons on the strips can't be pressed (a safety catch mid-show).
-    var muteEnabled = true
     /// The last channel opened, outlined on the mixer.
     var selectedStrip: StripID?
     /// The precision editor (long-press any control).

@@ -359,6 +359,11 @@ struct SetupPage: View {
                         BitToggles(app: app, address: mute, count: 6, prefix: "MG", color: Theme.mute)
                     }
                 }
+                if let pan = strip.panPath {
+                    Panel(title: "Pan") {
+                        PanPad(app: app, address: pan, title: app.stripTitle(strip))
+                    }
+                }
                 if strip.lrAssignPath != nil || strip.monoAssignPath != nil {
                     Panel(title: "Main outputs") {
                         MainAssign(app: app, strip: strip)

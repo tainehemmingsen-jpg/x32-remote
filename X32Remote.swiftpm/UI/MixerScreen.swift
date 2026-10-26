@@ -14,7 +14,7 @@ enum StripDetail: Int, Comparable {
 }
 
 /// The console view: a bank of strips, the master of the selected mix, and on an iPad a
-/// two-column panel down the right (Fine, Mute Enable, sends on fader | layers, mute groups).
+/// two-column panel down the right (Fine, sends on fader | layers, mute groups).
 struct MixerScreen: View {
     @Bindable var app: AppModel
     @State private var page = 0
@@ -34,7 +34,8 @@ struct MixerScreen: View {
                     if layout.visible.isEmpty {
                         EmptyLayerView(app: app)
                     } else {
-                        StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900)
+                        StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900,
+                                  wideStrips: stripsWidth / CGFloat(layout.visible.count + 1) >= 96)
                     }
                     if wide {
                         MixerSidebar(app: app, column: column, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
@@ -102,17 +103,15 @@ struct MixerScreen: View {
         let total: Int
     }
 
-    /// Fits the whole layer (plus the master) when strips can be at least 52 pt wide, otherwise pages of 8.
+    /// Pages of 8 strips (plus the master) on an iPad, so faders are big; fewer on a phone.
     static func pageLayout(strips: [StripID], width: CGFloat, page: Int) -> PageLayout {
         let count = strips.count
         guard count > 0 else { return PageLayout(visible: [], pageCount: 1, perPage: 1, total: 0) }
-        var perPage = count
-        if width / CGFloat(count + 1) < 52 {
-            if width / 9 >= 60 {
-                perPage = min(8, count)
-            } else {
-                perPage = max(2, min(count, Int(width / 70) - 1))
-            }
+        let perPage: Int
+        if width / 9 >= 60 {
+            perPage = min(8, count)
+        } else {
+            perPage = max(2, min(count, Int(width / 76) - 1))
         }
         let pageCount = (count + perPage - 1) / perPage
         let current = min(max(page, 0), pageCount - 1)
@@ -128,20 +127,21 @@ private struct StripBank: View {
     let strips: [StripID]
     let detail: StripDetail
     let tallThumbs: Bool
+    let wideStrips: Bool
 
     var body: some View {
         let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
         HStack(spacing: 1) {
             ForEach(strips) { strip in
-                StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs)
+                StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs, wide: wideStrips)
             }
             Rectangle().fill(Color.black).frame(width: 3)
             if let dca = app.spillDCA {
-                StripView(app: app, strip: StripID(.dca, dca), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
+                StripView(app: app, strip: StripID(.dca, dca), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
             } else if let bus = sendsBus {
-                StripView(app: app, strip: StripID(.bus, bus), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
+                StripView(app: app, strip: StripID(.bus, bus), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
             } else {
-                StripView(app: app, strip: StripID.mainLR, sendsBus: nil, detail: detail, tallThumbs: tallThumbs, isMaster: true)
+                StripView(app: app, strip: StripID.mainLR, sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
             }
         }
         .background(Color.black)
@@ -693,7 +693,7 @@ struct MuteGroupButton: View {
 
 // MARK: - Sidebar
 
-/// Two columns: Fine / Mute Enable / sends-on-fader list on the left,
+/// Two columns: Fine / sends-on-fader list on the left,
 /// layers, mute groups and clear-solo on the right.
 struct MixerSidebar: View {
     let app: AppModel
@@ -708,10 +708,6 @@ struct MixerSidebar: View {
             VStack(spacing: 4) {
                 SideButton(title: "Fine", active: app.fineMode, style: .outline) {
                     app.fineMode.toggle()
-                    Haptics.click()
-                }
-                SideButton(title: "Mute Enable", active: app.muteEnabled, style: .red) {
-                    app.muteEnabled.toggle()
                     Haptics.click()
                 }
                 ScrollView(showsIndicators: false) {
@@ -962,6 +958,9 @@ struct StripView: View {
     var gain: Bool = false
     var detail: StripDetail = .full
     var tallThumbs = false
+    /// Wide strips (8 to a page on an iPad) put mute and solo side by side, and gate and
+    /// compressor pictures side by side, to leave more height for the fader.
+    var wide = false
     var isMaster = false
 
     var body: some View {
@@ -978,13 +977,20 @@ struct StripView: View {
                     .frame(height: 29)
             }
             if detail == .full {
-                StripThumbs(app: app, strip: strip, height: thumb)
+                StripThumbs(app: app, strip: strip, height: thumb, wide: wide)
             }
             StripName(app: app, strip: strip)
-            MuteButton(app: app, strip: strip, height: 28)
-            SoloButton(app: app, strip: strip, height: 28)
-            StripPanSlot(app: app, strip: strip, sendsBus: sendsBus)
-                .frame(height: 22)
+            if wide {
+                HStack(spacing: 3) {
+                    MuteButton(app: app, strip: strip, height: 36)
+                    SoloButton(app: app, strip: strip, height: 36)
+                }
+            } else {
+                MuteButton(app: app, strip: strip, height: 28)
+                SoloButton(app: app, strip: strip, height: 28)
+            }
+            StripPanSlot(app: app, strip: strip, sendsBus: sendsBus, wide: wide)
+                .frame(height: wide ? 30 : 22)
             FaderReadout(app: app, address: target.address, spec: target.spec)
             StripFader(app: app, strip: strip, target: target)
             StripFoot(app: app, strip: strip)
@@ -1051,12 +1057,24 @@ private struct StripPanSlot: View {
     let app: AppModel
     let strip: StripID
     let sendsBus: Int?
+    var wide = false
+    @State private var showPad = false
 
     var body: some View {
         if let bus = sendsBus {
             SendOnButton(app: app, strip: strip, bus: bus)
         } else if let panPath = strip.panPath {
-            ParamPan(app: app, address: panPath, editTitle: "\(app.stripTitle(strip)) · Pan")
+            ParamPan(app: app, address: panPath, height: wide ? 30 : 22, editTitle: "\(app.stripTitle(strip)) · Pan", showsText: wide) {
+                showPad = true
+            }
+            .popover(isPresented: $showPad) {
+                PanPad(app: app, address: panPath, title: app.stripTitle(strip))
+                    .padding(16)
+                    .frame(width: 360)
+                    .background(Theme.panel)
+                    .presentationCompactAdaptation(.popover)
+                    .preferredColorScheme(.dark)
+            }
         } else {
             Color.clear
         }
@@ -1314,17 +1332,34 @@ private struct StripThumbs: View {
     let app: AppModel
     let strip: StripID
     let height: CGFloat
+    var wide = false
 
     var body: some View {
-        VStack(spacing: 2) {
-            ThumbSlot(app: app, strip: strip, tab: .gate, present: strip.hasGate, height: height) {
-                GateGraph(app: app, strip: strip)
+        if wide {
+            VStack(spacing: 2) {
+                ThumbSlot(app: app, strip: strip, tab: .eq, present: strip.hasEQ, height: height) {
+                    EQThumb(app: app, strip: strip)
+                }
+                HStack(spacing: 2) {
+                    ThumbSlot(app: app, strip: strip, tab: .gate, present: strip.hasGate, height: height) {
+                        GateGraph(app: app, strip: strip)
+                    }
+                    ThumbSlot(app: app, strip: strip, tab: .comp, present: strip.hasDynamics, height: height) {
+                        CompGraph(app: app, strip: strip)
+                    }
+                }
             }
-            ThumbSlot(app: app, strip: strip, tab: .eq, present: strip.hasEQ, height: height) {
-                EQThumb(app: app, strip: strip)
-            }
-            ThumbSlot(app: app, strip: strip, tab: .comp, present: strip.hasDynamics, height: height) {
-                CompGraph(app: app, strip: strip)
+        } else {
+            VStack(spacing: 2) {
+                ThumbSlot(app: app, strip: strip, tab: .gate, present: strip.hasGate, height: height) {
+                    GateGraph(app: app, strip: strip)
+                }
+                ThumbSlot(app: app, strip: strip, tab: .eq, present: strip.hasEQ, height: height) {
+                    EQThumb(app: app, strip: strip)
+                }
+                ThumbSlot(app: app, strip: strip, tab: .comp, present: strip.hasDynamics, height: height) {
+                    CompGraph(app: app, strip: strip)
+                }
             }
         }
     }
@@ -1360,7 +1395,7 @@ struct MuteButton: View {
 
     var body: some View {
         let muted = app.param(strip.onPath).int(or: 1) == 0
-        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: 12, offColor: Theme.muteOff, enabled: app.muteEnabled) {
+        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: 12, offColor: Theme.muteOff) {
             app.toggleMute(strip)
             Haptics.click()
         }
@@ -1399,6 +1434,9 @@ struct ParamPan: View {
     let address: String
     var height: CGFloat = 22
     var editTitle: String = "Pan"
+    var showsText = false
+    var showsTicks = false
+    var onTap: (() -> Void)? = nil
     @State private var drag = DragTarget()
 
     var body: some View {
@@ -1407,7 +1445,10 @@ struct ParamPan: View {
             value: p.float(or: 0.5),
             height: height,
             fine: app.fineMode,
+            showsText: showsText,
+            showsTicks: showsTicks,
             onLongPress: { app.editValue(editTitle, address, Specs.pan, reset: 0.5, style: .pan) },
+            onTap: onTap,
             onChange: { v in app.dragSet(address, drag, v, steps: 100) },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }

@@ -554,25 +554,46 @@ struct PanControl: View {
     var tint: Color = Theme.accent
     var height: CGFloat = 22
     var fine: Bool = false
+    /// Show "L32 / C / R70" inside the control (on wide controls and while dragging).
+    var showsText: Bool = false
+    /// Tick marks at L100, L50, C, R50, R100 (for the big pan pad).
+    var showsTicks: Bool = false
     var onLongPress: (() -> Void)? = nil
+    /// A single tap (without dragging). When set, it replaces double-tap-to-centre.
+    var onTap: (() -> Void)? = nil
     let onChange: (Float) -> Void
     var onTouch: (Bool) -> Void = { _ in }
 
-    @State private var dragValue: Float = 0.5
+    /// Where the finger has dragged to, before the centre detent is applied.
+    @State private var rawValue: Float = 0.5
     @State private var lastPoint: CGPoint = .zero
     @State private var touching = false
+    @State private var shown: Float = 0.5
+
+    /// The centre is "sticky": within this many points of travel either side, pan stays at C.
+    private static let detentPoints: CGFloat = 10
 
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
-            let v = CGFloat(min(max(value, 0), 1))
+            let v = CGFloat(min(max(touching ? shown : value, 0), 1))
             Canvas { ctx, size in
                 let rect = CGRect(origin: .zero, size: size)
-                ctx.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(Color.black.opacity(0.35)))
-                ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3), with: .color(touching ? tint : Color.white.opacity(0.16)), lineWidth: 1)
+                ctx.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(Color.black.opacity(0.35)))
+                ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 4), with: .color(touching ? tint : Color.white.opacity(0.16)), lineWidth: touching ? 1.5 : 1)
                 let inset: CGFloat = 4
                 let cx = size.width / 2
-                let px = inset + v * (size.width - inset * 2)
+                let travel = size.width - inset * 2
+                let px = inset + v * travel
+                if showsTicks {
+                    for t: CGFloat in [0, 0.25, 0.5, 0.75, 1] {
+                        let x = inset + t * travel
+                        let tick = CGRect(x: x - 0.5, y: size.height - (t == 0.5 ? 12 : 7), width: 1, height: t == 0.5 ? 12 : 7)
+                        ctx.fill(Path(tick), with: .color(Color.white.opacity(t == 0.5 ? 0.5 : 0.25)))
+                    }
+                } else {
+                    ctx.fill(Path(CGRect(x: cx - 0.5, y: size.height - 5, width: 1, height: 5)), with: .color(Color.white.opacity(0.35)))
+                }
                 if abs(px - cx) > 1 {
                     var wedge = Path()
                     let h = size.height - 3
@@ -581,9 +602,17 @@ struct PanControl: View {
                     wedge.addLine(to: CGPoint(x: px, y: h))
                     wedge.addLine(to: CGPoint(x: px, y: h - rise))
                     wedge.closeSubpath()
-                    ctx.fill(wedge, with: .color(tint))
+                    ctx.fill(wedge, with: .color(tint.opacity(showsText ? 0.55 : 1)))
                 }
-                ctx.fill(Path(CGRect(x: px - 1, y: 3, width: 2, height: size.height - 6)), with: .color(Color.white))
+                let capWidth: CGFloat = showsTicks ? 4 : 2
+                ctx.fill(Path(roundedRect: CGRect(x: px - capWidth / 2, y: 3, width: capWidth, height: size.height - 6), cornerRadius: 1), with: .color(Color.white))
+                if showsText || touching {
+                    let label = panText(Float(v))
+                    let fontSize = min(max(size.height * 0.42, 10), 22)
+                    let textX = v < 0.5 ? size.width * 0.75 : (v > 0.5 ? size.width * 0.25 : size.width / 2)
+                    ctx.draw(Text(label).font(.system(size: fontSize, weight: .semibold).monospacedDigit()).foregroundColor(Theme.text),
+                             at: CGPoint(x: abs(v - 0.5) < 0.001 ? size.width / 2 + 14 : textX, y: size.height / 2))
+                }
             }
             .frame(width: width, height: height)
             .overlay(
@@ -592,26 +621,35 @@ struct PanControl: View {
                     onLongPress: onLongPress,
                     onBegin: { p in
                         touching = true
-                        dragValue = value
+                        rawValue = PanControl.undetent(value, span: max(90, width * 1.5))
+                        shown = value
                         lastPoint = p
                         onTouch(true)
                     },
                     onMove: { p in
                         let dx = p.x - lastPoint.x
                         lastPoint = p
-                        var next = dragValue + Float(dx / max(90, width * 1.5) * (fine ? 0.25 : 1))
-                        next = min(max(next, 0), 1)
-                        if (dragValue < 0.5) != (next < 0.5) {
+                        let span = max(90, width * 1.5)
+                        let before = PanControl.detent(rawValue, span: span)
+                        rawValue = min(max(rawValue + Float(dx / span * (fine ? 0.25 : 1)), 0), 1)
+                        let next = PanControl.detent(rawValue, span: span)
+                        if (before == 0.5) != (next == 0.5) {
                             Haptics.tick()
                         }
-                        dragValue = next
-                        onChange(next)
+                        if next != shown {
+                            shown = next
+                            onChange(next)
+                        }
                     },
                     onEnd: { moved, taps in
                         touching = false
                         onTouch(false)
-                        if !moved && taps >= 2 {
-                            onChange(0.5)
+                        if !moved {
+                            if let onTap, taps == 1 {
+                                onTap()
+                            } else if onTap == nil && taps >= 2 {
+                                onChange(0.5)
+                            }
                         }
                     }
                 )
@@ -624,6 +662,29 @@ struct PanControl: View {
                 onTouch(false)
             }
         }
+    }
+
+    /// Applies the sticky centre: values within the detent snap to C, the rest are shifted so
+    /// the full range is still reachable.
+    static func detent(_ raw: Float, span: CGFloat) -> Float {
+        let d = Float(detentPoints / max(span, 1))
+        let clamped: Float
+        if abs(raw - 0.5) <= d {
+            clamped = 0.5
+        } else if raw > 0.5 {
+            clamped = 0.5 + (raw - 0.5 - d) / (0.5 - d) * 0.5
+        } else {
+            clamped = 0.5 - (0.5 - raw - d) / (0.5 - d) * 0.5
+        }
+        return X32Math.quantize(min(max(clamped, 0), 1), steps: 100)
+    }
+
+    /// The finger position that gives `value` (so a drag starts exactly where the pan is).
+    static func undetent(_ value: Float, span: CGFloat) -> Float {
+        let d = Float(detentPoints / max(span, 1))
+        if value == 0.5 { return 0.5 }
+        if value > 0.5 { return 0.5 + d + (value - 0.5) / 0.5 * (0.5 - d) }
+        return 0.5 - d - (0.5 - value) / 0.5 * (0.5 - d)
     }
 }
 
