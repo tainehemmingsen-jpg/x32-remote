@@ -132,6 +132,8 @@ struct GateGraph: View {
     let app: AppModel
     let strip: StripID
     var detailed = false
+    /// Drag the top handle sideways for the threshold, the bottom one up and down for the depth.
+    var interactive = false
 
     var body: some View {
         let gate = Dynamics.Gate(app: app, strip: strip)
@@ -151,6 +153,11 @@ struct GateGraph: View {
             }
             drawGR(&ctx, CGRect(x: size.width - grWidth, y: 0, width: grWidth, height: size.height), gr: gate.on ? gr : 0)
         }
+        .overlay {
+            if interactive {
+                DynamicsDragLayer(app: app, strip: strip, kind: .gate, grWidth: detailed ? 6 : 4)
+            }
+        }
     }
 }
 
@@ -159,6 +166,8 @@ struct CompGraph: View {
     let app: AppModel
     let strip: StripID
     var detailed = false
+    /// Drag the threshold handle sideways, and the top-right handle up and down for the ratio.
+    var interactive = false
 
     var body: some View {
         let comp = Dynamics.Comp(app: app, strip: strip)
@@ -171,6 +180,139 @@ struct CompGraph: View {
             Dynamics.drawTransfer(&ctx, rect, range: 60, on: comp.on, detailed: detailed, handles: [comp.threshold, 0], level: level) { comp.output($0) }
             drawGR(&ctx, CGRect(x: size.width - grWidth, y: 0, width: grWidth, height: size.height), gr: comp.on ? gr : 0)
         }
+        .overlay {
+            if interactive {
+                DynamicsDragLayer(app: app, strip: strip, kind: .comp, grWidth: detailed ? 6 : 4)
+            }
+        }
+    }
+}
+
+/// Touch handling for the big gate and compressor graphs. The finger grabs the nearest handle
+/// and moves it; the whole drag is one undo step.
+private struct DynamicsDragLayer: View {
+    enum Kind { case gate, comp }
+
+    let app: AppModel
+    let strip: StripID
+    let kind: Kind
+    let grWidth: CGFloat
+
+    enum Handle { case threshold, range, ratio }
+
+    @State private var handle: Handle?
+    @State private var dragStrip: StripID?
+    @State private var label: String?
+    @GestureState private var active = false
+
+    private var range: Double { kind == .gate ? 80 : 60 }
+
+    private func address(_ h: Handle, _ s: StripID) -> String {
+        switch h {
+        case .threshold: return kind == .gate ? s.gatePath("thr") : s.dynPath("thr")
+        case .range: return s.gatePath("range")
+        case .ratio: return s.dynPath("ratio")
+        }
+    }
+
+    private func finish() {
+        guard let h = handle, let s = dragStrip else { return }
+        let a = address(h, s)
+        app.touch(a, false)
+        app.endGesture([a], label: app.undoName(a))
+        handle = nil
+        dragStrip = nil
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+            if handle == nil { label = nil }
+        }
+    }
+
+    var body: some View {
+        GeometryReader { geo in
+            let rect = CGRect(x: 0, y: 0, width: max(geo.size.width - grWidth - 2, 1), height: max(geo.size.height, 1))
+            let r = range
+            let xFor: (Double) -> CGFloat = { db in rect.minX + CGFloat((db + r) / r) * rect.width }
+            let yFor: (Double) -> CGFloat = { db in rect.maxY - CGFloat((max(-r, min(0, db)) + r) / r) * rect.height }
+            let dbAtX: (CGFloat) -> Double = { x in Double(min(max(x, rect.minX), rect.maxX) - rect.minX) / Double(rect.width) * r - r }
+            let dbAtY: (CGFloat) -> Double = { y in Double(rect.maxY - min(max(y, rect.minY), rect.maxY)) / Double(rect.height) * r - r }
+            Color.clear
+                .contentShape(Rectangle())
+                .overlay(alignment: .topLeading) {
+                    if let label {
+                        Text(label)
+                            .font(Theme.mono(13, .semibold))
+                            .foregroundStyle(Theme.text)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.65)))
+                            .padding(6)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .gesture(
+                    DragGesture(minimumDistance: 0)
+                        .updating($active) { _, state, _ in state = true }
+                        .onChanged { g in
+                            if handle == nil {
+                                // Pick the handle nearest the finger.
+                                var candidates: [(Handle, CGPoint)] = []
+                                switch kind {
+                                case .gate:
+                                    let gate = Dynamics.Gate(app: app, strip: strip)
+                                    candidates.append((.threshold, CGPoint(x: xFor(gate.threshold), y: yFor(gate.output(gate.threshold)))))
+                                    candidates.append((.range, CGPoint(x: xFor(gate.threshold), y: yFor(gate.threshold - gate.range))))
+                                case .comp:
+                                    let comp = Dynamics.Comp(app: app, strip: strip)
+                                    candidates.append((.threshold, CGPoint(x: xFor(comp.threshold), y: yFor(comp.output(comp.threshold)))))
+                                    candidates.append((.ratio, CGPoint(x: xFor(0), y: yFor(comp.output(0)))))
+                                }
+                                let start = g.startLocation
+                                guard let best = candidates.min(by: { hypot($0.1.x - start.x, $0.1.y - start.y) < hypot($1.1.x - start.x, $1.1.y - start.y) }),
+                                      hypot(best.1.x - start.x, best.1.y - start.y) < 80 else { return }
+                                let a = address(best.0, strip)
+                                guard app.param(a).isKnown else { return }
+                                handle = best.0
+                                dragStrip = strip
+                                app.touch(a, true)
+                                app.beginGesture([a])
+                            }
+                            guard let h = handle, let s = dragStrip else { return }
+                            let a = address(h, s)
+                            switch h {
+                            case .threshold:
+                                let db = dbAtX(g.location.x)
+                                let spec = kind == .gate ? Specs.gateThreshold : Specs.dynThreshold
+                                app.setFloat(a, spec.norm(Float(db)), steps: spec.steps)
+                                label = "Threshold " + spec.display(app.param(a).float)
+                            case .range:
+                                // The bottom of the step: depth is how far below the threshold it sits.
+                                let gate = Dynamics.Gate(app: app, strip: s)
+                                let depth = min(max(gate.threshold - dbAtY(g.location.y), 3), 60)
+                                app.setFloat(a, Specs.gateRange.norm(Float(depth)), steps: Specs.gateRange.steps)
+                                label = "Depth " + Specs.gateRange.display(app.param(a).float)
+                            case .ratio:
+                                // Output at 0 dB in = threshold + (0 - threshold) / ratio.
+                                let comp = Dynamics.Comp(app: app, strip: s)
+                                let out = min(dbAtY(g.location.y), -0.01)
+                                let rise = out - comp.threshold
+                                let ratio = rise <= 0.05 ? 100 : -comp.threshold / rise
+                                let values = X32Enums.ratioValues.map(Double.init)
+                                let index = values.indices.min(by: { abs(log(values[$0]) - log(max(ratio, 1))) < abs(log(values[$1]) - log(max(ratio, 1))) }) ?? 0
+                                if app.param(a).int != index {
+                                    app.setInt(a, index)
+                                    Haptics.tick()
+                                }
+                                label = "Ratio " + X32Enums.ratios[index] + ":1"
+                            }
+                        }
+                        .onEnded { _ in finish() }
+                )
+                .onChange(of: active) { _, isActive in
+                    if !isActive { finish() }
+                }
+                .onDisappear { finish() }
+        }
+        .accessibilityHidden(true)
     }
 }
 

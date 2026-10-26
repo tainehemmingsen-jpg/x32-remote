@@ -37,6 +37,8 @@ struct HelpSheet: View {
                 text: "The curved arrow undoes your last change. A whole fader move counts as one.")
         ]),
         ("Channel page", [
+            Tip(symbol: "chart.xyaxis.line", title: "Gate and compressor graphs",
+                text: "Drag the handles on the big graph: the corner sideways for the threshold, the lower gate handle for the depth, the top-right compressor handle up and down for the ratio."),
             Tip(symbol: "waveform.path", title: "EQ curve",
                 text: "Drag a numbered point to change its frequency and gain. Tap RTA to see the desk's analyser behind the curve."),
             Tip(symbol: "doc.on.doc", title: "Copy, paste and presets",

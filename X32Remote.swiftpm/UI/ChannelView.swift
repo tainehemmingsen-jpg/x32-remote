@@ -823,7 +823,7 @@ struct GatePage: View {
                 Spacer(minLength: 0)
             }
         } graph: {
-            GateGraph(app: app, strip: strip, detailed: true)
+            GateGraph(app: app, strip: strip, detailed: true, interactive: true)
         } controls: {
             ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Threshold", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Depth", enabled: on)
@@ -854,7 +854,7 @@ struct CompPage: View {
                 Spacer(minLength: 0)
             }
         } graph: {
-            CompGraph(app: app, strip: strip, detailed: true)
+            CompGraph(app: app, strip: strip, detailed: true, interactive: true)
         } controls: {
             ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Threshold", enabled: on)
             EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", enabled: on)
