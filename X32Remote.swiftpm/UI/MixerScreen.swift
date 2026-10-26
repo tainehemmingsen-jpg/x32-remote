@@ -34,8 +34,10 @@ struct MixerScreen: View {
                     if layout.visible.isEmpty {
                         EmptyLayerView(app: app)
                     } else {
+                        // Every strip keeps the same width, even on a short last page.
+                        let stripWidth = floor((stripsWidth - 3 - CGFloat(layout.perPage + 1)) / CGFloat(layout.perPage + 1))
                         StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900,
-                                  wideStrips: stripsWidth / CGFloat(layout.visible.count + 1) >= 96)
+                                  wideStrips: stripWidth >= 96, stripWidth: stripWidth)
                     }
                     if wide {
                         MixerSidebar(app: app, column: column, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
@@ -103,12 +105,14 @@ struct MixerScreen: View {
         let total: Int
     }
 
-    /// Pages of 8 strips (plus the master) on an iPad, so faders are big; fewer on a phone.
+    /// Pages of 12 strips (plus the master) on a landscape iPad, 8 in portrait, fewer on a phone.
     static func pageLayout(strips: [StripID], width: CGFloat, page: Int) -> PageLayout {
         let count = strips.count
         guard count > 0 else { return PageLayout(visible: [], pageCount: 1, perPage: 1, total: 0) }
         let perPage: Int
-        if width / 9 >= 60 {
+        if width / 13 >= 64 {
+            perPage = min(12, count)
+        } else if width / 9 >= 60 {
             perPage = min(8, count)
         } else {
             perPage = max(2, min(count, Int(width / 76) - 1))
@@ -128,20 +132,27 @@ private struct StripBank: View {
     let detail: StripDetail
     let tallThumbs: Bool
     let wideStrips: Bool
+    let stripWidth: CGFloat
 
     var body: some View {
         let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
         HStack(spacing: 1) {
             ForEach(strips) { strip in
                 StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs, wide: wideStrips)
+                    .frame(width: stripWidth)
             }
+            // A short last page leaves a gap before the master, which stays on the right.
+            Spacer(minLength: 0)
             Rectangle().fill(Color.black).frame(width: 3)
             if let dca = app.spillDCA {
                 StripView(app: app, strip: StripID(.dca, dca), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
+                    .frame(width: stripWidth)
             } else if let bus = sendsBus {
                 StripView(app: app, strip: StripID(.bus, bus), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
+                    .frame(width: stripWidth)
             } else {
                 StripView(app: app, strip: StripID.mainLR, sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
+                    .frame(width: stripWidth)
             }
         }
         .background(Color.black)
