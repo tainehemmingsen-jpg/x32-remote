@@ -63,38 +63,63 @@ struct MixerScreen: View {
         .fullScreenCover(item: $app.detailStrip) { strip in
             ChannelView(app: app, strip: strip)
         }
-        .sheet(item: $app.sheet, onDismiss: {
-            if let strip = app.pendingDetail {
-                let tab = app.pendingDetailTab
-                app.pendingDetail = nil
-                app.pendingDetailTab = .overview
-                app.openDetail(strip, tab: tab)
-            }
-        }) { sheet in
-            switch sheet {
-            case .scenes:
-                ShowSheet(app: app)
-            case .settings:
-                SettingsSheet(app: app)
-            case .modes:
-                ModesSheet(app: app)
-            case .meters:
-                MeterBridge(app: app)
-            case .effects:
-                EffectsSheet(app: app)
-            case .outputs:
-                OutputsSheet(app: app)
-            case .recorder:
-                RecorderSheet(app: app)
-            case .generator:
-                GeneratorSheet(app: app)
-            case .help:
-                HelpSheet()
-            case .editUser1:
-                UserLayerEditor(app: app, index: 0)
-            case .editUser2:
-                UserLayerEditor(app: app, index: 1)
-            }
+        .background(
+            Color.clear
+                .fullScreenCover(item: sheetBinding(full: true), onDismiss: openPendingDetail) { sheet in
+                    sheetContent(sheet)
+                }
+        )
+        .sheet(item: sheetBinding(full: false), onDismiss: openPendingDetail) { sheet in
+            sheetContent(sheet)
+        }
+    }
+
+    /// On an iPad the big working screens (effects, routing, show, meters) fill the screen.
+    private func sheetBinding(full: Bool) -> Binding<AppModel.Sheet?> {
+        let regular = UIDevice.current.userInterfaceIdiom == .pad
+        return Binding(
+            get: {
+                guard let s = app.sheet else { return nil }
+                return (regular && s.fillsScreen) == full ? s : nil
+            },
+            set: { app.sheet = $0 }
+        )
+    }
+
+    private func openPendingDetail() {
+        if let strip = app.pendingDetail {
+            let tab = app.pendingDetailTab
+            app.pendingDetail = nil
+            app.pendingDetailTab = .overview
+            app.openDetail(strip, tab: tab)
+        }
+    }
+
+    @ViewBuilder
+    private func sheetContent(_ sheet: AppModel.Sheet) -> some View {
+        switch sheet {
+        case .scenes:
+            ShowSheet(app: app)
+        case .settings:
+            SettingsSheet(app: app)
+        case .modes:
+            ModesSheet(app: app)
+        case .meters:
+            MeterBridge(app: app)
+        case .effects:
+            EffectsSheet(app: app)
+        case .outputs:
+            OutputsSheet(app: app)
+        case .recorder:
+            RecorderSheet(app: app)
+        case .generator:
+            GeneratorSheet(app: app)
+        case .help:
+            HelpSheet()
+        case .editUser1:
+            UserLayerEditor(app: app, index: 0)
+        case .editUser2:
+            UserLayerEditor(app: app, index: 1)
         }
     }
 
@@ -175,6 +200,8 @@ struct MixerTopBar: View {
         HStack(spacing: 4) {
             ConsoleMenu(app: app)
             if wide {
+                Spacer(minLength: 8)
+                FaderModeBanner(app: app)
                 Spacer(minLength: 8)
             } else {
                 // Narrow screens: the layer, mix and page controls scroll sideways if they don't fit.
@@ -341,6 +368,54 @@ struct TopIcon: View {
 }
 
 /// "Mixer / LR Mix" title. Tap it for the desk menu.
+/// When the faders aren't the main mix (sends on faders, gain on faders, a DCA spill), says so
+/// in big coloured letters, with one tap back to the main mix.
+private struct FaderModeBanner: View {
+    let app: AppModel
+
+    var body: some View {
+        let info: (String, Color)? = {
+            if app.gainOnFaders { return ("GAIN ON FADERS", Theme.mute) }
+            if let bus = app.sendsBus {
+                let name = app.param(StripID(.bus, bus).namePath).string
+                return ("SENDS TO " + (name.isEmpty ? "MIX \(bus)" : name.uppercased()),
+                        Theme.scribble(app.param(StripID(.bus, bus).colorPath).int))
+            }
+            if let d = app.spillDCA {
+                let name = app.param(StripID(.dca, d).namePath).string
+                return ("DCA \(d)" + (name.isEmpty ? "" : " · " + name.uppercased()), Theme.accent)
+            }
+            return nil
+        }()
+        if let info {
+            let text = info.0
+            let color = info.1
+            Button {
+                if app.gainOnFaders { app.toggleGainOnFaders() }
+                if app.sendsBus != nil { app.selectSendsBus(nil) }
+                if let d = app.spillDCA { app.spill(d) }
+            } label: {
+                HStack(spacing: 8) {
+                    Circle().fill(color).frame(width: 10, height: 10)
+                    Text(text)
+                        .font(.system(size: 14, weight: .bold))
+                        .lineLimit(1)
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(Theme.secondary)
+                }
+                .foregroundStyle(Theme.text)
+                .padding(.horizontal, 14)
+                .frame(height: 32)
+                .background(Capsule().fill(color.opacity(0.22)))
+                .overlay(Capsule().strokeBorder(color, lineWidth: 1.5))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("\(text). Back to the main mix")
+        }
+    }
+}
+
 struct ConsoleMenu: View {
     let app: AppModel
 
@@ -983,9 +1058,9 @@ struct StripView: View {
                 SourceChip(app: app, strip: strip, isMaster: isMaster)
                     .frame(height: 20)
                 GainCell(app: app, strip: strip)
-                    .frame(height: 30)
+                    .frame(height: 22)
                 StripLights(app: app, strip: strip)
-                    .frame(height: 29)
+                    .frame(height: 36)
             }
             if detail == .full {
                 StripThumbs(app: app, strip: strip, height: thumb, wide: wide)
@@ -1218,16 +1293,17 @@ struct MiniSlider: View {
     var body: some View {
         GeometryReader { geo in
             let width = geo.size.width
-            VStack(spacing: 2) {
-                Text(display)
-                    .font(Theme.mono(10))
-                    .foregroundStyle(Theme.text)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.6)
-                MiniBar(value: value, bipolar: bipolar, touching: touching)
-                    .frame(height: 10)
-            }
-            .padding(.horizontal, 2)
+            MiniBar(value: value, bipolar: bipolar, touching: touching)
+                .overlay(
+                    Text(display)
+                        .font(Theme.mono(11))
+                        .foregroundStyle(Theme.text)
+                        .shadow(color: .black.opacity(0.8), radius: 1.5)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.6)
+                        .padding(.horizontal, 3)
+                )
+            .padding(.horizontal, 1)
             .frame(width: width, height: geo.size.height)
             .overlay(
                 TouchSurface(
@@ -1271,13 +1347,13 @@ private struct MiniBar: View {
     var body: some View {
         Canvas { ctx, size in
             let rect = CGRect(origin: .zero, size: size)
-            ctx.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(Color.black.opacity(0.35)))
+            ctx.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(Color.black.opacity(0.4)))
             let v = CGFloat(min(max(value, 0), 1))
             let start = bipolar ? min(v, 0.5) : 0
             let end = bipolar ? max(v, 0.5) : v
             let fill = CGRect(x: 1 + start * (size.width - 2), y: 1, width: max(2, (end - start) * (size.width - 2)), height: size.height - 2)
-            ctx.fill(Path(roundedRect: fill, cornerRadius: 1.5), with: .color(Theme.accent))
-            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 2), with: .color(touching ? Theme.text : Color.white.opacity(0.14)), lineWidth: 1)
+            ctx.fill(Path(roundedRect: fill, cornerRadius: 3), with: .color(Theme.accent.opacity(0.7)))
+            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 4), with: .color(touching ? Theme.text : Color.white.opacity(0.14)), lineWidth: 1)
         }
     }
 }
@@ -1329,11 +1405,11 @@ private struct StripLight: View {
 
     var body: some View {
         if present {
-            LitButton(title: text, isOn: on, color: color, height: 13.5, fontSize: 9, offColor: off, action: action)
+            LitButton(title: text, isOn: on, color: color, height: 17, fontSize: 10.5, offColor: off, action: action)
         } else {
             Color.black.opacity(0.2)
                 .frame(maxWidth: .infinity)
-                .frame(height: 13.5)
+                .frame(height: 17)
         }
     }
 }

@@ -202,8 +202,8 @@ struct FaderView: View {
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
-            let scaleWidth: CGFloat = showScale && width >= 34 ? min(18, width * 0.34) : 0
-            let capHeight = min(44, max(26, height * 0.095))
+            let scaleWidth: CGFloat = showScale && width >= 34 ? min(20, width * 0.34) : 0
+            let capHeight = min(50, max(28, height * 0.1))
             let travel = max(1, height - capHeight)
             let clamped = CGFloat(min(max(value, 0), 1))
             let capCenterY = (1 - clamped) * travel + capHeight / 2
@@ -282,8 +282,8 @@ private struct FaderTrack: View {
                 ctx.stroke(tick, with: .color(isUnity ? Color.white.opacity(0.85) : Color.white.opacity(0.32)), lineWidth: isUnity ? 1.5 : 1)
                 if scaleWidth > 0 {
                     let text = Text(mark.1)
-                        .font(.system(size: 8).monospacedDigit())
-                        .foregroundColor(Color.white.opacity(0.5))
+                        .font(.system(size: 9.5).monospacedDigit())
+                        .foregroundColor(Color.white.opacity(0.55))
                     ctx.draw(text, at: CGPoint(x: scaleWidth - 1, y: my), anchor: .trailing)
                 }
             }

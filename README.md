@@ -4,7 +4,7 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 
 - **Mixer** — layers (Ch 1–16, Ch 17–32, Aux/FX, Mix buses, Mtx/Main, DCA and two custom layers) in a two-column panel down the right with Fine, sends on fader, mute groups and Clear Solo. Twelve strips to a page on a landscape iPad (eight in portrait), so faders are big. Each strip shows its input and gain, +48/gate/EQ/comp lights, a mini EQ curve and compressor graph, mute, pan (tap it for a big pan pad that sticks at centre), fader with meter, and solo. Tap the scribble strip (or the gain, EQ or compressor picture) for the channel page.
 - **Channel page** — a block bar with live pictures of every section; Overview with everything side by side; Input (gain, 48 V, trim, polarity, low cut, delay), Gate and Compressor with graphs you drag (threshold, depth, ratio), EQ with a draggable curve and the desk's analyser (RTA) behind it, Compressor, Sends as faders, and Config (name, colour, input source, stereo link, DCA and mute groups, LR/mono). Inserts, compressor position and gate/compressor sidechain (key source and key filter) too. Copy any section to another channel.
-- **Sends on faders** — pick a mix bus in the right-hand panel (top-right menu on a phone) and the faders become that bus's sends (the strip tints in the bus colour so you can't mistake it for the main mix).
+- **Sends on faders** — pick a mix bus in the right-hand panel (top-right menu on a phone) and the faders become that bus's sends. A coloured "Sends to …" banner at the top says so; tap it to go back to the main mix.
 - **Monitor mix mode** — one performer's mix on big faders, with only the inputs they need, lockable with a PIN.
 - **Simple mode** — a few big controls (e.g. Music, Mic, Main volume) for staff, with optional level caps and a PIN lock.
 - **Effects** — the FX icon shows all eight slots: what's loaded, which mix feeds it, where it's inserted, and the return level. Each effect is drawn as its own hardware-style rack unit (slide faders with LED ladders for reverbs, knobs and a time display with TAP for delays, a silver panel for compressors, a black-and-gold amp head, fader caps for the graphic EQ), and an effect picker shows a little picture of every unit. Nearly every effect type can be loaded and edited (reverbs, delays, modulation, EQs, de-essers, compressors, limiters, enhancers, amps, pitch), and graphic EQs (GEQ/TEQ, stereo or dual) in any slot get a 31-band editor — drag a band, or sweep across to draw a curve.
@@ -44,7 +44,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 ## Tips
 
 - **Faders:** touch anywhere on a fader and drag — it never jumps to your finger. Slide your finger sideways off the strip while dragging for fine control. Several faders can be moved at once.
-- **Parameters** (gain, EQ, dynamics…) are slider bars: drag left/right anywhere on the bar. Double‑tap resets EQ gain and trim.
+- **Parameters** (gain, EQ, dynamics…) are slider bars with the name and value inside: drag left/right anywhere on the bar. Double‑tap resets EQ gain and trim.
 - **Fine:** switch it on (right-hand panel, or the channel page header) and every fader, pan and bar moves 4× more slowly under your finger.
 - **Pan:** drag sideways — it sticks at centre so C is easy to hit. Tap the pan box for a big pan pad (L100, L50, C, R50, R100). The Config page has the same pad.
 - **Exact values:** long‑press any slider, gain or pan — or double‑tap a fader — to type a value or step it by 0.1 / 1 dB.

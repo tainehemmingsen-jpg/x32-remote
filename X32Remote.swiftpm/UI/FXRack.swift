@@ -190,7 +190,7 @@ struct FXFaceplate: View {
                 }
             }
             if !knobs.isEmpty {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 92), spacing: 6)], alignment: .center, spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .center, spacing: 14) {
                     ForEach(knobs, id: \.number) { p in
                         RackParam(app: app, slot: slot, param: p, look: look, asFader: false)
                     }
@@ -239,7 +239,7 @@ struct RackKnob: View {
     let name: String
     let spec: ParamSpec
     let look: RackLook
-    var size: CGFloat = 58
+    var size: CGFloat = 68
     @State private var drag = DragTarget()
     @State private var start: Float = 0
     @State private var touching = false
@@ -250,7 +250,7 @@ struct RackKnob: View {
         let norm = CGFloat(min(max(p.float(or: spec.defaultNorm), 0), 1))
         VStack(spacing: 5) {
             Text(name.uppercased())
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(look.text.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
@@ -308,7 +308,7 @@ struct RackKnob: View {
             )
             RackLCD(text: p.isKnown ? spec.display(p.float) : "—", look: look, active: touching)
         }
-        .frame(minWidth: 84)
+        .frame(minWidth: 92)
         .paramAccessibility(app: app, title: name, address: address, spec: spec)
     }
 }
@@ -322,7 +322,7 @@ struct RackFader: View {
     let name: String
     let spec: ParamSpec
     let look: RackLook
-    var height: CGFloat = 190
+    var height: CGFloat = 250
     @State private var drag = DragTarget()
     @State private var start: Float = 0
     @State private var touching = false
@@ -332,7 +332,7 @@ struct RackFader: View {
         let norm = CGFloat(min(max(p.float(or: spec.defaultNorm), 0), 1))
         VStack(spacing: 6) {
             Text(name.uppercased())
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(look.text.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
@@ -340,7 +340,7 @@ struct RackFader: View {
                 let w = geo.size.width
                 let h = geo.size.height
                 Canvas { ctx, size in
-                    let capH: CGFloat = 26
+                    let capH: CGFloat = 32
                     let travel = size.height - capH
                     let slotX = size.width / 2 + 6
                     // LED ladder on the left: lit up to the value.
@@ -349,7 +349,7 @@ struct RackFader: View {
                         let t = CGFloat(i) / CGFloat(leds - 1)
                         let y = capH / 2 + (1 - t) * travel
                         let lit = p.isKnown && t <= norm + 0.001
-                        let led = CGRect(x: slotX - 22, y: y - 3, width: 6, height: 6)
+                        let led = CGRect(x: slotX - 27, y: y - 3.5, width: 7, height: 7)
                         ctx.fill(Path(ellipseIn: led), with: .color(lit ? look.accent : look.accent.opacity(0.15)))
                     }
                     // Slot.
@@ -358,7 +358,7 @@ struct RackFader: View {
                     ctx.stroke(Path(roundedRect: slot, cornerRadius: 3), with: .color(Color.white.opacity(0.12)), lineWidth: 1)
                     // Cap.
                     let capY = (1 - norm) * travel
-                    let cap = CGRect(x: slotX - 14, y: capY, width: 28, height: capH)
+                    let cap = CGRect(x: slotX - 17, y: capY, width: 34, height: capH)
                     ctx.fill(Path(roundedRect: cap.offsetBy(dx: 0, dy: 2), cornerRadius: 3), with: .color(.black.opacity(0.5)))
                     ctx.fill(Path(roundedRect: cap, cornerRadius: 3), with: .linearGradient(
                         Gradient(colors: [Color(white: 0.92), Color(white: 0.62), Color(white: 0.80)]),
@@ -380,7 +380,7 @@ struct RackFader: View {
                         onMove: { pt in
                             accumulated += pt.y - lastY
                             lastY = pt.y
-                            let travel = max(h - 26, 40)
+                            let travel = max(h - 32, 40)
                             let delta = Float(-accumulated / travel) * (app.fineMode ? 0.25 : 1)
                             app.dragSet(address, drag, min(max(start + delta, 0), 1), steps: spec.steps)
                         },
@@ -409,7 +409,7 @@ struct RackLCD: View {
     let text: String
     let look: RackLook
     var active = false
-    var fontSize: CGFloat = 12
+    var fontSize: CGFloat = 14
 
     var body: some View {
         Text(text)
@@ -419,7 +419,7 @@ struct RackLCD: View {
             .lineLimit(1)
             .minimumScaleFactor(0.6)
             .padding(.horizontal, 6)
-            .frame(maxWidth: .infinity, minHeight: 22)
+            .frame(maxWidth: .infinity, minHeight: 26)
             .background(RoundedRectangle(cornerRadius: 3).fill(Color.black.opacity(0.85)))
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(active ? look.accent : Color.white.opacity(0.1), lineWidth: 1))
     }
@@ -438,7 +438,7 @@ private struct RackChoice: View {
         let current = p.int
         VStack(alignment: .leading, spacing: 5) {
             Text(name.uppercased())
-                .font(.system(size: 10, weight: .bold))
+                .font(.system(size: 12, weight: .bold))
                 .foregroundStyle(look.text.opacity(0.85))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// A parameter slider: name on the left, value on the right, and a filled bar underneath.
+/// A parameter slider: a filled bar with the name on the left and the value on the right inside it.
 /// Drag left/right anywhere on it (it never jumps to your finger); double-tap resets when allowed.
 struct BarSlider: View {
     let title: String
@@ -15,7 +15,7 @@ struct BarSlider: View {
     /// Double-tap target, or nil to disable double-tap reset.
     var defaultValue: Float? = nil
     /// Height of the bar itself.
-    var height: CGFloat = 20
+    var height: CGFloat = 34
     var steppers: Bool = false
     var onLongPress: (() -> Void)? = nil
     let onChange: (Float) -> Void
@@ -25,6 +25,8 @@ struct BarSlider: View {
     @State private var lastPoint: CGPoint = .zero
     @State private var touching = false
 
+    private var labelSize: CGFloat { height >= 30 ? 14 : 12 }
+
     var body: some View {
         HStack(spacing: 6) {
             if steppers {
@@ -32,21 +34,24 @@ struct BarSlider: View {
                     onChange(min(max(value - step, 0), 1))
                 }
             }
-            VStack(spacing: 3) {
-                HStack(spacing: 6) {
-                    Text(title)
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    Text(display)
-                        .font(Theme.mono(13))
-                        .foregroundStyle(Theme.text)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                }
-                .font(.system(size: 13))
-                bar
-            }
+            bar
+                .overlay(
+                    HStack(spacing: 6) {
+                        Text(title)
+                            .font(.system(size: labelSize, weight: .medium))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.75)
+                        Spacer(minLength: 4)
+                        Text(display)
+                            .font(Theme.mono(labelSize))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
+                    }
+                    .foregroundStyle(Theme.text)
+                    .shadow(color: .black.opacity(0.7), radius: 1.5)
+                    .padding(.horizontal, 9)
+                    .allowsHitTesting(false)
+                )
             .contentShape(Rectangle())
             .overlay(touchLayer)
             if steppers {
@@ -71,16 +76,25 @@ struct BarSlider: View {
             let fillStart = bipolar ? min(v, 0.5) : 0
             let fillEnd = bipolar ? max(v, 0.5) : v
             ZStack(alignment: .leading) {
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(Color.black.opacity(0.3))
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .fill(tint)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .fill(Color.black.opacity(0.35))
+                Rectangle()
+                    .fill(
+                        LinearGradient(colors: [tint.opacity(0.85), tint.opacity(0.55)],
+                                       startPoint: .top, endPoint: .bottom)
+                    )
                     .frame(width: max(bipolar ? 2 : 0, (fillEnd - fillStart) * width))
                     .offset(x: fillStart * width)
+                // The value's edge, so the position reads at a glance.
+                Rectangle()
+                    .fill(Color.white.opacity(0.9))
+                    .frame(width: 2)
+                    .offset(x: min(max(v * width - 1, 0), max(width - 2, 0)))
             }
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 3, style: .continuous)
-                    .strokeBorder(touching ? Theme.text : Color.white.opacity(0.14), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(touching ? Theme.text : Color.white.opacity(0.12), lineWidth: touching ? 1.5 : 1)
             )
         }
         .frame(minWidth: 80)
@@ -130,7 +144,7 @@ private struct StepButton: View {
             Image(systemName: symbol)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(Theme.text)
-                .frame(width: 36, height: 40)
+                .frame(width: 40, height: 34)
                 .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Theme.raised))
         }
         .buttonStyle(.plain)
@@ -144,7 +158,7 @@ struct ControlGrid<Content: View>: View {
     @ViewBuilder var content: Content
 
     var body: some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: 16)], alignment: .leading, spacing: 12) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: minimumWidth), spacing: 14)], alignment: .leading, spacing: 10) {
             content
         }
     }

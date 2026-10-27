@@ -24,6 +24,13 @@ final class AppModel {
         case editUser1
         case editUser2
         var id: String { rawValue }
+        /// Big working screens fill the iPad instead of sitting in a small card.
+        var fillsScreen: Bool {
+            switch self {
+            case .effects, .outputs, .meters: return true
+            default: return false
+            }
+        }
     }
 
     let store = ParamStore()

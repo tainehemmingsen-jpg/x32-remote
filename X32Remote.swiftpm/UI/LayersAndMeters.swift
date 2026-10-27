@@ -155,7 +155,7 @@ private struct MeterGroup: View {
             Text(title)
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.secondary)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 40, maximum: 60), spacing: 3)], spacing: 6) {
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 38), spacing: 3)], spacing: 6) {
                 ForEach(strips) { strip in
                     MeterCell(app: app, strip: strip)
                 }
@@ -174,7 +174,7 @@ private struct MeterCell: View {
         let muted = app.param(strip.onPath).int(or: 1) == 0
         VStack(spacing: 3) {
             MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
-                .frame(width: strip.kind == .main ? 14 : 9, height: 150)
+                .frame(width: strip.kind == .main ? 16 : 10, height: 170)
                 .opacity(muted ? 0.4 : 1)
             Text(name.isEmpty ? strip.footLabel : name)
                 .font(.system(size: 9))

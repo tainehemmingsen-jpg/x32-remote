@@ -641,7 +641,6 @@ private struct ConfigColumn: View {
                         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08)))
                 }
                 .buttonStyle(.plain)
-                Spacer(minLength: 0)
                 if hasHeadamp {
                     ParamKnob(app: app, address: StripID.headampGainPath(ha), spec: Specs.headampGain, title: "Gain")
                 }
@@ -651,7 +650,20 @@ private struct ConfigColumn: View {
                 if !strip.hasInputPage {
                     MainAssignButtons(app: app, strip: strip)
                 }
-                Spacer(minLength: 0)
+                // The input level fills the middle, so gain can be set by eye.
+                HStack(spacing: 6) {
+                    MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
+                        .frame(width: 14)
+                    VStack {
+                        Text("0").frame(maxHeight: .infinity, alignment: .top)
+                        Text("-60").frame(maxHeight: .infinity, alignment: .bottom)
+                    }
+                    .font(.system(size: 10))
+                    .foregroundStyle(Theme.tertiary)
+                }
+                .frame(maxHeight: .infinity)
+                .padding(.vertical, 4)
+                .accessibilityHidden(true)
                 if strip.hasPolarity {
                     OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø", width: 96)
                         .frame(height: 46)
@@ -716,6 +728,8 @@ private struct GateColumn: View {
                 .onTapGesture { app.detailTab = .gate }
             ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Thr", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Depth", enabled: on)
+            ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
+            ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", enabled: on)
             Spacer(minLength: 0)
         }
         .padding(8)
@@ -726,6 +740,11 @@ private struct EQColumn: View {
     let app: AppModel
     let strip: StripID
 
+    static func bandName(_ b: Int, of count: Int) -> String {
+        let names = count >= 6 ? ["Low", "Low 2", "Lo-mid", "Hi-mid", "High 2", "High"] : ["Low", "Lo-mid", "Hi-mid", "High"]
+        return b - 1 < names.count ? names[b - 1] : "Band \(b)"
+    }
+
     var body: some View {
         VStack(spacing: 10) {
             OnToggle(app: app, address: strip.eqOnPath)
@@ -734,8 +753,17 @@ private struct EQColumn: View {
                 .contentShape(Rectangle())
                 .onTapGesture { app.detailTab = .eq }
             if strip.hasHighPass {
-                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)
-                    .frame(height: 44)
+                HStack(spacing: 8) {
+                    OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 84)
+                        .frame(height: 34)
+                    ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Freq",
+                              enabled: app.param(strip.preampPath("hpon")).bool)
+                }
+            }
+            // Quick gain for each band; the EQ page has frequency, Q and type.
+            ForEach(1...max(strip.eqBandCount, 1), id: \.self) { b in
+                ParamKnob(app: app, address: strip.eqPath(b, "g"), spec: Specs.eqGain, title: EQColumn.bandName(b, of: strip.eqBandCount),
+                          bipolar: true, tint: EQColors.band(b), resettable: true)
             }
             Spacer(minLength: 0)
         }
@@ -756,6 +784,9 @@ private struct CompColumn: View {
                 .onTapGesture { app.detailTab = .comp }
             ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Thr", enabled: on)
             EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Gain", enabled: on)
             Spacer(minLength: 0)
         }
         .padding(8)
@@ -798,7 +829,7 @@ private struct SendSlider: View {
             display: !level.isKnown ? "—" : (on ? X32Math.formatFader(level.float) : "Off"),
             tint: on ? color : color.opacity(0.35),
             fine: app.fineMode,
-            height: 14,
+            height: 28,
             onChange: { v in app.dragSet(address, drag, v, steps: 160) },
             onTouch: { began in
                 if began { app.beginDrag(address, drag) } else { app.endDrag(drag) }
