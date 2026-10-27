@@ -23,11 +23,12 @@ final class AppModel {
         case help
         case editUser1
         case editUser2
+        case ringOut
         var id: String { rawValue }
         /// Big working screens fill the iPad instead of sitting in a small card.
         var fillsScreen: Bool {
             switch self {
-            case .effects, .outputs, .meters: return true
+            case .effects, .outputs, .meters, .ringOut: return true
             default: return false
             }
         }
@@ -373,11 +374,12 @@ final class AppModel {
     @ObservationIgnored private(set) var rtaStrip: StripID?
     /// EQ graphs that want the analyser, oldest first (two can overlap briefly while the
     /// layout changes, so each one owns its claim).
-    @ObservationIgnored private var rtaClaims: [(id: UUID, strip: StripID)] = []
+    @ObservationIgnored private var rtaClaims: [(id: UUID, strip: StripID, always: Bool)] = []
 
-    func claimRTA(_ id: UUID, strip: StripID) {
+    /// `always`: the analyser is needed even when "show RTA behind the EQ" is off (ring-out).
+    func claimRTA(_ id: UUID, strip: StripID, always: Bool = false) {
         rtaClaims.removeAll { $0.id == id }
-        rtaClaims.append((id, strip))
+        rtaClaims.append((id, strip, always))
         updateRTA()
     }
 
@@ -387,8 +389,8 @@ final class AppModel {
     }
 
     private func updateRTA() {
-        let latest = rtaClaims.last?.strip
-        let wanted = settings.showRTA ? latest.flatMap { RTA.sourceValue(for: $0) == nil ? nil : $0 } : nil
+        let latest = rtaClaims.last(where: { $0.always || settings.showRTA })?.strip
+        let wanted = latest.flatMap { RTA.sourceValue(for: $0) == nil ? nil : $0 }
         guard wanted != rtaStrip else { return }
         rtaStrip = wanted
         if wanted != nil {
@@ -884,6 +886,52 @@ final class AppModel {
         let names = clip.sections(for: strip).map(\.title).joined(separator: ", ")
         applyBatch(changes, label: "\(label) \(names) onto \(stripTitle(strip))")
         showToast("\(done) \(names) onto \(stripTitle(strip))")
+    }
+
+    // MARK: - Assistants
+
+    /// Notches `frequency` out of `strip`'s EQ (ring-out). Returns what it did, for the list.
+    @discardableResult
+    func notch(_ strip: StripID, frequency: Double) -> String? {
+        switch RingOut.notch(strip, frequency: frequency, value: { store.value($0) }) {
+        case .changes(let changes, let what):
+            applyBatch(changes, label: "\(stripTitle(strip)) ring-out")
+            showToast(what)
+            return what
+        case .noFreeBand:
+            showToast("Every EQ band on \(stripTitle(strip)) is in use. Free one up, or use a graphic EQ on it.")
+        case .atLimit:
+            showToast("That band is already cut by 15 dB, the most the EQ can do.")
+        case .unknown(let addresses):
+            client?.get(addresses)
+            showToast("Still reading \(stripTitle(strip))'s EQ from the desk, try again in a moment")
+        }
+        return nil
+    }
+
+    /// Takes a notch back out (sets that band flat).
+    func removeNotch(_ strip: StripID, band: Int) {
+        applyBatch([(strip.eqPath(band, "g"), .float(0.5))], label: "\(stripTitle(strip)) EQ band \(band) flat")
+    }
+
+    /// Sets a channel's preamp gain, and optionally moves its fader the other way so the main
+    /// mix stays as loud as it was.
+    func setGain(_ strip: StripID, gain: Float, keepFaderLevel: Bool) {
+        guard let haPath = strip.headampIndexPath else { return }
+        let ha = param(haPath).int(or: -1)
+        guard ha >= 0 && ha < 128 else { return }
+        let address = StripID.headampGainPath(ha)
+        let old = Specs.headampGain.value(param(address).float)
+        var changes: [(String, OSCArg)] = [(address, RingOut.arg(Specs.headampGain, gain))]
+        if keepFaderLevel {
+            let faderDB = X32Math.faderToDB(param(strip.faderPath).float)
+            if faderDB.isFinite {
+                let next = min(10, faderDB - (gain - old))
+                changes.append((strip.faderPath, .float(X32Math.quantize(X32Math.dbToFader(next), steps: 1023))))
+            }
+        }
+        applyBatch(changes, label: "\(stripTitle(strip)) gain")
+        showToast("\(stripTitle(strip)) gain \(Specs.headampGain.display(Specs.headampGain.norm(old))) → \(Specs.headampGain.display(Specs.headampGain.norm(gain)))")
     }
 
     // MARK: - Presets

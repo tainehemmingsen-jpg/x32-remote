@@ -271,7 +271,42 @@ final class DemoTransport: X32Transport {
             case 72, 73: amp = max(outL, outR)
             default: amp = 0
             }
-            reply(OSCMessage("/meters/\(RTA.block)", [.blob(RTA.encode(demoSpectrum(level: amp, seed: source)))]))
+            var spectrum = demoSpectrum(level: amp, seed: source)
+            addFeedback(&spectrum, source: source)
+            reply(OSCMessage("/meters/\(RTA.block)", [.blob(RTA.encode(spectrum))]))
+        }
+    }
+
+    /// Pushing a bus or the main mix above -8 dB makes it "ring" at two frequencies, like a
+    /// wedge or PA feeding back, until its EQ has a cut there (so ring-out can be tried).
+    private func addFeedback(_ spectrum: inout [Float], source: Int) {
+        let strip: StripID
+        switch source {
+        case 50...65: strip = StripID(.bus, source - 49)
+        case 72: strip = .mainLR
+        default: return
+        }
+        let faderDB = X32Math.faderToDB(float(strip.faderPath))
+        guard faderDB.isFinite, faderDB > -8, int(strip.onPath) != 0 else { return }
+        let rings = [70 + source % 7, 44 + source % 5]
+        for (n, band) in rings.enumerated() where band < spectrum.count {
+            let hz = Float(RTA.frequency(band))
+            var cut: Float = 0
+            if int(strip.eqOnPath) != 0 {
+                for b in 1...strip.eqBandCount {
+                    let t = int(strip.eqPath(b, "type"))
+                    guard t == 2 || t == 3 else { continue }
+                    let f = Specs.eqFreq.value(float(strip.eqPath(b, "f")))
+                    if abs(log2f(f / hz)) <= 1.0 / 6 { cut += min(0, Specs.eqGain.value(float(strip.eqPath(b, "g")))) }
+                }
+            }
+            // The louder the output, the harder it rings; a 6 dB cut tames it.
+            let strength = (faderDB + 8) * 2 + Float(n == 0 ? 14 : 10) + cut * 2.5
+            guard strength > 0 else { continue }
+            let peak = min(-6, -30 + strength)
+            spectrum[band] = max(spectrum[band], peak)
+            if band > 0 { spectrum[band - 1] = max(spectrum[band - 1], peak - 14) }
+            if band + 1 < spectrum.count { spectrum[band + 1] = max(spectrum[band + 1], peak - 14) }
         }
     }
 

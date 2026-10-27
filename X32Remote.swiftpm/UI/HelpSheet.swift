@@ -44,7 +44,19 @@ struct HelpSheet: View {
             Tip(symbol: "doc.on.doc", title: "Copy, paste and presets",
                 text: "The copy icon copies everything or one section to another channel, or saves it as a preset on this iPad."),
             Tip(symbol: "chevron.left.chevron.right", title: "Previous and next",
-                text: "The arrows in the header move through the channels of the current layer.")
+                text: "The arrows in the header move through the channels of the current layer."),
+            Tip(symbol: "wand.and.stars", title: "Auto gain",
+                text: "On Overview or Input: tap Auto gain, have them play as loud as they will in the show, and tap Listen. After 8 seconds it suggests a gain that leaves 12 dB of headroom; tap Set gain (Undo takes it back)."),
+            Tip(symbol: "square.grid.2x2", title: "Start from…",
+                text: "Pick what's plugged in (vocal, kick, acoustic guitar, speech…) for a sensible low cut, gate, EQ and compressor to start from.")
+        ]),
+        ("Sound check", [
+            Tip(symbol: "waveform.badge.exclamationmark", title: "Ring out",
+                text: "The feedback icon in the top bar: pick a wedge's mix or the PA, bring it up slowly until it rings, and tap Cut on the frequency that appears. Each tap cuts a narrow notch in that mix's EQ (tap again to cut deeper). Notches are listed so you can take them out."),
+            Tip(symbol: "chart.bar", title: "Meters",
+                text: "A line holds each meter's recent peak. A red cap means that signal hit 0 dBFS: tap the meter to clear it."),
+            Tip(symbol: "chart.line.downtrend.xyaxis", title: "Gain reduction history",
+                text: "The Gate and Compressor pages draw the last few seconds of gain reduction, so you can see how hard they work through a whole phrase.")
         ]),
         ("Effects", [
             Tip(symbol: "hand.point.up.left.and.text", title: "Graphic EQ",

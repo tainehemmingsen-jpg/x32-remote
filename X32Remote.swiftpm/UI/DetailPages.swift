@@ -117,6 +117,10 @@ private struct PreampControls: View {
                 if strip.hasPolarity {
                     OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø Invert", width: 100)
                 }
+                GainWizardButton(app: app, strip: strip, height: 44)
+                    .frame(maxWidth: 160)
+                StarterButton(app: app, strip: strip, height: 44)
+                    .frame(maxWidth: 160)
             }
         }
         .phantomConfirm(isPresented: $confirmPhantom, on: phantomOn) {

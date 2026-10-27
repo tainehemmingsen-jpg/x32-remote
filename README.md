@@ -14,7 +14,11 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Signal generator** — sine, pink or white noise to any mix, the mains or a matrix, from the desk-name menu. It asks before it turns on, and again if you leave with it running.
 - **USB recorder** — play, pause, record and stop the desk's USB stick recorder from the desk-name menu.
 - **Help** — every gesture explained, from the desk-name menu.
-- **Demo desk** — a built-in simulated X32 so you can try everything without a console.
+- **Ring out** — the feedback icon in the top bar: pick a wedge's mix or the PA and bring it up until it rings. The app watches the desk's analyser, lists the frequencies that are feeding back, and **one tap cuts a narrow notch** on that mix's EQ (tap again to go deeper). Existing notches are listed so they can be taken out.
+- **Auto gain** — on a channel's Overview or Input page: listens for 8 seconds while they play and sets the preamp so the loudest moment leaves 12 dB of headroom. It can move the fader the other way to keep the main mix level.
+- **Start from…** — built-in starting points for vocals, speech, kick, snare, toms, overheads, bass, guitars, keys and playback (low cut, gate, EQ, compressor). Loads like a preset, and Undo takes it back.
+- **Meters** hold their peaks and latch a red clip light until tapped; the Gate and Compressor pages draw a scrolling gain-reduction history.
+- **Demo desk** — a built-in simulated X32 so you can try everything without a console. Push a mix bus or the main fader up in Ring out and the demo desk "feeds back" so you can try it.
 
 It talks to the desk directly (OSC over UDP port 10023), so there's no extra box.
 

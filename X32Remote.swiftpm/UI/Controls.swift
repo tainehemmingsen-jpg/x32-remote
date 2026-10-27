@@ -470,10 +470,14 @@ enum MeterScale {
 struct MeterView: View {
     let meter: MeterLevel
     var stereo: Bool = false
+    /// Peak-hold line and a latched clip light on top (tap the meter to clear the clip).
+    var showsPeak: Bool = true
 
     var body: some View {
         let left = meter.level
         let right = meter.level2
+        let peak = meter.peak
+        let clipped = meter.clipped
         Canvas { ctx, size in
             let bars = stereo ? 2 : 1
             let gap: CGFloat = stereo ? 2 : 0
@@ -497,7 +501,21 @@ struct MeterView: View {
                     }
                 }
             }
+            guard showsPeak else { return }
+            if peak > -59 {
+                let pos = MeterScale.position(peak)
+                let color: Color = peak >= MeterScale.redFrom ? Theme.meterHigh : (peak >= MeterScale.yellowFrom ? Theme.meterMid : Theme.meterLow)
+                ctx.fill(Path(CGRect(x: 0, y: max(0, size.height * (1 - pos) - 1), width: size.width, height: 2)), with: .color(color))
+            }
+            if clipped {
+                ctx.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: min(6, size.height * 0.05))), with: .color(Color.red))
+            }
         }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if clipped { meter.clipped = false }
+        }
+        .accessibilityValue(clipped ? "Clipped" : "")
     }
 }
 
@@ -542,6 +560,74 @@ struct ReductionMeter: View {
                 .foregroundStyle(Theme.secondary)
                 .frame(width: 30, alignment: .trailing)
         }
+    }
+}
+
+/// Gain reduction over the last few seconds, scrolling right to left, with the live amount.
+/// Shows how hard the gate or compressor works through a whole phrase, not just this instant.
+struct ReductionHistory: View {
+    let meter: MeterLevel
+    var gate: Bool = false
+    var seconds: Double = 6
+    @State private var buffer = HistoryBuffer()
+
+    final class HistoryBuffer {
+        var samples: [(t: TimeInterval, db: Float)] = []
+        func push(_ db: Float, at t: TimeInterval, keep: Double) {
+            if let last = samples.last, t - last.t < 0.03 { return }
+            samples.append((t, db))
+            if let first = samples.first, t - first.t > keep + 1 {
+                samples.removeAll { t - $0.t > keep }
+            }
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(gate ? "Gate reduction" : "Gain reduction")
+                    .font(.system(size: 12))
+                    .foregroundStyle(Theme.secondary)
+                Spacer()
+                let now = gate ? meter.gateReduction : meter.dynReduction
+                Text(now < 0.5 ? "0 dB" : String(format: "-%.0f dB", now))
+                    .font(Theme.mono(12))
+                    .foregroundStyle(now >= 0.5 ? Theme.text : Theme.secondary)
+            }
+            TimelineView(.animation(minimumInterval: 1.0 / 20)) { timeline in
+                let t = timeline.date.timeIntervalSinceReferenceDate
+                let current = gate ? meter.gateReduction : meter.dynReduction
+                let _ = buffer.push(current, at: t, keep: seconds)
+                let samples = buffer.samples
+                Canvas { ctx, size in
+                    let range: Float = gate ? 60 : 24
+                    ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 4), with: .color(Color.black.opacity(0.45)))
+                    for mark: Float in (gate ? [20, 40] : [6, 12, 18]) {
+                        let y = CGFloat(mark / range) * size.height
+                        ctx.fill(Path(CGRect(x: 0, y: y, width: size.width, height: 0.5)), with: .color(Color.white.opacity(0.12)))
+                        ctx.draw(Text("-\(Int(mark))").font(.system(size: 8)).foregroundColor(Color.white.opacity(0.35)),
+                                 at: CGPoint(x: 3, y: y + 1), anchor: .topLeading)
+                    }
+                    guard samples.count > 1 else { return }
+                    var area = Path()
+                    area.move(to: CGPoint(x: size.width, y: 0))
+                    for s in samples.reversed() {
+                        let x = size.width - CGFloat((t - s.t) / seconds) * size.width
+                        let y = CGFloat(min(s.db, range) / range) * size.height
+                        area.addLine(to: CGPoint(x: x, y: y))
+                        if x < 0 { break }
+                    }
+                    let lastX = max(0, size.width - CGFloat((t - samples[0].t) / seconds) * size.width)
+                    area.addLine(to: CGPoint(x: lastX, y: 0))
+                    area.closeSubpath()
+                    ctx.fill(area, with: .linearGradient(Gradient(colors: [Theme.mute.opacity(0.5), Theme.mute.opacity(0.9)]),
+                                                         startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
+                }
+            }
+            .frame(height: 64)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(gate ? "Gate reduction" : "Gain reduction")
     }
 }
 

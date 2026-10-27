@@ -83,6 +83,13 @@ final class MeterLevel {
     var level2: Float = -90
     var gateReduction: Float = 0
     var dynReduction: Float = 0
+    /// Channels only: the input straight after the preamp (what gain is set by).
+    var input: Float = -90
+    /// Highest recent level, held for a moment, then falling.
+    var peak: Float = -90
+    /// Latched when the signal reached 0 dBFS, until someone clears it.
+    var clipped = false
+    @ObservationIgnored var peakTime: TimeInterval = 0
 }
 
 /// Converts /meters blobs into per-strip meter levels with simple ballistics.
@@ -114,6 +121,9 @@ final class MeterStore {
             m.level2 = -90
             m.gateReduction = 0
             m.dynReduction = 0
+            m.input = -90
+            m.peak = -90
+            m.clipped = false
         }
         rta.reset()
     }
@@ -133,6 +143,10 @@ final class MeterStore {
             for n in 1...32 {
                 let m = meter(StripID(.channel, n))
                 setReduction(m, gate: values[31 + n], dyn: values[63 + n])
+                let input = X32Math.amplitudeToDB(values[n - 1])
+                let next = smoothed(current: m.input, incoming: input)
+                if abs(next - m.input) >= 0.25 { m.input = next }
+                if input >= -0.3 && !m.clipped { m.clipped = true }
             }
         case 2:
             // 16 buses, 6 matrices, main L, main R, mono, then dynamics gain reductions
@@ -163,8 +177,27 @@ final class MeterStore {
         return max(incoming, current - 1.5)
     }
 
+    /// Clears every latched clip light.
+    func clearClips() {
+        for m in levels.values where m.clipped { m.clipped = false }
+    }
+
+    private func holdPeak(_ m: MeterLevel, _ db: Float) {
+        let now = X32Client.now()
+        if db >= m.peak {
+            if db - m.peak >= 0.25 { m.peak = db }
+            m.peakTime = now
+        } else if now - m.peakTime > 1.5 {
+            // After 1.5 s the hold falls at about 20 dB a second.
+            let next = max(db, m.peak - 1)
+            if abs(next - m.peak) >= 0.25 { m.peak = next }
+        }
+        if db >= -0.3 && !m.clipped { m.clipped = true }
+    }
+
     private func setLevel(_ m: MeterLevel, _ amplitude: Float, right: Float? = nil) {
         let db = X32Math.amplitudeToDB(amplitude)
+        holdPeak(m, max(db, right.map(X32Math.amplitudeToDB) ?? -90))
         let next = smoothed(current: m.level, incoming: db)
         if abs(next - m.level) >= 0.25 {
             m.level = next

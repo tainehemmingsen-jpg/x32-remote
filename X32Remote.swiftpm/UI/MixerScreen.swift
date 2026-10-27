@@ -113,6 +113,8 @@ struct MixerScreen: View {
             UserLayerEditor(app: app, index: 0)
         case .editUser2:
             UserLayerEditor(app: app, index: 1)
+        case .ringOut:
+            RingOutSheet(app: app)
         }
     }
 
@@ -228,6 +230,9 @@ struct MixerTopBar: View {
                 TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
                     app.sheet = .meters
                 }
+                TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)") {
+                    app.sheet = .ringOut
+                }
                 FXIcon(app: app)
                 TopIcon(systemName: "folder", label: "Show: cues, scenes and snippets") {
                     app.loadScenes()
@@ -246,6 +251,7 @@ struct MixerTopBar: View {
                     Button { DispatchQueue.main.async { showMonitor = true } } label: { Label("Solo and talkback", systemImage: "headphones") }
                     Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
                     Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
+                    Button { app.sheet = .ringOut } label: { Label("Ring out", systemImage: "waveform.badge.exclamationmark") }
                     Button {
                         app.loadEffects()
                         app.sheet = .effects
@@ -457,6 +463,11 @@ struct ConsoleMenu: View {
                     app.sheet = .generator
                 } label: {
                     Label("Signal generator", systemImage: "waveform")
+                }
+                Button {
+                    app.sheet = .ringOut
+                } label: {
+                    Label("Ring out (find feedback)", systemImage: "waveform.badge.exclamationmark")
                 }
                 Button {
                     app.sheet = .help

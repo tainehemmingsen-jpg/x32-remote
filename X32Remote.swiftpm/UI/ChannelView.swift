@@ -641,8 +641,10 @@ private struct ConfigColumn: View {
                         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08)))
                 }
                 .buttonStyle(.plain)
+                StarterButton(app: app, strip: strip, height: 36)
                 if hasHeadamp {
                     ParamKnob(app: app, address: StripID.headampGainPath(ha), spec: Specs.headampGain, title: "Gain")
+                    GainWizardButton(app: app, strip: strip, height: 36)
                 }
                 if strip.hasTrim {
                     ParamKnob(app: app, address: strip.preampPath("trim"), spec: Specs.trim, title: "Trim", bipolar: true, resettable: true)
@@ -861,7 +863,7 @@ struct GatePage: View {
             ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("hold"), spec: Specs.hold, title: "Hold", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", enabled: on)
-            ReductionMeter(meter: app.meters.meter(strip), gate: true)
+            ReductionHistory(meter: app.meters.meter(strip), gate: true)
             KeyControls(app: app, strip: strip, block: "gate", hasSource: true)
         }
     }
@@ -895,7 +897,7 @@ struct CompPage: View {
             ParamKnob(app: app, address: strip.dynPath("hold"), spec: Specs.hold, title: "Hold", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("mix"), spec: Specs.dynMix, title: "Mix", enabled: on)
-            ReductionMeter(meter: app.meters.meter(strip))
+            ReductionHistory(meter: app.meters.meter(strip))
             LabeledChoice(app: app, title: "Position", address: strip.dynPath("pos"), options: ["Pre EQ", "Post EQ"])
             KeyControls(app: app, strip: strip, block: "dyn", hasSource: strip.hasDynKeySource)
         }
