@@ -51,7 +51,9 @@ final class AppModel {
     var discovered: [X32Discovery.Console] = []
 
     // Mixer navigation
-    var layer: MixerLayer = .inputs1
+    var layer: MixerLayer = .inputs
+    /// Which bank (page of strips) of the layer is showing.
+    var mixerPage = 0
     var sendsBus: Int?
     /// Faders control preamp gain instead of level (red caps).
     var gainOnFaders = false
@@ -940,8 +942,9 @@ final class AppModel {
         client?.set("/-stat/selidx", .int(Int32(strip.soloIndex - 1)))
     }
 
-    func selectLayer(_ newLayer: MixerLayer) {
+    func selectLayer(_ newLayer: MixerLayer, page: Int = 0) {
         layer = newLayer
+        mixerPage = page
         spillDCA = nil
         if !newLayer.supportsBusSends {
             sendsBus = nil
@@ -955,7 +958,7 @@ final class AppModel {
         if let b = bus {
             loadSends(bus: b)
             if !layer.supportsBusSends && spillDCA == nil {
-                layer = .inputs1
+                layer = .inputs
             }
         }
     }
@@ -966,7 +969,7 @@ final class AppModel {
         if gainOnFaders {
             sendsBus = nil
             if !layer.supportsBusSends && spillDCA == nil {
-                layer = .inputs1
+                layer = .inputs
             }
         }
     }
@@ -974,6 +977,7 @@ final class AppModel {
     /// Shows the channels assigned to a DCA (tap the same DCA again to go back).
     func spill(_ dca: Int) {
         spillDCA = spillDCA == dca ? nil : dca
+        mixerPage = 0
         if spillDCA == nil && !layer.supportsBusSends {
             sendsBus = nil
             gainOnFaders = false
@@ -1087,8 +1091,13 @@ final class AppModel {
 
     private func applyLaunchActionsAfterConnect() {
         let d = UserDefaults.standard
-        if let raw = d.string(forKey: "autoLayer"), let l = MixerLayer(rawValue: raw) {
-            selectLayer(l)
+        if let raw = d.string(forKey: "autoLayer") {
+            // "inputs2" (channels 17-32) is from before the channel layer was one bank of 32.
+            if raw == "inputs1" || raw == "inputs2" {
+                selectLayer(.inputs, page: raw == "inputs2" ? 1 : 0)
+            } else if let l = MixerLayer(rawValue: raw) {
+                selectLayer(l)
+            }
         }
         if d.object(forKey: "autoSends") != nil {
             let bus = d.integer(forKey: "autoSends")

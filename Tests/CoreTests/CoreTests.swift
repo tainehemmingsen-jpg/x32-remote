@@ -541,8 +541,9 @@ final class LayerAndEntryTests: XCTestCase {
         XCTAssertEqual(MixerLayer.user1.strips, [])
         XCTAssertEqual(MixerLayer.user1.userIndex, 0)
         XCTAssertEqual(MixerLayer.user2.userIndex, 1)
-        XCTAssertNil(MixerLayer.inputs1.userIndex)
+        XCTAssertNil(MixerLayer.inputs.userIndex)
         XCTAssertEqual(MixerLayer.aux.strips.count, 16)
+        XCTAssertEqual(MixerLayer.inputs.strips.count, 32)
     }
 
     func testTypedValues() {

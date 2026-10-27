@@ -17,7 +17,6 @@ enum StripDetail: Int, Comparable {
 /// two-column panel down the right (Fine, sends on fader | layers, mute groups).
 struct MixerScreen: View {
     @Bindable var app: AppModel
-    @State private var page = 0
 
     var body: some View {
         GeometryReader { geo in
@@ -26,10 +25,10 @@ struct MixerScreen: View {
             let sidebarWidth: CGFloat = wide ? column * 2 + 12 : 0
             let bodyHeight = geo.size.height - 46
             let stripsWidth = geo.size.width - sidebarWidth
-            let layout = MixerScreen.pageLayout(strips: app.visibleStrips, width: stripsWidth, page: page)
+            let layout = MixerScreen.pageLayout(strips: app.visibleStrips, width: stripsWidth, page: app.mixerPage)
             let detail = StripDetail.forHeight(bodyHeight)
             VStack(spacing: 0) {
-                MixerTopBar(app: app, wide: wide, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+                MixerTopBar(app: app, wide: wide, page: $app.mixerPage, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
                 HStack(spacing: 0) {
                     if layout.visible.isEmpty {
                         EmptyLayerView(app: app)
@@ -40,7 +39,7 @@ struct MixerScreen: View {
                                   wideStrips: stripWidth >= 96, stripWidth: stripWidth)
                     }
                     if wide {
-                        MixerSidebar(app: app, column: column, page: $page, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+                        MixerSidebar(app: app, column: column, perPage: layout.perPage)
                             .frame(width: sidebarWidth)
                     }
                 }
@@ -54,12 +53,6 @@ struct MixerScreen: View {
             ValueEditorOverlay(app: app, active: app.detailStrip == nil && app.sheet == nil)
         }
         .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
-        .onChange(of: app.layer) { _, _ in
-            page = 0
-        }
-        .onChange(of: app.spillDCA) { _, _ in
-            page = 0
-        }
         .fullScreenCover(item: $app.detailStrip) { strip in
             ChannelView(app: app, strip: strip)
         }
@@ -784,58 +777,66 @@ struct MuteGroupButton: View {
 struct MixerSidebar: View {
     let app: AppModel
     let column: CGFloat
-    @Binding var page: Int
-    let pageCount: Int
     let perPage: Int
-    let total: Int
 
     var body: some View {
-        HStack(alignment: .top, spacing: 4) {
-            VStack(spacing: 4) {
-                SideButton(title: "Fine", active: app.fineMode, style: .outline) {
-                    app.fineMode.toggle()
-                    Haptics.click()
-                }
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 4) {
-                        SideButton(title: "LR Mix", active: app.sendsBus == nil && !app.gainOnFaders, stripe: Theme.solo) {
-                            app.selectSendsBus(nil)
-                        }
-                        ForEach(1...16, id: \.self) { bus in
-                            SoFButton(app: app, bus: bus)
-                        }
-                        SideButton(title: "Gain", active: app.gainOnFaders, stripe: Theme.mute) {
-                            app.toggleGainOnFaders()
-                        }
-                    }
-                }
-            }
-            .frame(width: column)
-            VStack(spacing: 4) {
-                ForEach(MixerLayer.allCases) { layer in
-                    LayerButton(app: app, layer: layer)
-                }
-                if pageCount > 1 {
-                    HStack(spacing: 4) {
-                        ForEach(0..<pageCount, id: \.self) { p in
-                            SideButton(title: pageLabel(p), active: min(page, pageCount - 1) == p, height: 36) {
-                                page = p
+        VStack(spacing: 6) {
+            HStack(alignment: .top, spacing: 4) {
+                // What the faders control: the main mix, a bus's sends, or gain.
+                VStack(spacing: 4) {
+                    SidebarHeader(title: "Mix")
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 4) {
+                            SideButton(title: "LR Mix", active: app.sendsBus == nil && !app.gainOnFaders, stripe: Theme.solo, height: 40) {
+                                app.selectSendsBus(nil)
+                            }
+                            ForEach(1...16, id: \.self) { bus in
+                                SoFButton(app: app, bus: bus)
+                            }
+                            SideButton(title: "Gain", active: app.gainOnFaders, stripe: Theme.mute, height: 40) {
+                                app.toggleGainOnFaders()
                             }
                         }
                     }
                 }
-                Spacer(minLength: 8)
-                Text("Mute groups")
-                    .font(.system(size: 11))
-                    .foregroundStyle(Theme.secondary)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 4), GridItem(.flexible(), spacing: 4)], spacing: 4) {
-                    ForEach(1...6, id: \.self) { n in
-                        MuteGroupButton(app: app, group: n, height: 34)
+                .frame(width: column)
+                // Which strips are on the faders: one button per bank of strips.
+                VStack(spacing: 4) {
+                    SidebarHeader(title: "Strips")
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 4) {
+                            ForEach(MixerLayer.allCases) { layer in
+                                let count = app.strips(for: layer).count
+                                let pages = max(1, (count + max(perPage, 1) - 1) / max(perPage, 1))
+                                ForEach(0..<pages, id: \.self) { p in
+                                    BankButton(app: app, layer: layer, page: p, title: bankTitle(layer, page: p, pages: pages))
+                                }
+                            }
+                        }
                     }
                 }
-                ClearSoloButton(app: app)
+                .frame(width: column)
             }
-            .frame(width: column)
+            .frame(maxHeight: .infinity, alignment: .top)
+
+            // Mute groups and the global switches, across the bottom.
+            VStack(spacing: 4) {
+                SidebarHeader(title: "Mute groups")
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
+                    ForEach(1...6, id: \.self) { n in
+                        MuteGroupButton(app: app, group: n, height: 36)
+                    }
+                }
+                HStack(spacing: 4) {
+                    SideButton(title: "Fine", active: app.fineMode, style: .outline, height: 36) {
+                        app.fineMode.toggle()
+                        Haptics.click()
+                    }
+                    ClearSoloButton(app: app, height: 36)
+                }
+            }
+            .padding(6)
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.panel))
         }
         .padding(4)
         .frame(maxHeight: .infinity, alignment: .top)
@@ -844,7 +845,7 @@ struct MixerSidebar: View {
 
     static func stripe(_ layer: MixerLayer) -> Color {
         switch layer {
-        case .inputs1, .inputs2: return Theme.on
+        case .inputs: return Theme.on
         case .aux: return Color(red: 0.96, green: 0.62, blue: 0.22)
         case .buses: return Theme.scribble(6)
         case .matrix: return Theme.scribble(5)
@@ -853,10 +854,32 @@ struct MixerSidebar: View {
         }
     }
 
-    private func pageLabel(_ p: Int) -> String {
-        let first = p * perPage + 1
-        let last = min(total, (p + 1) * perPage)
-        return "\(first)-\(last)"
+    /// "Ch 13-24", "Mix 1-12", or the layer's name when it fits on one page.
+    private func bankTitle(_ layer: MixerLayer, page: Int, pages: Int) -> String {
+        let all = app.strips(for: layer)
+        guard pages > 1, !all.isEmpty else { return app.layerTitle(layer) }
+        let start = min(page * perPage, all.count - 1)
+        let end = min(all.count, start + perPage) - 1
+        let first = all[start], last = all[end]
+        switch layer {
+        case .inputs: return "Ch \(first.index)-\(last.index)"
+        case .buses: return "Mix \(first.index)-\(last.index)"
+        default: return "\(app.layerTitle(layer)) \(page + 1)"
+        }
+    }
+}
+
+private struct SidebarHeader: View {
+    let title: String
+
+    var body: some View {
+        Text(title.uppercased())
+            .font(.system(size: 10, weight: .semibold))
+            .tracking(0.8)
+            .foregroundStyle(Theme.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.leading, 2)
+            .padding(.top, 2)
     }
 }
 
@@ -906,17 +929,20 @@ struct SideButton: View {
     }
 }
 
-/// A layer button. Custom layers open their editor when empty, and on long-press.
-private struct LayerButton: View {
+/// One bank of strips (e.g. Ch 13-24). Custom layers open their editor when empty, and on long-press.
+private struct BankButton: View {
     let app: AppModel
     let layer: MixerLayer
+    let page: Int
+    let title: String
 
     var body: some View {
-        let button = SideButton(title: app.layerTitle(layer), active: app.layer == layer, stripe: MixerSidebar.stripe(layer)) {
+        let active = app.layer == layer && app.spillDCA == nil && app.mixerPage == page
+        let button = SideButton(title: title, active: active, stripe: MixerSidebar.stripe(layer), height: 40) {
             if layer.userIndex != nil && app.strips(for: layer).isEmpty {
                 app.sheet = layer == .user1 ? .editUser1 : .editUser2
             } else {
-                app.selectLayer(layer)
+                app.selectLayer(layer, page: page)
             }
         }
         if layer.userIndex != nil {
@@ -974,7 +1000,7 @@ private struct SoFButton: View {
         let strip = StripID(.bus, bus)
         let name = app.param(strip.namePath).string
         let color = Theme.scribble(app.param(strip.colorPath).int)
-        SideButton(title: name.isEmpty ? "Mix \(bus)" : name, active: app.sendsBus == bus, stripe: color) {
+        SideButton(title: name.isEmpty ? "Mix \(bus)" : name, active: app.sendsBus == bus, stripe: color, height: 40) {
             app.selectSendsBus(app.sendsBus == bus ? nil : bus)
         }
     }
@@ -982,10 +1008,11 @@ private struct SoFButton: View {
 
 struct ClearSoloButton: View {
     let app: AppModel
+    var height: CGFloat = 40
 
     var body: some View {
         let anySolo = app.param("/-stat/solo").bool
-        LitButton(title: anySolo ? "Clear Solo" : "No Solo", isOn: anySolo, color: Theme.solo, height: 40, fontSize: 13, offColor: Theme.raised) {
+        LitButton(title: anySolo ? "Clear Solo" : "No Solo", isOn: anySolo, color: Theme.solo, height: height, fontSize: 13, offColor: Theme.raised) {
             app.clearSolo()
         }
         .disabled(!anySolo)

@@ -63,9 +63,9 @@ shot() {
 boot "$IPAD"
 # Portrait set (the simulator boots in portrait).
 shot "$IPAD" 01-connect 6 0 -autoMode mixer
-shot "$IPAD" 02-mixer 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs1
+shot "$IPAD" 02-mixer 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs
 shot "$IPAD" 03-mixer-17-32 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs2
-shot "$IPAD" 04-sends-on-fader 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1
+shot "$IPAD" 04-sends-on-fader 8 0 -autoDemo YES -autoMode mixer -autoLayer inputs -autoSends 1
 shot "$IPAD" 05-dca 8 0 -autoDemo YES -autoMode mixer -autoLayer dca
 shot "$IPAD" 06-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq
 shot "$IPAD" 07-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp
@@ -85,8 +85,8 @@ open -a Simulator || true
 sleep 3
 osascript -e 'tell application "Simulator" to activate' -e 'delay 1' -e 'tell application "System Events" to key code 124 using command down' > "$OUT/rotate.log" 2>&1 || true
 sleep 3
-shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoOrientation landscape
-shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs1 -autoSends 1 -autoOrientation landscape
+shot "$IPAD" 40-landscape-mixer 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs -autoOrientation landscape
+shot "$IPAD" 41-landscape-sends 9 0 -autoDemo YES -autoMode mixer -autoLayer inputs -autoSends 1 -autoOrientation landscape
 shot "$IPAD" 42-landscape-eq 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab eq -autoOrientation landscape
 shot "$IPAD" 43-landscape-comp 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-1 -autoTab comp -autoOrientation landscape
 shot "$IPAD" 46-landscape-overview 9 0 -autoDemo YES -autoMode mixer -autoDetail channel-16 -autoTab overview -autoOrientation landscape
@@ -116,7 +116,7 @@ if [ -x "$EMU" ]; then
   (cd "$ROOT/build" && "$EMU" -i 127.0.0.1 -v 1 > "$OUT/emulator.log" 2>&1 &)
   sleep 2
   python3 "$ROOT/ci/x32tool.py" seed 127.0.0.1 | tee "$OUT/seed.log"
-  shot "$IPAD" 20-emulator-mixer 10 0 -autoHost 127.0.0.1 -autoMode mixer -autoLayer inputs1 -autoScript selftest
+  shot "$IPAD" 20-emulator-mixer 10 0 -autoHost 127.0.0.1 -autoMode mixer -autoLayer inputs -autoScript selftest
   sleep 2
   python3 "$ROOT/ci/x32tool.py" check 127.0.0.1 | tee "$OUT/selftest-check.log"
   RESULT=${PIPESTATUS[0]}
