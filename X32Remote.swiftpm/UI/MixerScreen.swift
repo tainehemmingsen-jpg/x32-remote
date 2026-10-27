@@ -1104,20 +1104,14 @@ struct StripView: View {
                 StripThumbs(app: app, strip: strip, height: thumb, wide: wide)
             }
             StripName(app: app, strip: strip)
-            if wide {
-                HStack(spacing: 3) {
-                    MuteButton(app: app, strip: strip, height: 36)
-                    SoloButton(app: app, strip: strip, height: 36)
-                }
-            } else {
-                MuteButton(app: app, strip: strip, height: 28)
-                SoloButton(app: app, strip: strip, height: 28)
-            }
+            SoloButton(app: app, strip: strip, height: wide ? 32 : 28)
             StripPanSlot(app: app, strip: strip, sendsBus: sendsBus, wide: wide)
                 .frame(height: wide ? 30 : 22)
             FaderReadout(app: app, address: target.address, spec: target.spec)
             StripFader(app: app, strip: strip, target: target)
             StripFoot(app: app, strip: strip)
+            // Mute is the button reached for most: big, and at the bottom under the thumb.
+            MuteButton(app: app, strip: strip, height: detail == .compact ? 40 : 52, fontSize: 15)
         }
         .padding(.horizontal, 3)
         .padding(.vertical, 4)
@@ -1517,10 +1511,11 @@ struct MuteButton: View {
     let app: AppModel
     let strip: StripID
     var height: CGFloat = 30
+    var fontSize: CGFloat = 12
 
     var body: some View {
         let muted = app.param(strip.onPath).int(or: 1) == 0
-        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: 12, offColor: Theme.muteOff) {
+        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: fontSize, offColor: Theme.muteOff) {
             app.toggleMute(strip)
             Haptics.click()
         }

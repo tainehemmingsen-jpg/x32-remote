@@ -486,8 +486,7 @@ struct ChannelSideStrip: View {
             } else {
                 Color.clear.frame(height: 38)
             }
-            MuteButton(app: app, strip: strip, height: 40)
-            SoloButton(app: app, strip: strip, height: 40)
+            SoloButton(app: app, strip: strip, height: 36)
             FaderReadout(app: app, address: strip.faderPath, size: 12)
             HStack(spacing: 2) {
                 ParamFader(app: app, address: strip.faderPath, steps: 1023, editTitle: "\(app.stripTitle(strip)) · Fader")
@@ -500,6 +499,7 @@ struct ChannelSideStrip: View {
             Text(strip.footLabel)
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.text.opacity(0.8))
+            MuteButton(app: app, strip: strip, height: 52, fontSize: 15)
         }
         .padding(6)
         .frame(maxHeight: .infinity)
