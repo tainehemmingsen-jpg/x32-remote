@@ -1,7 +1,7 @@
 import SwiftUI
 
 // Hardware-style "rack units" for the effects: each family of effects gets its own faceplate
-// (reverbs as slide-fader units, delays and modulation as knob units with a display, dynamics
+// (reverbs as slide-fader units, delays and modulation as slider units with a display, dynamics
 // as a silver panel, amps as a black-and-gold amp head…). All drawn here, no images.
 
 // MARK: - Families and looks
@@ -190,7 +190,7 @@ struct FXFaceplate: View {
                 }
             }
             if !knobs.isEmpty {
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 100), spacing: 8)], alignment: .center, spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 18)], alignment: .center, spacing: 14) {
                     ForEach(knobs, id: \.number) { p in
                         RackParam(app: app, slot: slot, param: p, look: look, asFader: false)
                     }
@@ -225,90 +225,97 @@ private struct RackParam: View {
         if asFader {
             RackFader(app: app, address: address, name: param.name, spec: spec, look: look)
         } else {
-            RackKnob(app: app, address: address, name: param.name, spec: spec, look: look)
+            RackSlider(app: app, address: address, name: param.name, spec: spec, look: look)
         }
     }
 }
 
-// MARK: - Knob
+// MARK: - Slider
 
-/// A big rotary knob: drag up or down to turn it. Long-press to type a value.
-struct RackKnob: View {
+/// A hardware-style horizontal slider: name and a lit readout on top, an LED ladder and a fader
+/// cap below. Drag sideways anywhere on it (it never jumps to your finger); long-press to type a
+/// value. Used instead of rotary knobs, which are fiddly under a finger.
+struct RackSlider: View {
     let app: AppModel
     let address: String
     let name: String
     let spec: ParamSpec
     let look: RackLook
-    var size: CGFloat = 68
     @State private var drag = DragTarget()
     @State private var start: Float = 0
     @State private var touching = false
-    @State private var startPoint: CGPoint = .zero
+    @State private var startX: CGFloat = 0
 
     var body: some View {
         let p = app.param(address)
         let norm = CGFloat(min(max(p.float(or: spec.defaultNorm), 0), 1))
-        VStack(spacing: 5) {
-            Text(name.uppercased())
-                .font(.system(size: 12, weight: .bold))
-                .foregroundStyle(look.text.opacity(0.85))
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
-            Canvas { ctx, sz in
-                let c = CGPoint(x: sz.width / 2, y: sz.height / 2)
-                let r = min(sz.width, sz.height) / 2
-                // Scale: 270° arc of ticks.
-                for i in 0...10 {
-                    let a = Angle.degrees(135 + 270 * Double(i) / 10).radians
-                    let r1 = r - 1, r2 = r - (i % 5 == 0 ? 7 : 4)
-                    var t = Path()
-                    t.move(to: CGPoint(x: c.x + cos(a) * r1, y: c.y + sin(a) * r1))
-                    t.addLine(to: CGPoint(x: c.x + cos(a) * r2, y: c.y + sin(a) * r2))
-                    ctx.stroke(t, with: .color(look.text.opacity(0.55)), lineWidth: 1)
-                }
-                // Lit arc up to the value.
-                var arc = Path()
-                arc.addArc(center: c, radius: r - 2.5, startAngle: .degrees(135), endAngle: .degrees(135 + 270 * Double(norm)), clockwise: false)
-                ctx.stroke(arc, with: .color(look.accent.opacity(p.isKnown ? 0.9 : 0.2)), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
-                // Knob body.
-                let kr = r - 10
-                let body = CGRect(x: c.x - kr, y: c.y - kr, width: kr * 2, height: kr * 2)
-                let capColors: [Color] = look.knobLight ? [Color(white: 0.92), Color(white: 0.55)] : [Color(white: 0.32), Color(white: 0.06)]
-                ctx.fill(Path(ellipseIn: body.offsetBy(dx: 0, dy: 2)), with: .color(.black.opacity(0.45)))
-                ctx.fill(Path(ellipseIn: body), with: .radialGradient(Gradient(colors: capColors), center: CGPoint(x: c.x - kr * 0.35, y: c.y - kr * 0.45), startRadius: 1, endRadius: kr * 1.6))
-                ctx.stroke(Path(ellipseIn: body.insetBy(dx: kr * 0.18, dy: kr * 0.18)), with: .color(Color.white.opacity(look.knobLight ? 0.35 : 0.08)), lineWidth: 1)
-                // Pointer.
-                let a = Angle.degrees(135 + 270 * Double(norm)).radians
-                var pointer = Path()
-                pointer.move(to: CGPoint(x: c.x + cos(a) * kr * 0.25, y: c.y + sin(a) * kr * 0.25))
-                pointer.addLine(to: CGPoint(x: c.x + cos(a) * kr * 0.92, y: c.y + sin(a) * kr * 0.92))
-                ctx.stroke(pointer, with: .color(look.knobLight ? Color.black.opacity(0.8) : Color.white), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                Text(name.uppercased())
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(look.text.opacity(0.85))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.6)
+                Spacer(minLength: 4)
+                RackLCD(text: p.isKnown ? spec.display(p.float) : "—", look: look, active: touching)
+                    .frame(width: 92)
             }
-            .frame(width: size, height: size)
-            .overlay(
-                TouchSurface(
-                    onLongPress: { app.editValue(name, address, spec) },
-                    onBegin: { pt in
-                        touching = true
-                        start = p.float(or: spec.defaultNorm)
-                        startPoint = pt
-                        app.beginDrag(address, drag)
-                    },
-                    onMove: { pt in
-                        // Up (or right) turns it up.
-                        let sensitivity: Float = app.fineMode ? 800 : 220
-                        let delta = Float(-(pt.y - startPoint.y) + (pt.x - startPoint.x) * 0.5) / sensitivity
-                        app.dragSet(address, drag, min(max(start + delta, 0), 1), steps: spec.steps)
-                    },
-                    onEnd: { _, _ in
-                        touching = false
-                        app.endDrag(drag)
+            GeometryReader { geo in
+                let w = geo.size.width
+                let h = geo.size.height
+                Canvas { ctx, size in
+                    let capW: CGFloat = 22
+                    let travel = size.width - capW
+                    let midY = size.height / 2
+                    // LED ladder along the top edge, lit up to the value.
+                    let leds = max(8, Int(travel / 14))
+                    for i in 0..<leds {
+                        let t = CGFloat(i) / CGFloat(leds - 1)
+                        let x = capW / 2 + t * travel
+                        let lit = p.isKnown && t <= norm + 0.001
+                        ctx.fill(Path(ellipseIn: CGRect(x: x - 3, y: 2, width: 6, height: 6)),
+                                 with: .color(lit ? look.accent : look.accent.opacity(0.15)))
                     }
+                    // Slot.
+                    let slot = CGRect(x: capW / 2, y: midY + 3, width: travel, height: 6)
+                    ctx.fill(Path(roundedRect: slot, cornerRadius: 3), with: .color(.black.opacity(0.85)))
+                    ctx.stroke(Path(roundedRect: slot, cornerRadius: 3), with: .color(Color.white.opacity(0.12)), lineWidth: 1)
+                    // Cap.
+                    let capX = norm * travel
+                    let cap = CGRect(x: capX, y: midY - 9, width: capW, height: size.height - midY + 6)
+                    ctx.fill(Path(roundedRect: cap.offsetBy(dx: 0, dy: 2), cornerRadius: 3), with: .color(.black.opacity(0.5)))
+                    ctx.fill(Path(roundedRect: cap, cornerRadius: 3), with: .linearGradient(
+                        Gradient(colors: [Color(white: 0.92), Color(white: 0.62), Color(white: 0.80)]),
+                        startPoint: CGPoint(x: cap.minX, y: cap.midY), endPoint: CGPoint(x: cap.maxX, y: cap.midY)))
+                    ctx.fill(Path(CGRect(x: cap.midX - 1, y: cap.minY + 3, width: 2, height: cap.height - 6)),
+                             with: .color(touching ? look.accent : Color.black.opacity(0.75)))
+                }
+                .frame(width: w, height: h)
+                .overlay(
+                    TouchSurface(
+                        axis: .horizontal,
+                        onLongPress: { app.editValue(name, address, spec) },
+                        onBegin: { pt in
+                            touching = true
+                            start = p.float(or: spec.defaultNorm)
+                            startX = pt.x
+                            app.beginDrag(address, drag)
+                        },
+                        onMove: { pt in
+                            let travel = max(w - 22, 120)
+                            let delta = Float((pt.x - startX) / travel) * (app.fineMode ? 0.25 : 1)
+                            app.dragSet(address, drag, min(max(start + delta, 0), 1), steps: spec.steps)
+                        },
+                        onEnd: { _, _ in
+                            touching = false
+                            app.endDrag(drag)
+                        }
+                    )
                 )
-            )
-            RackLCD(text: p.isKnown ? spec.display(p.float) : "—", look: look, active: touching)
+            }
+            .frame(height: 40)
         }
-        .frame(minWidth: 92)
+        .padding(.horizontal, 4)
         .paramAccessibility(app: app, title: name, address: address, spec: spec)
     }
 }

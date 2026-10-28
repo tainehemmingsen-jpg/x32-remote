@@ -92,6 +92,18 @@ enum Dynamics {
                 grid.addLine(to: CGPoint(x: rect.maxX, y: gy))
             }
             ctx.stroke(grid, with: .color(Theme.graphGrid), lineWidth: 1)
+            // dB labels: input along the bottom, output up the left.
+            let step = range / 4
+            for i in 1..<4 {
+                let db = -range + step * Double(i)
+                let label = Text("\(Int(db))").font(.system(size: 10).monospacedDigit()).foregroundColor(Theme.tertiary)
+                ctx.draw(label, at: CGPoint(x: x(db), y: rect.maxY - 3), anchor: .bottom)
+                ctx.draw(label, at: CGPoint(x: rect.minX + 4, y: y(db)), anchor: .leading)
+            }
+            ctx.draw(Text("IN").font(.system(size: 9, weight: .semibold)).foregroundColor(Theme.tertiary),
+                     at: CGPoint(x: rect.maxX - 4, y: rect.maxY - 3), anchor: .bottomTrailing)
+            ctx.draw(Text("OUT").font(.system(size: 9, weight: .semibold)).foregroundColor(Theme.tertiary),
+                     at: CGPoint(x: rect.minX + 4, y: rect.minY + 4), anchor: .topLeading)
         }
 
         var curve = Path()
@@ -120,7 +132,10 @@ enum Dynamics {
                 ctx.stroke(Path(ellipseIn: CGRect(x: c.x - 9, y: c.y - 9, width: 18, height: 18)), with: .color(color), lineWidth: 2.5)
             }
             if let level, level > -range {
+                // Where the signal is on the curve right now, with a trail down to the input axis.
                 let c = CGPoint(x: x(level), y: y(output(level)))
+                ctx.fill(Path(CGRect(x: c.x - 0.75, y: c.y, width: 1.5, height: rect.maxY - c.y)), with: .color(Theme.text.opacity(0.25)))
+                ctx.fill(Path(ellipseIn: CGRect(x: c.x - 9, y: c.y - 9, width: 18, height: 18)), with: .color(Theme.text.opacity(0.18)))
                 ctx.fill(Path(ellipseIn: CGRect(x: c.x - 5, y: c.y - 5, width: 10, height: 10)), with: .color(Theme.text))
             }
         }
@@ -140,7 +155,7 @@ struct GateGraph: View {
         let meter = app.meters.meter(strip)
         let gr = Double(meter.gateReduction)
         // Only the big graph shows the live input dot; reading it in thumbnails would redraw them on every meter tick.
-        let level: Double? = detailed ? Double(meter.level) : nil
+        let level: Double? = detailed ? Double(strip.kind == .channel ? meter.input : meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
             let rect = CGRect(x: 0, y: 0, width: size.width - grWidth - 2, height: size.height)
@@ -173,7 +188,7 @@ struct CompGraph: View {
         let comp = Dynamics.Comp(app: app, strip: strip)
         let meter = app.meters.meter(strip)
         let gr = Double(meter.dynReduction)
-        let level: Double? = detailed ? Double(meter.level) : nil
+        let level: Double? = detailed ? Double(strip.kind == .channel ? meter.input : meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
             let rect = CGRect(x: 0, y: 0, width: size.width - grWidth - 2, height: size.height)

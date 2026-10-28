@@ -93,6 +93,7 @@ private struct ChannelHeader: View {
     @Binding var strip: StripID
     let tab: DetailTab
     let close: () -> Void
+    @State private var jumping = false
 
     var body: some View {
         let name = app.param(strip.namePath).string
@@ -116,6 +117,27 @@ private struct ChannelHeader: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
+            // Jump straight to any other strip.
+            Button {
+                jumping = true
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.grid.3x3")
+                    Text("Go to…")
+                }
+                .font(.system(size: 13))
+                .barChip()
+            }
+            .buttonStyle(.plain)
+            .popover(isPresented: $jumping) {
+                StripJumpGrid(app: app, current: strip) { picked in
+                    jumping = false
+                    strip = picked
+                }
+                .frame(width: 560, height: 520)
+                .presentationCompactAdaptation(.sheet)
+                .preferredColorScheme(.dark)
+            }
             Spacer(minLength: 8)
             if ProcessingSection.allCases.contains(where: { strip.supports($0) }) {
                 CopyPasteMenu(app: app, strip: strip)
@@ -145,6 +167,59 @@ private struct ChannelHeader: View {
         if next < 1 { next = count }
         if next > count { next = 1 }
         strip = StripID(strip.kind, next)
+    }
+}
+
+/// Every strip on the desk as a grid of scribble strips, to jump to one.
+private struct StripJumpGrid: View {
+    let app: AppModel
+    let current: StripID
+    let pick: (StripID) -> Void
+
+    private let groups: [(String, [StripID])] = [
+        ("Channels", StripID.all(.channel)),
+        ("Aux in and FX returns", StripID.all(.auxIn) + StripID.all(.fxReturn)),
+        ("Mix buses", StripID.all(.bus)),
+        ("Matrix and main", StripID.all(.matrix) + [StripID.mainLR, StripID.monoC]),
+    ]
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 14) {
+                ForEach(groups.indices, id: \.self) { i in
+                    let group = groups[i]
+                    Text(group.0.uppercased())
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(Theme.secondary)
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 76), spacing: 6)], spacing: 6) {
+                        ForEach(group.1) { s in
+                            let name = app.param(s.namePath).string
+                            let style = ScribbleStyle(colorIndex: app.param(s.colorPath).int)
+                            Button {
+                                pick(s)
+                            } label: {
+                                VStack(spacing: 2) {
+                                    Text(name.isEmpty ? s.footLabel : name)
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.7)
+                                    Text(s.footLabel)
+                                        .font(.system(size: 10))
+                                        .opacity(0.75)
+                                }
+                                .foregroundStyle(style.text)
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .background(RoundedRectangle(cornerRadius: 5).fill(style.fill))
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(s == current ? Theme.on : Color.clear, lineWidth: 2.5))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+            }
+            .padding(16)
+        }
+        .background(Theme.panel)
     }
 }
 
