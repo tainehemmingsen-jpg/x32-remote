@@ -57,6 +57,14 @@ struct ShowSheet: View {
             .navigationTitle("Show")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        app.sheet = .library
+                    } label: {
+                        Label("Scenes on this iPad", systemImage: "tray.full")
+                            .labelStyle(.titleAndIcon)
+                    }
+                }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") { dismiss() }
                 }

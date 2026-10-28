@@ -138,6 +138,9 @@ private struct ChannelHeader: View {
                 .presentationCompactAdaptation(.sheet)
                 .preferredColorScheme(.dark)
             }
+            if ChannelPreset.sections.contains(where: { strip.supports($0) }) {
+                CompareControl(app: app, strip: strip)
+            }
             Spacer(minLength: 8)
             if ProcessingSection.allCases.contains(where: { strip.supports($0) }) {
                 CopyPasteMenu(app: app, strip: strip)
@@ -168,6 +171,51 @@ private struct ChannelHeader: View {
         if next < 1 { next = count }
         if next > count { next = 1 }
         strip = StripID(strip.kind, next)
+    }
+}
+
+/// A/B: save how the channel sounds now, try something else, and flip between the two.
+private struct CompareControl: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        if let c = app.compares[strip] {
+            HStack(spacing: 4) {
+                ForEach(["A", "B"], id: \.self) { v in
+                    Button {
+                        app.showCompare(strip, v)
+                        Haptics.click()
+                    } label: {
+                        Text(v)
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(c.showing == v ? Color.black : Theme.text)
+                            .frame(width: 38, height: 30)
+                            .background(RoundedRectangle(cornerRadius: 5).fill(c.showing == v ? Theme.solo : Theme.raised2))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Version \(v)")
+                }
+                Button {
+                    app.endCompare(strip)
+                } label: {
+                    Text("Keep \(c.showing)")
+                        .font(.system(size: 13))
+                        .barChip()
+                }
+                .buttonStyle(.plain)
+            }
+        } else {
+            Button {
+                app.startCompare(strip)
+            } label: {
+                Text("A/B")
+                    .font(.system(size: 13, weight: .semibold))
+                    .barChip()
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Compare two versions")
+        }
     }
 }
 

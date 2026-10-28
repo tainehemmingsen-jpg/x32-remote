@@ -165,7 +165,7 @@ struct ScribbleView: View {
         let style = ScribbleStyle(colorIndex: colorIndex)
         let shownName = name.isEmpty ? placeholder : name
         Text(shownName.uppercased())
-            .font(.system(size: fontSize, weight: .regular))
+            .font(.system(size: fontSize, weight: .semibold))
             .lineLimit(2)
             .minimumScaleFactor(0.6)
             .multilineTextAlignment(.center)

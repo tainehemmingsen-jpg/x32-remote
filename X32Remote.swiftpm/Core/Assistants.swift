@@ -249,6 +249,12 @@ enum StarterPresets {
         var makeup: Float = 0
     }
 
+    enum Category: String, CaseIterable, Identifiable {
+        case vocals = "Vocals", speech = "Speech", drums = "Drums", strings = "Bass and guitars"
+        case keys = "Keys", horns = "Brass and strings", playback = "Playback"
+        var id: String { rawValue }
+    }
+
     struct Starter: Identifiable {
         let name: String
         let symbol: String
@@ -257,47 +263,106 @@ enum StarterPresets {
         let gate: Gate?
         let eq: [Band]
         let comp: Comp?
+        var category: Category = .vocals
         var id: String { name }
     }
 
+    static func named(_ name: String) -> Starter? {
+        all.first { $0.name.caseInsensitiveCompare(name) == .orderedSame }
+    }
+
     static let all: [Starter] = [
+        // Vocals
         Starter(name: "Lead vocal", symbol: "music.mic", lowCut: 100, slope: 2, gate: nil,
                 eq: [.peq(250, -2), .peq(500, -2, q: 2), .peq(3000, 2, q: 1.5), .highShelf(10000, 3)],
-                comp: Comp(threshold: -20, ratio: 4, attack: 10, release: 120, makeup: 4)),
+                comp: Comp(threshold: -20, ratio: 4, attack: 10, release: 120, makeup: 4), category: .vocals),
         Starter(name: "Backing vocal", symbol: "music.mic", lowCut: 150, slope: 2, gate: nil,
                 eq: [.peq(250, -3), .peq(500, -2, q: 2), .peq(3000, 1), .highShelf(10000, 2)],
-                comp: Comp(threshold: -18, ratio: 3, attack: 10, release: 120, makeup: 3)),
+                comp: Comp(threshold: -18, ratio: 3, attack: 10, release: 120, makeup: 3), category: .vocals),
+        Starter(name: "Low male vocal", symbol: "music.mic", lowCut: 80, slope: 2, gate: nil,
+                eq: [.peq(180, -2), .peq(400, -3, q: 1.8), .peq(2500, 2, q: 1.4), .highShelf(9000, 2)],
+                comp: Comp(threshold: -20, ratio: 4, attack: 10, release: 140, makeup: 4), category: .vocals),
+        Starter(name: "Rap vocal", symbol: "music.mic", lowCut: 110, slope: 2, gate: nil,
+                eq: [.peq(220, -3), .peq(600, -2, q: 2), .peq(3500, 3, q: 1.4), .highShelf(10000, 2)],
+                comp: Comp(threshold: -24, ratio: 5, attack: 5, release: 80, makeup: 5), category: .vocals),
+        Starter(name: "Choir", symbol: "person.3", lowCut: 120, slope: 2, gate: nil,
+                eq: [.peq(250, -3, q: 1), .peq(800, -1), .peq(4000, 2, q: 1), .highShelf(10000, 2)],
+                comp: Comp(threshold: -15, ratio: 2, attack: 20, release: 200, makeup: 2), category: .vocals),
+        // Speech
         Starter(name: "Speech", symbol: "person.wave.2", lowCut: 120, slope: 2,
                 gate: Gate(mode: 1, threshold: -55, range: 12, attack: 2, hold: 100, release: 400),
                 eq: [.peq(250, -3), .peq(600, -2, q: 2), .peq(3500, 3, q: 1.5), .highShelf(10000, 0)],
-                comp: Comp(threshold: -22, ratio: 3, knee: 3, attack: 10, release: 150, makeup: 4)),
+                comp: Comp(threshold: -22, ratio: 3, knee: 3, attack: 10, release: 150, makeup: 4), category: .speech),
+        Starter(name: "Lapel mic", symbol: "person.crop.circle", lowCut: 140, slope: 2,
+                gate: Gate(mode: 1, threshold: -55, range: 10, attack: 2, hold: 100, release: 400),
+                eq: [.peq(300, -3, q: 1.2), .peq(800, -2, q: 2), .peq(4500, -2, q: 2), .highShelf(9000, 2)],
+                comp: Comp(threshold: -24, ratio: 3, knee: 3, attack: 10, release: 150, makeup: 5), category: .speech),
+        Starter(name: "Headset mic", symbol: "headphones", lowCut: 130, slope: 2,
+                gate: Gate(mode: 1, threshold: -50, range: 10, attack: 2, hold: 100, release: 400),
+                eq: [.peq(250, -2), .peq(700, -2, q: 2), .peq(3000, 2), .highShelf(10000, 1)],
+                comp: Comp(threshold: -20, ratio: 4, knee: 3, attack: 8, release: 120, makeup: 4), category: .speech),
+        // Drums
         Starter(name: "Kick", symbol: "circle.circle", lowCut: 40, gate: Gate(threshold: -40, range: 40, hold: 20, release: 150),
                 eq: [.peq(60, 3), .peq(350, -5, q: 2), .peq(3500, 4, q: 1.5), .highShelf(8000, -2)],
-                comp: Comp(threshold: -15, ratio: 4, attack: 15, release: 100, makeup: 2)),
+                comp: Comp(threshold: -15, ratio: 4, attack: 15, release: 100, makeup: 2), category: .drums),
         Starter(name: "Snare", symbol: "circle.dashed", lowCut: 90, gate: Gate(threshold: -35, range: 25, hold: 30, release: 200),
                 eq: [.peq(200, 2, q: 1.5), .peq(800, -3, q: 2), .peq(5000, 3, q: 1.2), .highShelf(10000, 2)],
-                comp: Comp(threshold: -18, ratio: 4, attack: 10, release: 120, makeup: 2)),
+                comp: Comp(threshold: -18, ratio: 4, attack: 10, release: 120, makeup: 2), category: .drums),
+        Starter(name: "Hi-hat", symbol: "line.3.horizontal", lowCut: 250, slope: 2, gate: nil,
+                eq: [.lowShelf(400, -4), .peq(1000, -2, q: 1.5), .peq(6000, 1), .highShelf(12000, 2)],
+                comp: nil, category: .drums),
         Starter(name: "Toms", symbol: "circle.grid.2x1", lowCut: 60, gate: Gate(threshold: -40, range: 30, hold: 50, release: 300),
                 eq: [.peq(100, 3), .peq(400, -5, q: 2), .peq(4000, 3), .highShelf(10000, -2)],
-                comp: Comp(threshold: -15, ratio: 3, attack: 15, release: 150, makeup: 1)),
+                comp: Comp(threshold: -15, ratio: 3, attack: 15, release: 150, makeup: 1), category: .drums),
         Starter(name: "Overheads", symbol: "sparkles", lowCut: 150, gate: nil,
                 eq: [.lowShelf(200, -2), .peq(500, -2, q: 1), .peq(3000, 0), .highShelf(10000, 2)],
-                comp: nil),
+                comp: nil, category: .drums),
+        Starter(name: "Cajon", symbol: "square", lowCut: 50, gate: nil,
+                eq: [.peq(90, 3), .peq(400, -4, q: 1.8), .peq(4000, 3, q: 1.2), .highShelf(10000, 1)],
+                comp: Comp(threshold: -16, ratio: 3, attack: 10, release: 120, makeup: 2), category: .drums),
+        // Bass and guitars
         Starter(name: "Bass DI", symbol: "waveform.path", lowCut: 35, gate: nil,
                 eq: [.peq(80, 2), .peq(250, -3, q: 1.5), .peq(800, 2, q: 1.5), .highShelf(5000, -3)],
-                comp: Comp(threshold: -20, ratio: 4, attack: 20, release: 150, makeup: 3)),
+                comp: Comp(threshold: -20, ratio: 4, attack: 20, release: 150, makeup: 3), category: .strings),
+        Starter(name: "Bass amp", symbol: "speaker.wave.2", lowCut: 40, gate: nil,
+                eq: [.peq(100, 2), .peq(300, -4, q: 1.5), .peq(1200, 2, q: 1.5), .highCut(6000)],
+                comp: Comp(threshold: -18, ratio: 4, attack: 25, release: 160, makeup: 3), category: .strings),
         Starter(name: "Electric guitar", symbol: "guitars", lowCut: 100, gate: nil,
                 eq: [.peq(200, -2), .peq(500, -2, q: 1.5), .peq(2500, 2, q: 1.2), .highCut(9000)],
-                comp: Comp(threshold: -15, ratio: 2, attack: 20, release: 150, makeup: 1)),
+                comp: Comp(threshold: -15, ratio: 2, attack: 20, release: 150, makeup: 1), category: .strings),
         Starter(name: "Acoustic guitar", symbol: "guitars.fill", lowCut: 100, gate: nil,
                 eq: [.peq(200, -3), .peq(800, -2, q: 1.5), .peq(5000, 2), .highShelf(10000, 2)],
-                comp: Comp(threshold: -20, ratio: 3, attack: 15, release: 150, makeup: 2)),
+                comp: Comp(threshold: -20, ratio: 3, attack: 15, release: 150, makeup: 2), category: .strings),
+        // Keys
         Starter(name: "Keys", symbol: "pianokeys", lowCut: 60, gate: nil,
                 eq: [.peq(120, 0), .peq(300, -2, q: 1.5), .peq(3000, 0), .highShelf(10000, 1)],
-                comp: Comp(threshold: -15, ratio: 2, attack: 20, release: 200, makeup: 1)),
+                comp: Comp(threshold: -15, ratio: 2, attack: 20, release: 200, makeup: 1), category: .keys),
+        Starter(name: "Piano", symbol: "pianokeys.inverse", lowCut: 50, gate: nil,
+                eq: [.peq(100, 1), .peq(350, -3, q: 1.4), .peq(3000, 2), .highShelf(10000, 2)],
+                comp: Comp(threshold: -16, ratio: 2.5, attack: 25, release: 200, makeup: 1), category: .keys),
+        Starter(name: "Organ", symbol: "music.quarternote.3", lowCut: 50, gate: nil,
+                eq: [.peq(120, 1), .peq(500, -2, q: 1.2), .peq(2500, 1), .highCut(10000)],
+                comp: Comp(threshold: -15, ratio: 2, attack: 30, release: 250, makeup: 1), category: .keys),
+        Starter(name: "Synth", symbol: "waveform", lowCut: 40, gate: nil,
+                eq: [.peq(100, 0), .peq(400, -2, q: 1.4), .peq(3000, 0), .highShelf(10000, 0)],
+                comp: nil, category: .keys),
+        // Brass and strings
+        Starter(name: "Sax", symbol: "music.note", lowCut: 120, slope: 2, gate: nil,
+                eq: [.peq(250, -2), .peq(700, -1, q: 1.5), .peq(3000, 2, q: 1.2), .highShelf(9000, -2)],
+                comp: Comp(threshold: -18, ratio: 3, attack: 10, release: 120, makeup: 2), category: .horns),
+        Starter(name: "Trumpet", symbol: "music.note", lowCut: 150, slope: 2, gate: nil,
+                eq: [.peq(300, -2), .peq(1200, -2, q: 1.8), .peq(4000, -2, q: 1.5), .highShelf(9000, -2)],
+                comp: Comp(threshold: -16, ratio: 3, attack: 8, release: 100, makeup: 1), category: .horns),
+        Starter(name: "Violin", symbol: "music.note.list", lowCut: 180, slope: 2, gate: nil,
+                eq: [.peq(300, -2), .peq(900, -1, q: 1.5), .peq(4500, 2, q: 1.2), .highShelf(10000, 1)],
+                comp: Comp(threshold: -18, ratio: 2.5, attack: 15, release: 150, makeup: 2), category: .horns),
+        // Playback
         Starter(name: "Playback", symbol: "play.circle", lowCut: 30, slope: 0, gate: nil,
                 eq: [.peq(120, 0), .peq(500, 0), .peq(3000, 0), .highShelf(10000, 0)],
-                comp: nil),
+                comp: nil, category: .playback),
+        Starter(name: "DJ", symbol: "opticaldisc", lowCut: 25, slope: 0, gate: nil,
+                eq: [.peq(80, 0), .peq(500, 0), .peq(3000, 0), .highShelf(10000, 0)],
+                comp: Comp(threshold: -8, ratio: 2, attack: 20, release: 200, makeup: 0), category: .playback),
     ]
 
     private static func index(_ v: Float, in list: [Float]) -> Int32 {

@@ -24,6 +24,8 @@ final class AppModel {
         case editUser1
         case editUser2
         case ringOut
+        case library
+        case builder
         var id: String { rawValue }
         /// Big working screens fill the iPad instead of sitting in a small card.
         var fillsScreen: Bool {
@@ -300,6 +302,10 @@ final class AppModel {
     private func handle(_ message: OSCMessage) {
         guard let value = message.args.first else { return }
         let address = message.address
+        if address == "node" {
+            if case .string(let line) = value { nodeReply(line) }
+            return
+        }
         if address == "/save" {
             // The desk answers a scene save with ("scene", 1) for OK or ("scene", 0) for failure.
             if message.args.count >= 2, message.args[1].intValue == 0 {
@@ -932,6 +938,236 @@ final class AppModel {
         }
         applyBatch(changes, label: "\(stripTitle(strip)) gain")
         showToast("\(stripTitle(strip)) gain \(Specs.headampGain.display(Specs.headampGain.norm(old))) → \(Specs.headampGain.display(Specs.headampGain.norm(gain)))")
+    }
+
+    // MARK: - Scene library (scenes kept on this iPad)
+
+    private(set) var sceneLibrary: [SceneFile] = SceneLibrary.load()
+
+    /// A scene going to or coming from the desk, for a progress bar.
+    struct SceneTransfer: Equatable {
+        enum Kind { case sending, reading }
+        let kind: Kind
+        let name: String
+        var done: Int
+        let total: Int
+    }
+
+    private(set) var sceneTransfer: SceneTransfer?
+
+    func addToLibrary(_ scene: SceneFile) {
+        sceneLibrary.insert(scene, at: 0)
+        SceneLibrary.save(sceneLibrary)
+    }
+
+    func updateInLibrary(_ scene: SceneFile) {
+        guard let i = sceneLibrary.firstIndex(where: { $0.id == scene.id }) else { return }
+        sceneLibrary[i] = scene
+        SceneLibrary.save(sceneLibrary)
+    }
+
+    func deleteFromLibrary(_ scene: SceneFile) {
+        sceneLibrary.removeAll { $0.id == scene.id }
+        SceneLibrary.save(sceneLibrary)
+    }
+
+    /// Imports a .scn file (from X32-Edit, the desk's USB stick, or another iPad).
+    @discardableResult
+    func importScene(text: String, fileName: String) -> Bool {
+        let base = (fileName as NSString).deletingPathExtension
+        guard let scene = SceneFile.parse(text, fallbackName: base) else {
+            showToast("\(fileName) isn't an X32 scene file")
+            return false
+        }
+        addToLibrary(scene)
+        showToast("Imported “\(scene.name)”")
+        return true
+    }
+
+    @ObservationIgnored private var sendQueue: [String] = []
+
+    /// Sends a library scene to the desk, line by line, then reads the desk back. Optionally
+    /// stores it in one of the desk's scene slots too.
+    func sendToDesk(_ scene: SceneFile, parts: Set<SceneFile.Part>, saveAs slot: Int?) {
+        guard client != nil, sceneTransfer == nil else { return }
+        let lines = scene.lines(including: parts)
+        guard !lines.isEmpty else { return }
+        sendQueue = lines
+        sceneTransfer = SceneTransfer(kind: .sending, name: scene.name, done: 0, total: lines.count)
+        clearUndo()
+        sendNextLines(scene: scene, slot: slot)
+    }
+
+    private func sendNextLines(scene: SceneFile, slot: Int?) {
+        guard let c = client, var t = sceneTransfer, t.kind == .sending else { return }
+        // About 800 lines a second: quick, without flooding the desk's network input.
+        let chunk = sendQueue.prefix(16)
+        for line in chunk {
+            c.send(OSCMessage("/", [.string(line)]))
+        }
+        sendQueue.removeFirst(chunk.count)
+        t.done += chunk.count
+        sceneTransfer = t
+        if sendQueue.isEmpty {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                guard let self else { return }
+                self.sceneTransfer = nil
+                if let slot { self.saveScene(slot, name: scene.name) }
+                self.showToast("“\(scene.name)” is on the desk" + (slot.map { String(format: " and saved as scene %02d", $0) } ?? ""))
+                self.syncAll()
+            }
+        } else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+                self?.sendNextLines(scene: scene, slot: slot)
+            }
+        }
+    }
+
+    // Reading the whole desk with /node, a few dozen requests at a time.
+    @ObservationIgnored private var nodeQueue: [String] = []
+    @ObservationIgnored private var nodeOutstanding: [String: (sent: TimeInterval, attempts: Int)] = [:]
+    @ObservationIgnored private var nodeResults: [String: String] = [:]
+    @ObservationIgnored private var nodeName = ""
+
+    /// Saves everything on the desk now as a scene on this iPad.
+    func readDeskIntoLibrary(name: String) {
+        guard client != nil, sceneTransfer == nil else { return }
+        nodeQueue = SceneNodes.all
+        nodeOutstanding = [:]
+        nodeResults = [:]
+        nodeName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (connectedName.isEmpty ? "Desk" : connectedName) : name
+        sceneTransfer = SceneTransfer(kind: .reading, name: nodeName, done: 0, total: SceneNodes.all.count)
+        pumpNodes()
+    }
+
+    func cancelSceneTransfer() {
+        sendQueue = []
+        nodeQueue = []
+        nodeOutstanding = [:]
+        sceneTransfer = nil
+    }
+
+    private func nodeReply(_ raw: String) {
+        guard sceneTransfer?.kind == .reading else { return }
+        let line = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        let path = SceneFile.path(of: line)
+        guard nodeOutstanding.removeValue(forKey: path) != nil else { return }
+        nodeResults[path] = line
+        sceneTransfer?.done = nodeResults.count
+    }
+
+    private func pumpNodes() {
+        guard let c = client, sceneTransfer?.kind == .reading else { return }
+        let now = X32Client.now()
+        // Ask again for anything unanswered after half a second (three tries at most).
+        for (path, entry) in nodeOutstanding where now - entry.sent > 0.5 {
+            if entry.attempts >= 3 {
+                nodeOutstanding[path] = nil
+            } else {
+                nodeOutstanding[path] = (now, entry.attempts + 1)
+                c.send(OSCMessage("/node", [.string(SceneFile.nodeRequest(path))]))
+            }
+        }
+        while nodeOutstanding.count < 24, !nodeQueue.isEmpty {
+            let path = nodeQueue.removeFirst()
+            nodeOutstanding[path] = (now, 1)
+            c.send(OSCMessage("/node", [.string(SceneFile.nodeRequest(path))]))
+        }
+        if nodeQueue.isEmpty && nodeOutstanding.isEmpty {
+            finishReadingDesk()
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.03) { [weak self] in
+            self?.pumpNodes()
+        }
+    }
+
+    private func finishReadingDesk() {
+        let lines = SceneNodes.all.compactMap { nodeResults[$0] }
+        sceneTransfer = nil
+        nodeResults = [:]
+        guard lines.count > SceneNodes.all.count / 2 else {
+            showToast("The desk didn't answer enough of the scene (\(lines.count) of \(SceneNodes.all.count)). Try again.")
+            return
+        }
+        addToLibrary(SceneFile(name: nodeName, note: "", origin: isDemo ? .demo : .desk, lines: lines))
+        showToast("Saved “\(nodeName)” on this iPad")
+    }
+
+    // MARK: - Scene builder
+
+    /// Open the scene builder once the current sheet has closed.
+    var pendingBuilder = false
+    private(set) var applyingPlan = false
+
+    /// Puts a built scene on the desk as one undoable step. The desk's current values are read
+    /// first (so Undo can put everything back), waiting a few seconds at most.
+    func applyPlan(_ plan: ScenePlan, clearRest: Bool) {
+        guard !applyingPlan else { return }
+        let changes = SceneBuilder.changes(for: plan, clearRest: clearRest)
+        let missing = changes.map(\.0).filter { store.value($0) == nil }
+        applyingPlan = true
+        if !missing.isEmpty { client?.get(missing) }
+        waitThenApply(changes, plan: plan, until: X32Client.now() + 8)
+    }
+
+    private func waitThenApply(_ changes: [(String, OSCArg)], plan: ScenePlan, until deadline: TimeInterval) {
+        let ready = changes.allSatisfy { store.value($0.0) != nil }
+        if ready || X32Client.now() > deadline {
+            applyBatch(changes, label: "build “\(plan.title)”")
+            applyingPlan = false
+            showToast("Built “\(plan.title)”: \(plan.inputs.count) channels" + (plan.mixes.isEmpty ? "" : ", \(plan.mixes.count) mixes") + ". Undo takes it back.")
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+            self?.waitThenApply(changes, plan: plan, until: deadline)
+        }
+    }
+
+    // MARK: - A/B compare
+
+    /// Two versions of a channel's processing to flip between while deciding.
+    struct Compare {
+        var a: ChannelClipboard
+        var b: ChannelClipboard?
+        /// Which version is on the desk now: "A" or "B".
+        var showing: String
+    }
+
+    private(set) var compares: [StripID: Compare] = [:]
+
+    private func compareSections(_ strip: StripID) -> [ProcessingSection] {
+        ChannelPreset.sections.filter { strip.supports($0) }
+    }
+
+    /// Starts comparing: what's on the desk now becomes A, and you carry on editing B.
+    func startCompare(_ strip: StripID) {
+        let sections = compareSections(strip)
+        let gaps = missing(strip, sections)
+        if !gaps.isEmpty {
+            client?.get(gaps)
+            showToast("Still reading \(stripTitle(strip)) from the desk, try again in a moment")
+            return
+        }
+        let snap = ChannelClipboard.copy(from: strip, sections: sections) { store.value($0) }
+        compares[strip] = Compare(a: snap, b: nil, showing: "B")
+        showToast("Saved as A. Change things, then flip between A and B.")
+    }
+
+    /// Puts version A or B on the desk, keeping what's there now as the other one.
+    func showCompare(_ strip: StripID, _ which: String) {
+        guard var c = compares[strip], c.showing != which else { return }
+        let now = ChannelClipboard.copy(from: strip, sections: compareSections(strip)) { store.value($0) }
+        if c.showing == "A" { c.a = now } else { c.b = now }
+        guard let target = which == "A" ? c.a : c.b else { return }
+        c.showing = which
+        compares[strip] = c
+        applyBatch(target.changes(onto: strip), label: "\(stripTitle(strip)) compare \(which)")
+    }
+
+    /// Stops comparing and keeps whichever version is on the desk.
+    func endCompare(_ strip: StripID) {
+        compares[strip] = nil
     }
 
     // MARK: - Presets

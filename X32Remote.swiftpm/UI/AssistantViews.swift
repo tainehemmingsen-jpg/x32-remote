@@ -191,7 +191,7 @@ struct StarterButton: View {
             .buttonStyle(.plain)
             .popover(isPresented: $open) {
                 StarterPicker(app: app, strip: strip) { open = false }
-                    .frame(width: 420)
+                    .frame(width: 440, height: 560)
                     .presentationCompactAdaptation(.popover)
                     .preferredColorScheme(.dark)
             }
@@ -212,25 +212,34 @@ private struct StarterPicker: View {
                 .font(.system(size: 12))
                 .foregroundStyle(Theme.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 120), spacing: 8)], spacing: 8) {
-                ForEach(StarterPresets.all) { s in
-                    Button {
-                        app.loadPreset(StarterPresets.preset(s), onto: strip)
-                        close()
-                    } label: {
-                        VStack(spacing: 6) {
-                            Image(systemName: s.symbol)
-                                .font(.system(size: 22))
-                            Text(s.name)
-                                .font(.system(size: 13))
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 12) {
+                    ForEach(StarterPresets.Category.allCases) { category in
+                        Text(category.rawValue.uppercased())
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Theme.secondary)
+                        LazyVGrid(columns: [GridItem(.adaptive(minimum: 116), spacing: 8)], spacing: 8) {
+                            ForEach(StarterPresets.all.filter { $0.category == category }) { s in
+                                Button {
+                                    app.loadPreset(StarterPresets.preset(s), onto: strip)
+                                    close()
+                                } label: {
+                                    VStack(spacing: 6) {
+                                        Image(systemName: s.symbol)
+                                            .font(.system(size: 20))
+                                        Text(s.name)
+                                            .font(.system(size: 13))
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.7)
+                                    }
+                                    .foregroundStyle(Theme.text)
+                                    .frame(maxWidth: .infinity, minHeight: 66)
+                                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised))
+                                }
+                                .buttonStyle(.plain)
+                            }
                         }
-                        .foregroundStyle(Theme.text)
-                        .frame(maxWidth: .infinity, minHeight: 72)
-                        .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised))
                     }
-                    .buttonStyle(.plain)
                 }
             }
         }

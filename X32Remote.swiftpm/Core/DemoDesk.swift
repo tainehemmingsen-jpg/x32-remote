@@ -89,6 +89,21 @@ final class DemoTransport: X32Transport {
                 reply(OSCMessage("/save", [.string("scene"), .int(1)]))
             }
             return
+        case "/node":
+            // A whole node as one line of text, like the real desk (names, colours, on and fader
+            // only; other nodes come back with just their path).
+            if case .string(let path)? = message.args.first {
+                reply(OSCMessage("node", [.string(demoNodeLine("/" + path) + "\n")]))
+            }
+            return
+        case "/":
+            // A scene-file line sent to the desk.
+            if case .string(let line)? = message.args.first {
+                for (address, value) in SceneFile.basicChanges(line) {
+                    change(address, value)
+                }
+            }
+            return
         case "/-action/clearsolo":
             for n in 1...80 {
                 change(String(format: "/-stat/solosw/%02d", n), .int(0))
@@ -122,6 +137,20 @@ final class DemoTransport: X32Transport {
                 change("/-stat/solo", .int(anySolo ? 1 : 0))
             }
         }
+    }
+
+    private func demoNodeLine(_ path: String) -> String {
+        if path.hasSuffix("/config"), !path.hasPrefix("/config") {
+            let base = String(path.dropLast("/config".count))
+            let name = values[base + "/config/name"]?.stringValue ?? DemoTransport.defaultValue(for: base + "/config/name")?.stringValue ?? ""
+            return SceneFile.configLine(path, name: name, color: int(base + "/config/color"), source: int(base + "/config/source"))
+        }
+        if path.hasSuffix("/mix") {
+            let db = X32Math.faderToDB(float(path + "/fader"))
+            let level = db.isFinite ? String(format: "%+.1f", db) : "-oo"
+            return "\(path) \(int(path + "/on") != 0 ? "ON" : "OFF") \(level)"
+        }
+        return path
     }
 
     /// Change a value on the "desk" and tell the remote, like /xremote would.

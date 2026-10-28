@@ -80,6 +80,11 @@ struct MixerScreen: View {
     }
 
     private func openPendingDetail() {
+        if app.pendingBuilder {
+            app.pendingBuilder = false
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { app.sheet = .builder }
+            return
+        }
         if let strip = app.pendingDetail {
             let tab = app.pendingDetailTab
             app.pendingDetail = nil
@@ -115,6 +120,10 @@ struct MixerScreen: View {
             UserLayerEditor(app: app, index: 1)
         case .ringOut:
             RingOutSheet(app: app)
+        case .library:
+            SceneLibrarySheet(app: app)
+        case .builder:
+            SceneBuilderSheet(app: app)
         }
     }
 
@@ -469,6 +478,16 @@ struct ConsoleMenu: View {
                     app.sheet = .ringOut
                 } label: {
                     Label("Ring out (find feedback)", systemImage: "waveform.badge.exclamationmark")
+                }
+                Button {
+                    app.sheet = .library
+                } label: {
+                    Label("Scene library (.scn)", systemImage: "tray.full")
+                }
+                Button {
+                    app.sheet = .builder
+                } label: {
+                    Label("Build a scene…", systemImage: "wand.and.stars")
                 }
                 Button {
                     app.sheet = .help
@@ -1154,7 +1173,7 @@ private struct StripName: View {
     var body: some View {
         let name = app.param(strip.namePath).string
         let spilled = strip.kind == .dca && app.spillDCA == strip.index
-        ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 32, fontSize: 11, selected: spilled)
+        ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 34, fontSize: 12.5, selected: spilled)
             .onTapGesture {
                 if strip.kind == .dca {
                     // Tap a DCA to see (and mix) the channels assigned to it.
@@ -1182,14 +1201,18 @@ private struct StripName: View {
                 }
                 if strip.kind == .channel {
                     Menu {
-                        ForEach(StarterPresets.all) { starter in
-                            Button {
-                                app.loadDetail(strip)
-                                // The channel's current settings are needed first, so Undo can put them back.
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                                    app.loadPreset(StarterPresets.preset(starter), onto: strip)
+                        ForEach(StarterPresets.Category.allCases) { category in
+                            Menu(category.rawValue) {
+                                ForEach(StarterPresets.all.filter { $0.category == category }) { starter in
+                                    Button {
+                                        app.loadDetail(strip)
+                                        // The channel's current settings are needed first, so Undo can put them back.
+                                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                            app.loadPreset(StarterPresets.preset(starter), onto: strip)
+                                        }
+                                    } label: { Label(starter.name, systemImage: starter.symbol) }
                                 }
-                            } label: { Label(starter.name, systemImage: starter.symbol) }
+                            }
                         }
                     } label: { Label("Start from…", systemImage: "square.grid.2x2") }
                 }
