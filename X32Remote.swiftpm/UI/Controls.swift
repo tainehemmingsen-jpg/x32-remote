@@ -631,6 +631,26 @@ struct ReductionHistory: View {
     }
 }
 
+/// A small always-visible Main LR meter for top bars: what's going out to the PA, from any screen.
+struct MainMeterChip: View {
+    let app: AppModel
+
+    var body: some View {
+        let main = app.meters.meter(StripID.mainLR)
+        HStack(spacing: 5) {
+            Text("LR")
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Theme.secondary)
+            MeterView(meter: main, stereo: true)
+                .frame(width: 14, height: 30)
+        }
+        .padding(.horizontal, 6)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Main LR level")
+        .accessibilityValue(main.clipped ? "Clipped" : String(format: "%.0f dB", max(main.level, main.level2)))
+    }
+}
+
 // MARK: - Pan
 
 /// A pan box: white line at the position and a blue wedge from the centre. Drag sideways,

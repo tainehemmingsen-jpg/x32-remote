@@ -213,6 +213,7 @@ struct MixerTopBar: View {
                     .padding(.horizontal, 4)
                 }
             }
+            MainMeterChip(app: app)
             UndoButton(app: app)
             if wide {
                 TopIcon(systemName: "headphones", label: "Solo and talkback") {
@@ -1162,9 +1163,36 @@ private struct StripName: View {
                     app.openDetail(strip, tab: .overview)
                 }
             }
-            .onLongPressGesture(minimumDuration: 0.5) {
-                Haptics.tick()
-                app.openDetail(strip, tab: .setup)
+            .contextMenu {
+                // Long-press: the things usually done to a strip, without opening it.
+                if strip.kind != .dca {
+                    Button { app.openDetail(strip, tab: .overview) } label: { Label("Open", systemImage: "slider.horizontal.3") }
+                }
+                Button { app.openDetail(strip, tab: .setup) } label: { Label("Name and colour…", systemImage: "pencil") }
+                let sections = ProcessingSection.allCases.filter { strip.supports($0) }
+                if !sections.isEmpty {
+                    Button {
+                        app.copySettings(from: strip, sections: sections)
+                    } label: { Label("Copy settings", systemImage: "doc.on.doc") }
+                    if let clip = app.clipboard, !clip.sections(for: strip).isEmpty, clip.source != strip {
+                        Button {
+                            app.pasteSettings(onto: strip)
+                        } label: { Label("Paste from \(app.stripTitle(clip.source))", systemImage: "doc.on.clipboard") }
+                    }
+                }
+                if strip.kind == .channel {
+                    Menu {
+                        ForEach(StarterPresets.all) { starter in
+                            Button {
+                                app.loadDetail(strip)
+                                // The channel's current settings are needed first, so Undo can put them back.
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                    app.loadPreset(StarterPresets.preset(starter), onto: strip)
+                                }
+                            } label: { Label(starter.name, systemImage: starter.symbol) }
+                        }
+                    } label: { Label("Start from…", systemImage: "square.grid.2x2") }
+                }
             }
             .accessibilityLabel("\(strip.shortLabel) \(name)")
             .accessibilityAddTraits(.isButton)

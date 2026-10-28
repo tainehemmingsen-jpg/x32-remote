@@ -55,10 +55,12 @@ struct InputPage: View {
                 }
                 Cell {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("Input level")
+                        Text(strip.kind == .channel ? "Input level (after the preamp)" : "Level")
                             .font(.system(size: 13))
                             .foregroundStyle(Theme.secondary)
                         InputMeterRow(app: app, strip: strip)
+                        LevelHistory(meter: app.meters.meter(strip), input: strip.kind == .channel)
+                            .frame(height: 180)
                         SourceNote(app: app, strip: strip)
                     }
                     .padding(14)
@@ -155,10 +157,11 @@ private struct InputMeterRow: View {
 
     var body: some View {
         let meter = app.meters.meter(strip)
+        let input = strip.kind == .channel
         HStack(spacing: 12) {
-            HorizontalLevel(meter: meter)
+            HorizontalLevel(meter: meter, input: input)
                 .frame(height: 16)
-            LevelText(meter: meter)
+            LevelText(meter: meter, input: input)
                 .frame(width: 60, alignment: .trailing)
         }
     }
@@ -166,9 +169,11 @@ private struct InputMeterRow: View {
 
 struct HorizontalLevel: View {
     let meter: MeterLevel
+    /// Channels: the preamp level rather than the post-fader one.
+    var input = false
 
     var body: some View {
-        let level = meter.level
+        let level = input ? meter.input : meter.level
         Canvas { ctx, size in
             ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 4), with: .color(Color.black.opacity(0.55)))
             let pos = MeterScale.position(level)
@@ -190,11 +195,66 @@ struct HorizontalLevel: View {
     }
 }
 
-private struct LevelText: View {
+/// The last 10 seconds of level as a scrolling trace, with the zone where peaks should land
+/// (-18 to -6 dBFS) shaded, so gain can be set by watching a whole song section.
+struct LevelHistory: View {
     let meter: MeterLevel
+    var input = false
+    var seconds: Double = 10
+    @State private var buffer = ReductionHistory.HistoryBuffer()
 
     var body: some View {
-        let level = meter.level
+        TimelineView(.animation(minimumInterval: 1.0 / 20)) { timeline in
+            let t = timeline.date.timeIntervalSinceReferenceDate
+            let level = input ? meter.input : meter.level
+            let _ = buffer.push(level, at: t, keep: seconds)
+            let samples = buffer.samples
+            Canvas { ctx, size in
+                func y(_ db: Float) -> CGFloat { size.height * (1 - CGFloat((min(max(db, -60), 0) + 60) / 60)) }
+                ctx.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 6), with: .color(Theme.graphBack))
+                // Target zone for peaks.
+                ctx.fill(Path(CGRect(x: 0, y: y(-6), width: size.width, height: y(-18) - y(-6))), with: .color(Theme.on.opacity(0.12)))
+                ctx.draw(Text("peaks here").font(.system(size: 10)).foregroundColor(Theme.on.opacity(0.7)),
+                         at: CGPoint(x: size.width - 6, y: y(-6) + 3), anchor: .topTrailing)
+                for db: Float in [-48, -36, -24, -12, -6, 0] {
+                    ctx.fill(Path(CGRect(x: 0, y: y(db), width: size.width, height: 0.5)), with: .color(Theme.graphGrid))
+                    ctx.draw(Text("\(Int(db))").font(.system(size: 9)).foregroundColor(Theme.tertiary),
+                             at: CGPoint(x: 4, y: y(db) + 1), anchor: .topLeading)
+                }
+                guard samples.count > 1 else { return }
+                var line = Path()
+                var area = Path()
+                area.move(to: CGPoint(x: size.width, y: size.height))
+                var first = true
+                for s in samples.reversed() {
+                    let x = size.width - CGFloat((t - s.t) / seconds) * size.width
+                    let p = CGPoint(x: x, y: y(s.db))
+                    if first { line.move(to: p); first = false } else { line.addLine(to: p) }
+                    area.addLine(to: p)
+                    if x < 0 { break }
+                }
+                area.addLine(to: CGPoint(x: line.currentPoint?.x ?? 0, y: size.height))
+                area.closeSubpath()
+                ctx.fill(area, with: .linearGradient(Gradient(colors: [Theme.meterLow.opacity(0.45), Theme.meterLow.opacity(0.05)]),
+                                                     startPoint: .zero, endPoint: CGPoint(x: 0, y: size.height)))
+                ctx.stroke(line, with: .color(Theme.meterLow), lineWidth: 1.5)
+                // Anything that reached clipping, in red.
+                for s in samples where s.db >= -0.5 {
+                    let x = size.width - CGFloat((t - s.t) / seconds) * size.width
+                    ctx.fill(Path(CGRect(x: x - 1, y: 0, width: 2, height: 8)), with: .color(Theme.mute))
+                }
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+private struct LevelText: View {
+    let meter: MeterLevel
+    var input = false
+
+    var body: some View {
+        let level = input ? meter.input : meter.level
         Text(level <= -89 ? "-∞" : String(format: "%.0f dB", level))
             .font(Theme.mono(13))
             .foregroundStyle(Theme.secondary)

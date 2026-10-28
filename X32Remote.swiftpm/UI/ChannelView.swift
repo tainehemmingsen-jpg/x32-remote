@@ -142,6 +142,7 @@ private struct ChannelHeader: View {
             if ProcessingSection.allCases.contains(where: { strip.supports($0) }) {
                 CopyPasteMenu(app: app, strip: strip)
             }
+            MainMeterChip(app: app)
             UndoButton(app: app)
             FineButton(app: app, height: 34)
                 .frame(width: 64)
