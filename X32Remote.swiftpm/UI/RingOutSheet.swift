@@ -212,7 +212,7 @@ private struct OutputPicker: View {
                         .padding(.horizontal, 12)
                         .frame(height: 38)
                         .background(Capsule().fill(selection == s ? Theme.raised2 : Theme.raised))
-                        .overlay(Capsule().strokeBorder(selection == s ? Theme.on : Color.clear, lineWidth: 2))
+                        .overlay(Capsule().strokeBorder(selection == s ? Theme.accent : Color.clear, lineWidth: 2))
                     }
                     .buttonStyle(.plain)
                 }

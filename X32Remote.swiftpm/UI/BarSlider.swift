@@ -77,11 +77,11 @@ struct BarSlider: View {
             let fillEnd = bipolar ? max(v, 0.5) : v
             ZStack(alignment: .leading) {
                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .fill(Color.black.opacity(0.35))
+                    .fill(Color.black.opacity(0.45))
                 Rectangle()
                     .fill(
-                        LinearGradient(colors: [tint.opacity(0.85), tint.opacity(0.55)],
-                                       startPoint: .top, endPoint: .bottom)
+                        LinearGradient(colors: [tint.opacity(0.45), tint.opacity(0.9)],
+                                       startPoint: .leading, endPoint: .trailing)
                     )
                     .frame(width: max(bipolar ? 2 : 0, (fillEnd - fillStart) * width))
                     .offset(x: fillStart * width)

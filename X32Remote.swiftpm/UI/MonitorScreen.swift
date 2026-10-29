@@ -161,7 +161,7 @@ private struct FilterChip: View {
                 .padding(.horizontal, 14)
                 .frame(height: 34)
                 .background(Capsule().fill(active ? Theme.raised2 : Theme.raised))
-                .overlay(Capsule().strokeBorder(active ? Theme.on : Color.clear, lineWidth: 1.5))
+                .overlay(Capsule().strokeBorder(active ? Theme.accent : Color.clear, lineWidth: 1.5))
         }
         .buttonStyle(.plain)
     }

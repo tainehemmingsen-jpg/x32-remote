@@ -34,7 +34,8 @@ struct MixerScreen: View {
                         EmptyLayerView(app: app)
                     } else {
                         // Every strip keeps the same width, even on a short last page.
-                        let stripWidth = floor((stripsWidth - 3 - CGFloat(layout.perPage + 1)) / CGFloat(layout.perPage + 1))
+                        // 3 pt between strips, 8 pt before the master, 4 pt at each edge.
+                        let stripWidth = floor((stripsWidth - 8 - 8 - 3 * CGFloat(layout.perPage)) / CGFloat(layout.perPage + 1))
                         StripBank(app: app, strips: layout.visible, detail: detail, tallThumbs: bodyHeight > 900,
                                   wideStrips: stripWidth >= 96, stripWidth: stripWidth)
                     }
@@ -165,14 +166,15 @@ private struct StripBank: View {
 
     var body: some View {
         let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
-        HStack(spacing: 1) {
+        HStack(spacing: 3) {
             ForEach(strips) { strip in
                 StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs, wide: wideStrips)
                     .frame(width: stripWidth)
             }
             // A short last page leaves a gap before the master, which stays on the right.
             Spacer(minLength: 0)
-            Rectangle().fill(Color.black).frame(width: 3)
+            // A thin divider before the master.
+            Capsule().fill(Theme.lineStrong).frame(width: 2).padding(.vertical, 20).padding(.horizontal, 1)
             if let dca = app.spillDCA {
                 StripView(app: app, strip: StripID(.dca, dca), sendsBus: nil, detail: detail, tallThumbs: tallThumbs, wide: wideStrips, isMaster: true)
                     .frame(width: stripWidth)
@@ -184,7 +186,9 @@ private struct StripBank: View {
                     .frame(width: stripWidth)
             }
         }
-        .background(Color.black)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 4)
+        .background(Theme.background)
     }
 }
 
@@ -293,6 +297,7 @@ struct MixerTopBar: View {
         .padding(.horizontal, 8)
         .frame(height: 46)
         .background(Theme.topBar)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
         .onChange(of: app.autoPopover) { _, name in
             // Automated screenshots only.
             guard let name else { return }
@@ -315,9 +320,10 @@ struct UndoButton: View {
             app.undo()
         } label: {
             Image(systemName: "arrow.uturn.backward")
-                .font(.system(size: 19))
+                .font(.system(size: 16, weight: .semibold))
                 .foregroundStyle(label == nil ? Theme.tertiary : Theme.text)
-                .frame(width: 46, height: 42)
+                .frame(width: 40, height: 36)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -366,9 +372,10 @@ struct TopIcon: View {
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
-                .font(.system(size: 19, weight: .regular))
-                .foregroundStyle(Theme.text)
-                .frame(width: 46, height: 42)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(Theme.text.opacity(0.9))
+                .frame(width: 40, height: 36)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -501,21 +508,29 @@ struct ConsoleMenu: View {
                 Label("Disconnect", systemImage: "power")
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
+                let status = app.linkLost ? Theme.mute : (app.isDemo ? Theme.solo : Theme.on)
                 Circle()
-                    .fill(app.linkLost ? Theme.mute : (app.isDemo ? Theme.solo : Theme.on))
+                    .fill(status)
                     .frame(width: 8, height: 8)
-                VStack(alignment: .leading, spacing: 0) {
-                    Text("Mixer")
-                        .font(.system(size: 15))
+                    .shadow(color: status.opacity(0.8), radius: 4)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(app.isDemo ? "Demo desk" : (app.connectedName.isEmpty ? "X32" : app.connectedName))
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(Theme.text)
+                        .lineLimit(1)
                     Text(mix)
-                        .font(.system(size: 12))
+                        .font(.system(size: 11, weight: .medium))
                         .foregroundStyle(mixColor)
                         .lineLimit(1)
                 }
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Theme.tertiary)
             }
-            .frame(minWidth: 90, alignment: .leading)
+            .padding(.horizontal, 10)
+            .frame(minWidth: 110, minHeight: 38, alignment: .leading)
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.raised.opacity(0.7)))
             .contentShape(Rectangle())
         }
     }
@@ -929,11 +944,15 @@ struct SideButton: View {
         Button(action: action) {
             HStack(spacing: 0) {
                 if let stripe {
-                    Rectangle().fill(stripe).frame(width: 9)
+                    RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(stripe)
+                        .frame(width: 4)
+                        .padding(.vertical, 7)
+                        .padding(.leading, 5)
                 }
                 Text(title)
-                    .font(.system(size: 13))
-                    .foregroundStyle(style == .red && active ? Color.white : Theme.text)
+                    .font(.system(size: 13, weight: active ? .semibold : .medium))
+                    .foregroundStyle(style == .red && active ? Color.white : (active ? Theme.text : Theme.text.opacity(0.85)))
                     .lineLimit(2)
                     .minimumScaleFactor(0.65)
                     .multilineTextAlignment(.center)
@@ -942,10 +961,10 @@ struct SideButton: View {
             }
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
             .background(fill)
-            .clipShape(RoundedRectangle(cornerRadius: 4, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
             .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(rim ? Theme.on : Color.white.opacity(0.07), lineWidth: rim ? 2 : 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(rim ? Theme.accent : Color.white.opacity(0.06), lineWidth: rim ? 1.5 : 1)
             )
             .contentShape(Rectangle())
         }
@@ -956,7 +975,7 @@ struct SideButton: View {
 
     private var fill: Color {
         if style == .red && active { return Theme.mute }
-        return active ? Theme.raised2 : Theme.raised
+        return active ? Theme.accent.opacity(0.16) : Theme.raised
     }
 }
 
@@ -1133,12 +1152,16 @@ struct StripView: View {
             // Mute is the button reached for most: big, and at the bottom under the thumb.
             MuteButton(app: app, strip: strip, height: detail == .compact ? 40 : 52, fontSize: 15)
         }
-        .padding(.horizontal, 3)
-        .padding(.vertical, 4)
+        .padding(.horizontal, 4)
+        .padding(.vertical, 5)
         .frame(maxWidth: .infinity)
-        .background(Theme.panel)
+        .background(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(LinearGradient(colors: [Theme.panel.opacity(1), Theme.panel.opacity(0.75)], startPoint: .top, endPoint: .bottom))
+        )
         .overlay(
-            Rectangle().strokeBorder(selected ? Theme.on : Color.clear, lineWidth: 1.5)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .strokeBorder(selected ? Theme.accent : Theme.line, lineWidth: selected ? 1.5 : 1)
         )
     }
 }
@@ -1255,9 +1278,16 @@ private struct StripFader: View {
     let strip: StripID
     let target: FaderTarget
 
+    /// The scribble colour, or nothing for an uncoloured strip.
+    private var stripColor: Color? {
+        let index = app.param(strip.colorPath).int
+        return index % 8 == 0 ? nil : Theme.scribble(index)
+    }
+
     var body: some View {
         HStack(spacing: 2) {
-            ParamFader(app: app, address: target.address, steps: target.spec.steps, capTint: target.capTint, editTitle: "\(app.stripTitle(strip)) · \(target.label)", spec: target.spec)
+            ParamFader(app: app, address: target.address, steps: target.spec.steps, capTint: target.capTint,
+                       channelColor: stripColor, editTitle: "\(app.stripTitle(strip)) · \(target.label)", spec: target.spec)
             if strip.kind != .dca {
                 MeterView(meter: app.meters.meter(strip), stereo: strip.kind == .main)
                     .frame(width: strip.kind == .main ? 11 : 6)
@@ -1279,14 +1309,19 @@ private struct SourceChip: View {
     let isMaster: Bool
 
     var body: some View {
-        let style = ScribbleStyle(colorIndex: app.param(strip.colorPath).int)
-        Text(label)
-            .font(.system(size: 11))
-            .lineLimit(1)
-            .minimumScaleFactor(0.6)
-            .foregroundStyle(style.text)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Rectangle().fill(style.fill))
+        let index = app.param(strip.colorPath).int
+        let color = index % 8 == 0 ? Theme.tertiary : Theme.scribble(index)
+        // A coloured tab with the input it comes from, like the top of a console strip.
+        HStack(spacing: 4) {
+            Capsule().fill(color).frame(width: 14, height: 4)
+            Text(label)
+                .font(.system(size: 10, weight: .semibold))
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .foregroundStyle(Theme.secondary)
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.opacity(0.12)))
     }
 
     private var label: String {
@@ -1636,6 +1671,7 @@ struct ParamFader: View {
     var label: String? = nil
     var maxValue: Float = 1
     var capTint: Color? = nil
+    var channelColor: Color? = nil
     var editTitle: String = "Fader"
     /// What the fader is controlling, if not a level (e.g. gain on faders).
     var spec: ParamSpec? = nil
@@ -1656,6 +1692,7 @@ struct ParamFader: View {
             capLabel: label,
             fine: app.fineMode,
             capTint: capTint,
+            channelColor: channelColor,
             onLongPress: { app.editValue(editTitle, address, editSpec) },
             onChange: { v in app.dragSet(address, drag, v, steps: steps) },
             onTouch: { began in

@@ -188,6 +188,8 @@ struct FaderView: View {
     var fine: Bool = false
     /// Red cap, e.g. for gain-on-fader or sends.
     var capTint: Color? = nil
+    /// The channel's colour: lights the slot up to the cap and the line across the cap.
+    var channelColor: Color? = nil
     /// Double-tap (without moving) opens the precision editor. Not long-press: engineers often
     /// rest a finger on a fader.
     var onLongPress: (() -> Void)? = nil
@@ -210,8 +212,9 @@ struct FaderView: View {
             let trackX = scaleWidth + (width - scaleWidth) / 2
             let capWidth = max(18, min(width - scaleWidth - 4, 46))
             ZStack {
-                FaderTrack(capHeight: capHeight, scaleWidth: scaleWidth, trackX: trackX, maxValue: maxValue)
-                FaderCap(touching: touching, tint: capTint, label: capLabel)
+                FaderTrack(capHeight: capHeight, scaleWidth: scaleWidth, trackX: trackX, maxValue: maxValue,
+                           level: clamped, fill: channelColor ?? capTint ?? Theme.accent)
+                FaderCap(touching: touching, tint: capTint, label: capLabel, lineColor: channelColor)
                     .frame(width: capWidth, height: capHeight)
                     .position(x: trackX, y: capCenterY)
             }
@@ -264,6 +267,8 @@ private struct FaderTrack: View {
     let scaleWidth: CGFloat
     let trackX: CGFloat
     let maxValue: Float
+    var level: CGFloat = 0
+    var fill: Color = Theme.accent
 
     var body: some View {
         let limit = CGFloat(maxValue)
@@ -287,9 +292,17 @@ private struct FaderTrack: View {
                     ctx.draw(text, at: CGPoint(x: scaleWidth - 1, y: my), anchor: .trailing)
                 }
             }
-            // slot
-            let slot = CGRect(x: trackX - 2.5, y: top - 2, width: 5, height: travel + 4)
-            ctx.fill(Path(roundedRect: slot, cornerRadius: 2.5), with: .color(Color.black))
+            // slot, lit from the bottom up to the cap
+            let slot = CGRect(x: trackX - 3, y: top - 2, width: 6, height: travel + 4)
+            ctx.fill(Path(roundedRect: slot, cornerRadius: 3), with: .color(Color.black))
+            ctx.stroke(Path(roundedRect: slot.insetBy(dx: -0.5, dy: -0.5), cornerRadius: 3.5), with: .color(Color.white.opacity(0.06)), lineWidth: 1)
+            let litTop = y(level)
+            if level > 0.001 {
+                let lit = CGRect(x: trackX - 2, y: litTop, width: 4, height: max(0, top + travel + 1 - litTop))
+                ctx.fill(Path(roundedRect: lit, cornerRadius: 2),
+                         with: .linearGradient(Gradient(colors: [fill.opacity(0.95), fill.opacity(0.25)]),
+                                               startPoint: CGPoint(x: trackX, y: litTop), endPoint: CGPoint(x: trackX, y: top + travel)))
+            }
 
             if limit < 1 {
                 let ly = y(limit)
@@ -306,6 +319,7 @@ private struct FaderCap: View {
     let touching: Bool
     let tint: Color?
     let label: String?
+    var lineColor: Color? = nil
 
     var body: some View {
         Canvas { ctx, size in
@@ -314,7 +328,7 @@ private struct FaderCap: View {
             let shades: [Color] = base.map { c in [c.opacity(0.95), c.opacity(0.7), c.opacity(0.95)] }
                 ?? [Color(white: touching ? 0.86 : 0.78), Color(white: touching ? 0.62 : 0.52), Color(white: touching ? 0.80 : 0.70)]
             ctx.fill(
-                Path(roundedRect: rect, cornerRadius: 3),
+                Path(roundedRect: rect, cornerRadius: 5),
                 with: .linearGradient(Gradient(colors: shades), startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: size.height))
             )
             // grip grooves
@@ -328,8 +342,9 @@ private struct FaderCap: View {
                 ctx.stroke(g, with: .color(Color.black.opacity(0.22)), lineWidth: 1)
             }
             // centre line
-            ctx.fill(Path(CGRect(x: 2, y: size.height / 2 - 1, width: size.width - 4, height: 2)), with: .color(touching ? Theme.accent : Color.white))
-            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 3), with: .color(Color.black.opacity(0.5)), lineWidth: 1)
+            ctx.fill(Path(CGRect(x: 2, y: size.height / 2 - 1.5, width: size.width - 4, height: 3)),
+                     with: .color(touching ? Theme.accent : (lineColor ?? Color.white)))
+            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 5), with: .color(Color.black.opacity(0.5)), lineWidth: 1)
             if let label {
                 ctx.draw(Text(label).font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.6)), at: CGPoint(x: size.width / 2, y: size.height * 0.22))
             }

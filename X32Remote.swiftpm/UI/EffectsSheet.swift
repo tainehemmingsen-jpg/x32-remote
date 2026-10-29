@@ -10,9 +10,10 @@ struct FXIcon: View {
             app.sheet = .effects
         } label: {
             Text("FX")
-                .font(.system(size: 17, weight: .semibold))
-                .foregroundStyle(Theme.text)
-                .frame(width: 46, height: 42)
+                .font(.system(size: 15, weight: .heavy))
+                .foregroundStyle(Theme.text.opacity(0.9))
+                .frame(width: 40, height: 36)
+                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -127,7 +128,7 @@ private struct SlotTile: View {
                 }
             }
             .background(RoundedRectangle(cornerRadius: 4).fill(selected ? Theme.raised2 : Theme.raised))
-            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Theme.on : Color.white.opacity(0.07), lineWidth: selected ? 2 : 1))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Theme.accent : Color.white.opacity(0.07), lineWidth: selected ? 2 : 1))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

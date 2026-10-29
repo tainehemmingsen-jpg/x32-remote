@@ -259,7 +259,7 @@ private struct StripJumpGrid: View {
                                 .foregroundStyle(style.text)
                                 .frame(maxWidth: .infinity, minHeight: 44)
                                 .background(RoundedRectangle(cornerRadius: 5).fill(style.fill))
-                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(s == current ? Theme.on : Color.clear, lineWidth: 2.5))
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(s == current ? Theme.accent : Color.clear, lineWidth: 2.5))
                             }
                             .buttonStyle(.plain)
                         }
@@ -400,7 +400,7 @@ private struct BlockBar: View {
         GeometryReader { geo in
             let weights = tabs.map { BlockBar.weight($0) }
             let total = weights.reduce(0, +)
-            let spacing: CGFloat = 2
+            let spacing: CGFloat = 4
             let available = max(0, geo.size.width - spacing * CGFloat(max(tabs.count - 1, 0)) - 4)
             let fitted = available / CGFloat(max(total, 0.01))
             let unit = wide ? fitted : max(fitted, 78)
@@ -415,11 +415,12 @@ private struct BlockBar: View {
                     }
                 }
                 .padding(.horizontal, 2)
-                .padding(.vertical, 3)
+                .padding(.vertical, 4)
             }
             .scrollDisabled(unit == fitted)
         }
-        .background(Color.black)
+        .background(Theme.topBar)
+        .overlay(alignment: .bottom) { Rectangle().fill(Theme.line).frame(height: 1) }
     }
 
     static func weight(_ t: DetailTab) -> Double {
@@ -443,10 +444,13 @@ private struct BlockTile: View {
 
     var body: some View {
         ZStack(alignment: .topLeading) {
-            Rectangle().fill(selected ? Theme.selected : Theme.panel)
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(selected ? Theme.accent.opacity(0.14) : Theme.panel)
             content
         }
-        .overlay(Rectangle().strokeBorder(selected ? Color.white.opacity(0.25) : Theme.line, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(selected ? Theme.accent : Theme.line, lineWidth: selected ? 1.5 : 1))
         .contentShape(Rectangle())
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(block.title)
@@ -457,8 +461,8 @@ private struct BlockTile: View {
     private var content: some View {
         switch block {
         case .overview:
-            Text("OVERVIEW")
-                .font(.system(size: 13))
+            Label("Overview", systemImage: "square.grid.2x2")
+                .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.text)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         case .input:
@@ -491,12 +495,13 @@ private struct BlockLabel: View {
     let on: Bool
 
     var body: some View {
-        Text(title)
-            .font(.system(size: 10))
-            .foregroundStyle(on ? Color.black.opacity(0.8) : Theme.text.opacity(0.8))
-            .padding(.horizontal, 7)
-            .frame(height: 13)
-            .background(RoundedRectangle(cornerRadius: 2).fill(on ? Theme.on : Theme.raised2))
+        Text(title.uppercased())
+            .font(.system(size: 9, weight: .bold))
+            .tracking(0.5)
+            .foregroundStyle(on ? Color.black.opacity(0.8) : Theme.text.opacity(0.7))
+            .padding(.horizontal, 6)
+            .frame(height: 15)
+            .background(Capsule().fill(on ? Theme.on : Theme.raised2))
     }
 }
 
@@ -547,7 +552,7 @@ private struct InputBlock: View {
             .font(.system(size: 10))
             .foregroundStyle(on ? Color.black.opacity(0.8) : Theme.text.opacity(0.8))
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(RoundedRectangle(cornerRadius: 2).fill(on ? color : off))
+            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(on ? color : off))
     }
 }
 

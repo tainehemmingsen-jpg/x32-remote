@@ -1,43 +1,47 @@
 import SwiftUI
 
-/// Colours and type, modelled on the dark blue-grey console look of pro mixing apps.
+/// Colours and type: deep graphite with one warm signal-amber accent for anything selected or
+/// adjustable, and console-standard colours for state (green on, red mute, yellow solo).
 enum Theme {
-    /// Behind everything (and the black top bars).
-    static let background = Color(red: 0.063, green: 0.075, blue: 0.094)
-    static let topBar = Color.black
+    /// Behind everything.
+    static let background = Color(red: 0.047, green: 0.051, blue: 0.059)
+    /// Top bars.
+    static let topBar = Color(red: 0.035, green: 0.039, blue: 0.045)
     /// Strip and panel cells.
-    static let panel = Color(red: 0.098, green: 0.114, blue: 0.141)
+    static let panel = Color(red: 0.086, green: 0.094, blue: 0.110)
     /// Buttons and wells.
-    static let raised = Color(red: 0.149, green: 0.169, blue: 0.204)
-    static let raised2 = Color(red: 0.204, green: 0.227, blue: 0.267)
+    static let raised = Color(red: 0.133, green: 0.145, blue: 0.165)
+    static let raised2 = Color(red: 0.180, green: 0.196, blue: 0.220)
     /// Selected tab / pressed state.
-    static let selected = Color(red: 0.235, green: 0.259, blue: 0.302)
+    static let selected = Color(red: 0.235, green: 0.251, blue: 0.282)
     /// Hairlines between cells.
-    static let line = Color.white.opacity(0.09)
-    static let lineStrong = Color.white.opacity(0.18)
+    static let line = Color.white.opacity(0.07)
+    static let lineStrong = Color.white.opacity(0.16)
     /// Graph background and grid.
-    static let graphBack = Color(red: 0.090, green: 0.118, blue: 0.157)
-    static let graphGrid = Color.white.opacity(0.13)
+    static let graphBack = Color(red: 0.063, green: 0.075, blue: 0.094)
+    static let graphGrid = Color.white.opacity(0.09)
 
-    static let text = Color(white: 0.92)
-    static let secondary = Color(white: 0.64)
-    static let tertiary = Color(white: 0.42)
+    static let text = Color(white: 0.94)
+    static let secondary = Color(white: 0.62)
+    static let tertiary = Color(white: 0.40)
 
-    /// Slider fill and selection blue.
-    static let accent = Color(red: 0.29, green: 0.55, blue: 0.97)
+    /// The app's one accent: selection, focus, parameter fills.
+    static let accent = Color(red: 1.0, green: 0.62, blue: 0.22)
+    /// A deeper amber for the far end of fills.
+    static let accentDeep = Color(red: 0.86, green: 0.40, blue: 0.10)
     /// Curves on the gate / EQ / compressor graphs.
-    static let curve = Color(red: 0.91, green: 0.83, blue: 0.36)
+    static let curve = Color(red: 1.0, green: 0.80, blue: 0.40)
     /// "On" outlines and lit processing lights.
-    static let on = Color(red: 0.43, green: 0.86, blue: 0.35)
-    static let mute = Color(red: 0.91, green: 0.33, blue: 0.29)
-    static let muteOff = Color(red: 0.25, green: 0.07, blue: 0.07)
-    static let solo = Color(red: 0.95, green: 0.83, blue: 0.24)
-    static let soloOff = Color(red: 0.25, green: 0.23, blue: 0.09)
-    static let phantomOff = Color(red: 0.27, green: 0.08, blue: 0.08)
+    static let on = Color(red: 0.36, green: 0.86, blue: 0.42)
+    static let mute = Color(red: 1.0, green: 0.30, blue: 0.27)
+    static let muteOff = Color(red: 0.22, green: 0.07, blue: 0.07)
+    static let solo = Color(red: 1.0, green: 0.82, blue: 0.20)
+    static let soloOff = Color(red: 0.21, green: 0.18, blue: 0.06)
+    static let phantomOff = Color(red: 0.24, green: 0.08, blue: 0.08)
 
-    static let meterLow = Color(red: 0.45, green: 0.90, blue: 0.40)
-    static let meterMid = Color(red: 0.96, green: 0.84, blue: 0.26)
-    static let meterHigh = Color(red: 0.95, green: 0.30, blue: 0.25)
+    static let meterLow = Color(red: 0.36, green: 0.88, blue: 0.42)
+    static let meterMid = Color(red: 1.0, green: 0.82, blue: 0.24)
+    static let meterHigh = Color(red: 1.0, green: 0.30, blue: 0.25)
 
     /// X32 scribble-strip colours. 0-7 normal, 8-15 inverted.
     static func scribble(_ index: Int) -> Color {
@@ -82,22 +86,22 @@ struct LitButton: View {
     let action: () -> Void
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: min(7, height * 0.22), style: .continuous)
         Button(action: action) {
             Text(title)
-                .font(.system(size: fontSize, weight: .regular))
+                .font(.system(size: fontSize, weight: isOn && style == .fill ? .bold : .semibold))
+                .tracking(fontSize >= 12 ? 0.3 : 0)
                 .lineLimit(1)
                 .minimumScaleFactor(0.55)
                 .foregroundStyle(textColor)
                 .padding(.horizontal, 2)
                 .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-                .background(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .fill(fill)
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: 4, style: .continuous)
-                        .strokeBorder(border, lineWidth: style == .outline && isOn ? 2 : 1)
-                )
+                .background(shape.fill(fill))
+                // A soft top highlight, like a backlit console key.
+                .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(isOn ? 0.22 : 0.06), .clear],
+                                                   startPoint: .top, endPoint: .center)))
+                .overlay(shape.strokeBorder(border, lineWidth: style == .outline && isOn ? 1.5 : 1))
+                .shadow(color: style == .fill && isOn ? color.opacity(0.45) : .clear, radius: 6)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -107,22 +111,22 @@ struct LitButton: View {
 
     private var fill: Color {
         switch style {
-        case .fill: return isOn ? color : (offColor ?? color.opacity(0.18))
+        case .fill: return isOn ? color : (offColor ?? color.opacity(0.16))
         case .outline: return isOn ? Theme.raised2 : Theme.raised
         }
     }
 
     private var border: Color {
         switch style {
-        case .fill: return isOn ? color.opacity(0.9) : Color.white.opacity(0.06)
-        case .outline: return isOn ? Theme.on : Color.white.opacity(0.08)
+        case .fill: return isOn ? Color.white.opacity(0.25) : Color.white.opacity(0.06)
+        case .outline: return isOn ? Theme.on : Color.white.opacity(0.07)
         }
     }
 
     private var textColor: Color {
         switch style {
-        case .fill: return isOn ? Color.black.opacity(0.82) : Theme.text.opacity(0.85)
-        case .outline: return Theme.text
+        case .fill: return isOn ? Color.black.opacity(0.85) : Theme.text.opacity(0.7)
+        case .outline: return isOn ? Theme.text : Theme.secondary
         }
     }
 }
@@ -170,12 +174,17 @@ struct ScribbleView: View {
             .minimumScaleFactor(0.6)
             .multilineTextAlignment(.center)
             .foregroundStyle(style.text)
+            .tracking(0.4)
             .padding(.horizontal, 2)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(style.fill))
+            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.fill))
+            // Backlit-display sheen.
+            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                .fill(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.0), Color.black.opacity(0.12)],
+                                     startPoint: .top, endPoint: .bottom)))
             .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(selected ? Color.white : style.border.opacity(0.6), lineWidth: selected ? 2 : 1)
+                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                    .strokeBorder(selected ? Theme.accent : Color.black.opacity(0.35), lineWidth: selected ? 2 : 1)
             )
             .contentShape(Rectangle())
     }
@@ -197,8 +206,8 @@ struct Panel<Content: View>: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.panel))
-        .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
+        .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
+        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 
@@ -209,26 +218,26 @@ struct Cell<Content: View>: View {
     var body: some View {
         content
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-            .background(Theme.panel)
-            .overlay(Rectangle().strokeBorder(Theme.line, lineWidth: 1))
+            .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.panel))
+            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Theme.line, lineWidth: 1))
     }
 }
 
 extension View {
     /// Flat rectangular button look used in bars and menus.
-    func barChip(active: Bool = false, tint: Color = Theme.on) -> some View {
+    func barChip(active: Bool = false, tint: Color = Theme.accent) -> some View {
         self
-            .font(.system(size: 13, weight: .regular))
+            .font(.system(size: 13, weight: .medium))
             .foregroundStyle(Theme.text)
             .padding(.horizontal, 12)
             .frame(height: 34)
             .background(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(active ? Theme.raised2 : Theme.raised)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(active ? tint.opacity(0.16) : Theme.raised)
             )
             .overlay(
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .strokeBorder(active ? tint : Color.white.opacity(0.08), lineWidth: active ? 2 : 1)
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .strokeBorder(active ? tint : Color.white.opacity(0.07), lineWidth: active ? 1.5 : 1)
             )
     }
 }
