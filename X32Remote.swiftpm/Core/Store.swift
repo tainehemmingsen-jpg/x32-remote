@@ -97,6 +97,8 @@ final class MeterStore {
     private var levels: [StripID: MeterLevel] = [:]
     /// The desk's analyser (only sent while the app subscribes to it).
     let rta = RTAData()
+    /// Each channel's loudest preamp level over the last minute (for Mix check).
+    private(set) var recentPeaks = PeakTracker()
 
     private static let block0Strips: [StripID] = {
         var list: [StripID] = []
@@ -144,6 +146,7 @@ final class MeterStore {
                 let m = meter(StripID(.channel, n))
                 setReduction(m, gate: values[31 + n], dyn: values[63 + n])
                 let input = X32Math.amplitudeToDB(values[n - 1])
+                recentPeaks.add(StripID(.channel, n), input, at: X32Client.now())
                 let next = smoothed(current: m.input, incoming: input)
                 if abs(next - m.input) >= 0.25 { m.input = next }
                 if input >= -0.3 && !m.clipped { m.clipped = true }

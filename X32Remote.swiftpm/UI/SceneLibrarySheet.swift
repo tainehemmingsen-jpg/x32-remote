@@ -8,6 +8,7 @@ struct SceneLibrarySheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var importing = false
     @State private var sending: SceneFile?
+    @State private var comparing: SceneFile?
     @State private var renaming: SceneFile?
     @State private var newName = ""
     @State private var deleting: SceneFile?
@@ -69,9 +70,12 @@ struct SceneLibrarySheet: View {
                     ForEach(app.sceneLibrary) { scene in
                         SceneRow(scene: scene) {
                             sending = scene
+                        } compare: {
+                            comparing = scene
                         }
                         .contextMenu {
                             Button { sending = scene } label: { Label("Send to desk…", systemImage: "arrow.up.doc") }
+                            Button { comparing = scene } label: { Label("What's changed since?", systemImage: "arrow.left.arrow.right") }
                             Button {
                                 newName = scene.name
                                 renaming = scene
@@ -114,6 +118,9 @@ struct SceneLibrarySheet: View {
             }
             .sheet(item: $sending) { scene in
                 SendSceneSheet(app: app, scene: scene) { sending = nil }
+            }
+            .sheet(item: $comparing) { scene in
+                CompareSheet(app: app, scene: scene)
             }
             .sheet(item: $exportURL) { file in
                 ShareSheet(items: [file.url])
@@ -185,6 +192,7 @@ private struct LibraryAction: View {
 private struct SceneRow: View {
     let scene: SceneFile
     let send: () -> Void
+    let compare: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
@@ -200,6 +208,14 @@ private struct SceneRow: View {
                     .foregroundStyle(Theme.tertiary)
             }
             Spacer()
+            Button(action: compare) {
+                Label("What's changed", systemImage: "arrow.left.arrow.right")
+                    .font(.system(size: 13, weight: .medium))
+                    .padding(.horizontal, 12)
+                    .frame(height: 36)
+                    .background(Capsule().fill(Theme.raised2))
+            }
+            .buttonStyle(.plain)
             Button(action: send) {
                 Label("Send to desk", systemImage: "arrow.up.doc")
                     .font(.system(size: 13, weight: .medium))

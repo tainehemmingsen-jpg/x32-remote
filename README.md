@@ -23,6 +23,11 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Go to…** — on a channel page, a grid of every strip on the desk to jump straight to one.
 - **Long-press a strip name** — open it, rename it, copy and paste its settings, or load a starting point, without leaving the mixer.
 - **Meters** hold their peaks and latch a red clip light until tapped; the Gate and Compressor pages draw a scrolling gain-reduction history and show the live signal as a dot on the curve; the Input page draws the last 10 seconds of input level with the zone where peaks should land. A small Main LR meter sits in the top bar everywhere.
+- **Mix check** — the stethoscope in the top bar looks over every channel for clipping or quiet preamps, dead named channels, open empty channels, voices without low cut, big EQ boosts, over-compression and very high faders, and explains each in plain words, mostly with a one-tap fix.
+- **What's changed since soundcheck** — compare any saved scene with the desk right now and put back individual settings with a tap.
+- **Setlist** — songs with tempo and who sits out: one tap sets every delay to the song's tempo and mutes and unmutes the right channels. Tap tempo built in.
+- **Talk over music** — pick a mic and the music channels; the music ducks by itself whenever someone talks (uses the gates' duck mode with the mic as key, so it runs on the desk even if the iPad drops off). For gym classes, MCs and announcements; there's a switch for it in Simple mode.
+- **Paste an input list** — paste a rider's input list into Build a scene and every channel is named, coloured and set up in its numbered slot.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console. Push a mix bus or the main fader up in Ring out and the demo desk "feeds back" so you can try it.
 
 It talks to the desk directly (OSC over UDP port 10023), so there's no extra box.

@@ -77,6 +77,10 @@ struct SimpleScreen: View {
                 .font(.system(size: 24, weight: .bold))
                 .foregroundStyle(Theme.text)
             Spacer()
+            if app.settings.duck != nil {
+                DuckButton(app: app, height: 38)
+                    .frame(width: 200)
+            }
             if app.settings.locked {
                 Button {
                     pendingAction = .unlock

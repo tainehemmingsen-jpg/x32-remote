@@ -125,6 +125,12 @@ struct MixerScreen: View {
             SceneLibrarySheet(app: app)
         case .builder:
             SceneBuilderSheet(app: app)
+        case .mixCheck:
+            MixCheckSheet(app: app)
+        case .setlist:
+            SetlistSheet(app: app)
+        case .duck:
+            DuckSheet(app: app)
         }
     }
 
@@ -247,6 +253,12 @@ struct MixerTopBar: View {
                 TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)") {
                     app.sheet = .ringOut
                 }
+                TopIcon(systemName: "stethoscope", label: "Mix check") {
+                    app.sheet = .mixCheck
+                }
+                TopIcon(systemName: "music.note.list", label: "Setlist") {
+                    app.sheet = .setlist
+                }
                 FXIcon(app: app)
                 TopIcon(systemName: "folder", label: "Show: cues, scenes and snippets") {
                     app.loadScenes()
@@ -266,6 +278,8 @@ struct MixerTopBar: View {
                     Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
                     Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
                     Button { app.sheet = .ringOut } label: { Label("Ring out", systemImage: "waveform.badge.exclamationmark") }
+                    Button { app.sheet = .mixCheck } label: { Label("Mix check", systemImage: "stethoscope") }
+                    Button { app.sheet = .setlist } label: { Label("Setlist", systemImage: "music.note.list") }
                     Button {
                         app.loadEffects()
                         app.sheet = .effects
@@ -495,6 +509,21 @@ struct ConsoleMenu: View {
                     app.sheet = .builder
                 } label: {
                     Label("Build a scene…", systemImage: "wand.and.stars")
+                }
+                Button {
+                    app.sheet = .mixCheck
+                } label: {
+                    Label("Mix check", systemImage: "stethoscope")
+                }
+                Button {
+                    app.sheet = .setlist
+                } label: {
+                    Label("Setlist", systemImage: "music.note.list")
+                }
+                Button {
+                    app.sheet = .duck
+                } label: {
+                    Label("Talk over music…", systemImage: "speaker.wave.2.bubble.left")
                 }
                 Button {
                     app.sheet = .help

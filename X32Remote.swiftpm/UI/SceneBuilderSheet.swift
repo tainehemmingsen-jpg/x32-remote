@@ -26,8 +26,8 @@ struct SceneBuilderSheet: View {
         NavigationStack {
             Form {
                 Section {
-                    TextField("What's on? e.g. covers band with 2 singers, sax and a DJ", text: $text, axis: .vertical)
-                        .lineLimit(2...5)
+                    TextField("What's on? e.g. covers band with 2 singers, sax and a DJ — or paste an input list", text: $text, axis: .vertical)
+                        .lineLimit(2...12)
                         .focused($typing)
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 8) {
@@ -69,7 +69,7 @@ struct SceneBuilderSheet: View {
                     if let message {
                         Text(message).foregroundStyle(Theme.mute)
                     } else {
-                        Text("List the instruments and mics (\"2 vox, acoustic, bass, drums\"), or just say what the event is (\"church service\", \"spin class\"). Add \"wedges\" or \"in-ears\" for monitor mixes.")
+                        Text("List the instruments and mics (\"2 vox, acoustic, bass, drums\"), say what the event is (\"church service\", \"spin class\"), or paste the input list from a rider (one channel per line: \"1 Kick In\", \"2 Snare Top\"…). Add \"wedges\" or \"in-ears\" for monitor mixes.")
                     }
                 }
 
@@ -112,6 +112,11 @@ struct SceneBuilderSheet: View {
         typing = false
         message = nil
         let description = text
+        // A pasted input list is exact already: no need to ask the model.
+        if let list = SceneBuilder.inputList(from: description) {
+            plan = list
+            return
+        }
         if useAI && SceneAI.isAvailable {
             thinking = true
             Task {
@@ -175,8 +180,8 @@ private struct PlanEditor: View {
                         }
                     } label: {
                         HStack(spacing: 4) {
-                            Image(systemName: StarterPresets.named(input.starter)?.symbol ?? "questionmark")
-                            Text(input.starter)
+                            Image(systemName: StarterPresets.named(input.starter)?.symbol ?? "minus")
+                            Text(input.starter.isEmpty ? "Name only" : input.starter)
                         }
                         .font(.system(size: 13))
                         .padding(.horizontal, 10)

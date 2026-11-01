@@ -57,6 +57,16 @@ struct HelpSheet: View {
                 text: "Pick what's plugged in (vocal, kick, acoustic guitar, speech…) for a sensible low cut, gate, EQ and compressor to start from.")
         ]),
         ("Sound check", [
+            Tip(symbol: "stethoscope", title: "Mix check",
+                text: "The stethoscope in the top bar looks over every channel: clipping or quiet preamps, named channels with no signal, open channels with nothing on them, voices without low cut, big EQ boosts, heavy compression and very high faders. Each one is explained, and most have a one-tap fix. Run it while the band plays, as it judges the last minute."),
+            Tip(symbol: "arrow.left.arrow.right", title: "What's changed",
+                text: "Save the desk to the scene library after soundcheck. Later, tap What's changed on that scene to see every setting that's moved since, and put any of them back with one tap."),
+            Tip(symbol: "music.note.list", title: "Setlist",
+                text: "Add the songs with their tempo and who sits out. Tapping a song sets every delay to the song's tempo and mutes the channels that aren't playing (and unmutes the ones that are back). TAP in a song works out the tempo for you."),
+            Tip(symbol: "mic.badge.plus", title: "Talk over music",
+                text: "From the console menu: pick a mic and the music channels, and the music dips by itself whenever someone talks into the mic, then comes back up. Made for gym classes, MCs and announcements. The switch also shows in Simple mode."),
+            Tip(symbol: "list.number", title: "Paste an input list",
+                text: "In Build a scene, paste the input list from a rider (\"1 Kick In\", \"2 Snare Top\"…) and it names, colours and sets up every channel in its numbered slot."),
             Tip(symbol: "waveform.badge.exclamationmark", title: "Ring out",
                 text: "The feedback icon in the top bar: pick a wedge's mix or the PA, bring it up slowly until it rings, and tap Cut on the frequency that appears. Each tap cuts a narrow notch in that mix's EQ (tap again to cut deeper). Notches are listed so you can take them out."),
             Tip(symbol: "chart.bar", title: "Meters",

@@ -71,6 +71,8 @@ struct AppSettings: Codable, Equatable {
     var selectOnDesk: Bool = false
     /// Show the desk's analyser behind the EQ curve (points the desk's RTA at the open channel).
     var showRTA: Bool = false
+    /// "Talk over music": which mic ducks which music channels.
+    var duck: DuckSetup? = nil
 
     static let defaultSimpleControls: [SimpleControl] = [
         SimpleControl(strip: StripID(.auxIn, 1), label: "Music", maxDB: 0),
@@ -83,7 +85,7 @@ struct AppSettings: Codable, Equatable {
     enum CodingKeys: String, CodingKey {
         case lastHost, recentHosts, mode, pin, locked, monitorBus, monitorShowAll, monitorHidden
         case simpleTitle, simpleControls, hapticAtUnity, keepAwake, showFaderScale, autoConnect
-        case userLayers, userLayerNames, selectOnDesk, showRTA
+        case userLayers, userLayerNames, selectOnDesk, showRTA, duck
     }
 
     init(from decoder: Decoder) throws {
@@ -110,6 +112,7 @@ struct AppSettings: Codable, Equatable {
         userLayerNames = names
         selectOnDesk = try c.decodeIfPresent(Bool.self, forKey: .selectOnDesk) ?? false
         showRTA = try c.decodeIfPresent(Bool.self, forKey: .showRTA) ?? false
+        duck = try? c.decodeIfPresent(DuckSetup.self, forKey: .duck)
     }
 
     private static let key = "X32Remote.settings.v1"

@@ -24,7 +24,7 @@ struct ScenePlan: Equatable {
     /// Groups decide colour and DCA.
     enum Group: String, CaseIterable, Equatable {
         case drums = "Drums", bass = "Bass", guitars = "Guitars", keys = "Keys", vocals = "Vocals"
-        case horns = "Horns", speech = "Speech", playback = "Playback"
+        case horns = "Horns", speech = "Speech", playback = "Playback", other = "Other"
 
         /// X32 scribble colours: 1 red, 2 green, 3 yellow, 4 blue, 5 magenta, 6 cyan, 7 white.
         var color: Int {
@@ -37,6 +37,7 @@ struct ScenePlan: Equatable {
             case .horns: return 3
             case .speech: return 7
             case .playback: return 6
+            case .other: return 7
             }
         }
 
@@ -48,6 +49,7 @@ struct ScenePlan: Equatable {
             case .vocals: return "Vocals"
             case .speech: return "Speech"
             case .playback: return "Playback"
+            case .other: return "Other"
             }
         }
 
@@ -71,7 +73,7 @@ struct ScenePlan: Equatable {
     /// DCA names in the order they're used.
     var dcas: [String] {
         var seen: [String] = []
-        for i in inputs where !seen.contains(i.group.dcaName) { seen.append(i.group.dcaName) }
+        for i in inputs where !i.name.isEmpty && i.group != .other && !seen.contains(i.group.dcaName) { seen.append(i.group.dcaName) }
         return Array(seen.prefix(8))
     }
 }
@@ -189,7 +191,46 @@ enum SceneBuilder {
 
     /// Reads a description into a plan. Never returns an empty plan for a non-empty description
     /// with recognisable words; returns nil when nothing at all was recognised.
+    /// An input list pasted from a rider: one channel per line, starting with its number
+    /// ("1 Kick In", "2. Snare top", "3\tHi-Hat\tSM81"). Returns nil when the text isn't one.
+    static func inputList(from text: String) -> ScenePlan? {
+        let lines = text.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+        var rows: [(n: Int, name: String, line: String)] = []
+        for line in lines {
+            var rest = Substring(line)
+            if rest.lowercased().hasPrefix("ch") { rest = rest.drop { $0.isLetter || $0 == " " || $0 == "." } }
+            let digits = rest.prefix { $0.isNumber }
+            guard let n = Int(digits), n >= 1, n <= 32 else { continue }
+            rest = rest.dropFirst(digits.count).drop { $0 == "." || $0 == ")" || $0 == "-" || $0 == ":" || $0 == " " || $0 == "\t" || $0 == "," }
+            // Tables: the name is the first column after the number.
+            var name = rest.split(whereSeparator: { $0 == "\t" || $0 == "|" || $0 == ";" || $0 == "(" || $0 == "," }).first.map(String.init) ?? ""
+            for separator in [" - ", " – ", "  ", " / "] {
+                if let r = name.range(of: separator) { name = String(name[..<r.lowerBound]) }
+            }
+            name = name.trimmingCharacters(in: .whitespaces)
+            guard !name.isEmpty else { continue }
+            rows.append((n, name, String(rest)))
+        }
+        guard rows.count >= 3, Double(rows.count) >= Double(lines.count) * 0.6 else { return nil }
+        var byChannel: [Int: ScenePlan.Input] = [:]
+        for row in rows where byChannel[row.n] == nil {
+            let guess = plan(fromWords: row.line)?.inputs.first
+            var input = ScenePlan.Input(row.name, guess?.starter ?? "", guess?.group ?? .other)
+            input.name = deskName(row.name)
+            byChannel[row.n] = input
+        }
+        let last = byChannel.keys.max() ?? 0
+        let inputs = (1...last).map { byChannel[$0] ?? ScenePlan.Input("", "", .other) }
+        return ScenePlan(title: "Input list", inputs: inputs, mixes: [])
+    }
+
     static func plan(from description: String) -> ScenePlan? {
+        if let list = inputList(from: description) { return list }
+        return plan(fromWords: description)
+    }
+
+    /// Reads a free description (not an input list).
+    static func plan(fromWords description: String) -> ScenePlan? {
         // Punctuation separates items ("drums, mics"): keep it as its own word.
         var cleaned = ""
         for ch in description.lowercased().replacingOccurrences(of: "&", with: " and ") {
@@ -333,11 +374,11 @@ enum SceneBuilder {
         for (i, input) in plan.inputs.prefix(32).enumerated() {
             let ch = StripID(.channel, i + 1)
             out.append((ch.namePath, .string(input.name)))
-            out.append((ch.colorPath, .int(Int32(input.group.color))))
+            out.append((ch.colorPath, .int(Int32(input.name.isEmpty ? 0 : input.group.color))))
             if let starter = StarterPresets.named(input.starter) {
                 out += StarterPresets.preset(starter).clip.changes(onto: ch)
             }
-            if let path = ch.dcaGroupsPath, let d = dcas.firstIndex(of: input.group.dcaName) {
+            if let path = ch.dcaGroupsPath, !input.name.isEmpty, let d = dcas.firstIndex(of: input.group.dcaName) {
                 out.append((path, .int(Int32(1 << d))))
             }
             // Stereo pairs (… L / … R) pan apart.

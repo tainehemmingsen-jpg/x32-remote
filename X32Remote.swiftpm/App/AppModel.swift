@@ -26,11 +26,14 @@ final class AppModel {
         case ringOut
         case library
         case builder
+        case mixCheck
+        case setlist
+        case duck
         var id: String { rawValue }
         /// Big working screens fill the iPad instead of sitting in a small card.
         var fillsScreen: Bool {
             switch self {
-            case .effects, .outputs, .meters, .ringOut: return true
+            case .effects, .outputs, .meters, .ringOut, .setlist: return true
             default: return false
             }
         }
@@ -1030,13 +1033,29 @@ final class AppModel {
     @ObservationIgnored private var nodeName = ""
 
     /// Saves everything on the desk now as a scene on this iPad.
+    /// What to do with the desk once it has been read.
+    @ObservationIgnored private var afterReading: (([String]) -> Void)?
+
     func readDeskIntoLibrary(name: String) {
+        let title = name.trimmingCharacters(in: .whitespaces).isEmpty ? (connectedName.isEmpty ? "Desk" : connectedName) : name
+        readDesk(nodes: SceneNodes.all, title: title) { [weak self] lines in
+            guard let self else { return }
+            self.addToLibrary(SceneFile(name: title, note: "", origin: self.isDemo ? .demo : .desk, lines: lines))
+            self.showToast("Saved “\(title)” on this iPad")
+        }
+    }
+
+    /// Reads nodes from the desk (a few seconds for a whole scene), then calls `done` with the
+    /// lines in the order asked for.
+    func readDesk(nodes: [String], title: String, done: @escaping ([String]) -> Void) {
         guard client != nil, sceneTransfer == nil else { return }
-        nodeQueue = SceneNodes.all
+        afterReading = done
+        nodeQueue = nodes
+        nodeOrder = nodes
         nodeOutstanding = [:]
         nodeResults = [:]
-        nodeName = name.trimmingCharacters(in: .whitespaces).isEmpty ? (connectedName.isEmpty ? "Desk" : connectedName) : name
-        sceneTransfer = SceneTransfer(kind: .reading, name: nodeName, done: 0, total: SceneNodes.all.count)
+        nodeName = title
+        sceneTransfer = SceneTransfer(kind: .reading, name: title, done: 0, total: nodes.count)
         pumpNodes()
     }
 
@@ -1082,16 +1101,159 @@ final class AppModel {
         }
     }
 
+    @ObservationIgnored private var nodeOrder: [String] = []
+
     private func finishReadingDesk() {
-        let lines = SceneNodes.all.compactMap { nodeResults[$0] }
+        let lines = nodeOrder.compactMap { nodeResults[$0] }
         sceneTransfer = nil
         nodeResults = [:]
-        guard lines.count > SceneNodes.all.count / 2 else {
-            showToast("The desk didn't answer enough of the scene (\(lines.count) of \(SceneNodes.all.count)). Try again.")
+        let done = afterReading
+        afterReading = nil
+        guard lines.count > nodeOrder.count / 2 else {
+            showToast("The desk didn't answer enough (\(lines.count) of \(nodeOrder.count)). Try again.")
             return
         }
-        addToLibrary(SceneFile(name: nodeName, note: "", origin: isDemo ? .demo : .desk, lines: lines))
-        showToast("Saved “\(nodeName)” on this iPad")
+        done?(lines)
+    }
+
+    // MARK: - What changed (a saved scene against the desk now)
+
+    struct Comparison {
+        let scene: SceneFile
+        var changes: [SceneDiff.Change]
+    }
+
+    private(set) var comparison: Comparison?
+
+    /// Reads the parts of the desk the scene covers and lists what's different.
+    func compareWithDesk(_ scene: SceneFile) {
+        let paths = scene.lines.map(SceneFile.path(of:))
+        comparison = nil
+        readDesk(nodes: paths, title: "Comparing with “\(scene.name)”") { [weak self] desk in
+            guard let self else { return }
+            let changes = SceneDiff.changes(scene: scene.lines, desk: desk) { self.param($0.namePath).string }
+            self.comparison = Comparison(scene: scene, changes: changes)
+        }
+    }
+
+    /// Puts some of the scene's settings back on the desk.
+    func restore(_ changes: [SceneDiff.Change]) {
+        guard let c = client else { return }
+        for change in changes {
+            c.send(OSCMessage("/", [.string(change.restoreLine)]))
+        }
+        let restored = Set(changes.map(\.id))
+        comparison?.changes.removeAll { restored.contains($0.id) }
+        showToast(changes.count == 1 ? "Put back \(changes[0].title)" : "Put back \(changes.count) settings")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.syncAll() }
+    }
+
+    func endComparison() {
+        comparison = nil
+    }
+
+    // MARK: - Mix check
+
+    /// Everything the check reads, so it's known before the check runs.
+    func loadMixCheck() {
+        var a: [String] = []
+        for ch in StripID.all(.channel) {
+            a += [ch.namePath, ch.onPath, ch.faderPath, ch.preampPath("hpon"), ch.eqOnPath, ch.dynPath("on")]
+            for b in 1...ch.eqBandCount { a += [ch.eqPath(b, "type"), ch.eqPath(b, "f"), ch.eqPath(b, "g")] }
+            if let ha = ch.headampIndexPath { a.append(ha) }
+        }
+        client?.get(a)
+    }
+
+    func mixCheckIssues() -> [MixCheck.Issue] {
+        let now = X32Client.now()
+        let channels = StripID.all(.channel).map { ch -> MixCheck.Channel in
+            let m = meters.meter(ch)
+            let ha = ch.headampIndexPath.map { param($0).int(or: -1) } ?? -1
+            let hp = store.value(ch.preampPath("hpon"))
+            return MixCheck.Channel(
+                strip: ch, name: param(ch.namePath).string, muted: param(ch.onPath).int(or: 1) == 0,
+                faderDB: X32Math.faderToDB(param(ch.faderPath).float),
+                recentPeak: meters.recentPeaks.peak(ch, now: now), clipped: m.clipped,
+                lowCutOn: hp.map { $0.intValue == 1 },
+                eqOn: param(ch.eqOnPath).bool,
+                eq: (1...ch.eqBandCount).compactMap { b in
+                    guard let t = store.value(ch.eqPath(b, "type"))?.intValue,
+                          let f = store.value(ch.eqPath(b, "f"))?.floatValue,
+                          let g = store.value(ch.eqPath(b, "g"))?.floatValue else { return nil }
+                    return (type: t, hz: Specs.eqFreq.value(f), gain: Specs.eqGain.value(g))
+                },
+                compOn: param(ch.dynPath("on")).bool, compReduction: m.dynReduction,
+                hasHeadamp: ha >= 0 && ha < 128)
+        }
+        return MixCheck.issues(channels, mainClipped: meters.meter(.mainLR).clipped)
+    }
+
+    func applyFix(_ issue: MixCheck.Issue) {
+        guard case .changes(let values, let label)? = issue.fix else { return }
+        applyBatch(values.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }, label: "\(label): \(issue.title)")
+        if let s = issue.strip { meters.meter(s).clipped = false }
+    }
+
+    // MARK: - Setlists
+
+    private(set) var setlists: [Setlist] = SetlistStore.load()
+    var currentSetlistID: UUID?
+    private(set) var currentSongIndex: Int?
+
+    func saveSetlists(_ lists: [Setlist]) {
+        setlists = lists
+        SetlistStore.save(lists)
+    }
+
+    /// Goes to a song: delays to its tempo, its sitting-out channels muted (and the last song's
+    /// unmuted again). One undo step.
+    func playSong(_ index: Int) {
+        guard let list = setlists.first(where: { $0.id == currentSetlistID }), list.songs.indices.contains(index) else { return }
+        let previous = currentSongIndex.flatMap { list.songs.indices.contains($0) ? list.songs[$0] : nil }
+        let song = list.songs[index]
+        let changes = SetlistMath.changes(for: song, previous: previous) { slot in
+            self.store.value(Effects.typePath(slot))?.intValue
+        }
+        currentSongIndex = index
+        if !changes.isEmpty { applyBatch(changes, label: "song “\(song.name)”") }
+        var what: [String] = []
+        if let bpm = song.bpm { what.append(String(format: "delays at %.0f BPM", bpm)) }
+        if !song.sittingOut.isEmpty { what.append("\(song.sittingOut.count) sitting out") }
+        showToast("\(index + 1). \(song.name)" + (what.isEmpty ? "" : " — " + what.joined(separator: ", ")))
+    }
+
+    func leaveSetlist() {
+        // Unmute anything the current song had sitting out.
+        if let list = setlists.first(where: { $0.id == currentSetlistID }), let i = currentSongIndex, list.songs.indices.contains(i) {
+            let back = list.songs[i].sittingOut.compactMap { StripID(id: $0) }.map { ($0.onPath, OSCArg.int(1)) }
+            if !back.isEmpty { applyBatch(back, label: "end of setlist") }
+        }
+        currentSongIndex = nil
+    }
+
+    // MARK: - Talk over music
+
+    var duckOn: Bool {
+        settings.duck?.isOn { store.value($0) } ?? false
+    }
+
+    func setDuck(_ setup: DuckSetup?) {
+        updateSettings { $0.duck = setup }
+        if let setup {
+            client?.get(setup.music.flatMap { m in ["on", "mode", "keysrc"].map { m.gatePath($0) } })
+        }
+    }
+
+    func setDucking(_ on: Bool) {
+        guard let d = settings.duck else { return }
+        let changes = d.changes(on: on)
+        guard !changes.isEmpty else {
+            showToast("Talk over music needs the music on channels (aux ins have no gate to duck with).")
+            return
+        }
+        applyBatch(changes, label: on ? "talk over music on" : "talk over music off")
+        showToast(on ? "Music now dips while \(stripTitle(d.mic)) talks" : "Talk over music off")
     }
 
     // MARK: - Scene builder
