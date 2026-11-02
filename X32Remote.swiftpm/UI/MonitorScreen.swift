@@ -110,8 +110,8 @@ struct MonitorScreen: View {
         }
         .overlay {
             ValueEditorOverlay(app: app)
+                .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         }
-        .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .onAppear {
             app.loadSends(bus: bus)
         }

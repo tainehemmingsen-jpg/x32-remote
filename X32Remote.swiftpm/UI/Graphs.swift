@@ -153,8 +153,8 @@ struct GateGraph: View {
     var body: some View {
         let gate = Dynamics.Gate(app: app, strip: strip)
         let meter = app.meters.meter(strip)
-        let gr = Double(meter.gateReduction)
         // Only the big graph shows the live input dot; reading it in thumbnails would redraw them on every meter tick.
+        // The reduction column is its own view for the same reason.
         let level: Double? = detailed ? Double(strip.kind == .channel ? meter.input : meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
@@ -166,7 +166,10 @@ struct GateGraph: View {
                 let yb = rect.maxY - CGFloat((max(-80, gate.threshold - gate.range) + 80) / 80) * rect.height
                 ctx.stroke(Path(ellipseIn: CGRect(x: x - 9, y: yb - 9, width: 18, height: 18)), with: .color(gate.on ? Theme.curve : Theme.tertiary), lineWidth: 2.5)
             }
-            drawGR(&ctx, CGRect(x: size.width - grWidth, y: 0, width: grWidth, height: size.height), gr: gate.on ? gr : 0)
+        }
+        .overlay(alignment: .trailing) {
+            GRColumn(meter: meter, gate: true, on: gate.on)
+                .frame(width: detailed ? 6 : 4)
         }
         .overlay {
             if interactive {
@@ -187,13 +190,15 @@ struct CompGraph: View {
     var body: some View {
         let comp = Dynamics.Comp(app: app, strip: strip)
         let meter = app.meters.meter(strip)
-        let gr = Double(meter.dynReduction)
         let level: Double? = detailed ? Double(strip.kind == .channel ? meter.input : meter.level) : nil
         Canvas { ctx, size in
             let grWidth: CGFloat = detailed ? 6 : 4
             let rect = CGRect(x: 0, y: 0, width: size.width - grWidth - 2, height: size.height)
             Dynamics.drawTransfer(&ctx, rect, range: 60, on: comp.on, detailed: detailed, handles: [comp.threshold, 0], level: level) { comp.output($0) }
-            drawGR(&ctx, CGRect(x: size.width - grWidth, y: 0, width: grWidth, height: size.height), gr: comp.on ? gr : 0)
+        }
+        .overlay(alignment: .trailing) {
+            GRColumn(meter: meter, gate: false, on: comp.on)
+                .frame(width: detailed ? 6 : 4)
         }
         .overlay {
             if interactive {
@@ -345,6 +350,21 @@ private struct DynamicsDragLayer: View {
                 .onDisappear { finish() }
         }
         .accessibilityHidden(true)
+    }
+}
+
+/// The gain-reduction column beside a gate or compressor curve. A view of its own so only it
+/// redraws on each meter tick, not the curve.
+private struct GRColumn: View {
+    let meter: MeterLevel
+    let gate: Bool
+    let on: Bool
+
+    var body: some View {
+        let gr = on ? Double(gate ? meter.gateReduction : meter.dynReduction) : 0
+        Canvas { ctx, size in
+            drawGR(&ctx, CGRect(origin: .zero, size: size), gr: gr)
+        }
     }
 }
 

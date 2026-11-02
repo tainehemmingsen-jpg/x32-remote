@@ -358,7 +358,7 @@ final class ClientTests: XCTestCase {
         let transport = MockTransport()
         let client = X32Client(transport: transport)
         var received: [String] = []
-        client.onMessage = { received.append($0.address) }
+        client.onMessage = { m, _ in received.append(m.address) }
         spin(0.2)
         let addresses = (1...32).flatMap { n in [StripID(.channel, n).faderPath, StripID(.channel, n).panPath ?? ""] }
         client.get(addresses)
@@ -425,7 +425,7 @@ final class DemoDeskTests: XCTestCase {
         let client = X32Client(transport: demo)
         var values: [String: OSCArg] = [:]
         var meterBlocks: Set<Int> = []
-        client.onMessage = { m in
+        client.onMessage = { m, _ in
             if let v = m.args.first { values[m.address] = v }
         }
         client.onMeters = { block, floats in
@@ -1127,7 +1127,7 @@ final class SceneSaveTests: XCTestCase {
         let demo = DemoTransport()
         let client = X32Client(transport: demo)
         var values: [String: OSCArg] = [:]
-        client.onMessage = { m in if let v = m.args.first { values[m.address] = v } }
+        client.onMessage = { m, _ in if let v = m.args.first { values[m.address] = v } }
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))
         client.get([Show.cuePath(2, "name"), Show.cuePath(2, "scene"), Show.controlPath, Show.snippetPath(0, "hasdata")])
         RunLoop.main.run(until: Date().addingTimeInterval(0.2))

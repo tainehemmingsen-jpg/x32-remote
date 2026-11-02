@@ -18,6 +18,8 @@ struct RootView: View {
             }
             if app.linkLost && app.phase == .connected {
                 LinkLostBanner()
+                    // Below the top bar, so the controls up there stay readable while it reconnects.
+                    .padding(.top, 48)
                     .allowsHitTesting(false)
                     .transition(.move(edge: .top).combined(with: .opacity))
             }

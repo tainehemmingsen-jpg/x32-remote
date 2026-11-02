@@ -44,7 +44,9 @@ final class ParamStore {
     /// A value reported by the desk.
     func applyRemote(_ address: String, _ value: OSCArg) {
         let p = param(address)
-        if p.touchCount > 0 { return }
+        // A finger on the control wins over the desk, except when we didn't know the value at
+        // all yet: then take it, or the control could never be moved.
+        if p.touchCount > 0 && p.value != nil { return }
         if p.value != value {
             p.value = value
         }
@@ -131,6 +133,8 @@ final class MeterStore {
     }
 
     func ingest(block: Int, values: [Float]) {
+        // One clock read per packet, not one per strip.
+        now = X32Client.now()
         switch block {
         case 0:
             // 32 channels, 8 aux, 8 fx returns, 16 buses, 6 matrices
@@ -146,7 +150,7 @@ final class MeterStore {
                 let m = meter(StripID(.channel, n))
                 setReduction(m, gate: values[31 + n], dyn: values[63 + n])
                 let input = X32Math.amplitudeToDB(values[n - 1])
-                recentPeaks.add(StripID(.channel, n), input, at: X32Client.now())
+                recentPeaks.add(StripID(.channel, n), input, at: now)
                 let next = smoothed(current: m.input, incoming: input)
                 if abs(next - m.input) >= 0.25 { m.input = next }
                 if input >= -0.3 && !m.clipped { m.clipped = true }
@@ -168,7 +172,7 @@ final class MeterStore {
                 setReduction(meter(StripID.monoC), gate: 1, dyn: values[48])
             }
         case RTA.block:
-            rta.ingest(values, now: X32Client.now())
+            rta.ingest(values, now: now)
         default:
             break
         }
@@ -185,8 +189,9 @@ final class MeterStore {
         for m in levels.values where m.clipped { m.clipped = false }
     }
 
+    private var now: TimeInterval = 0
+
     private func holdPeak(_ m: MeterLevel, _ db: Float) {
-        let now = X32Client.now()
         if db >= m.peak {
             if db - m.peak >= 0.25 { m.peak = db }
             m.peakTime = now
@@ -200,13 +205,13 @@ final class MeterStore {
 
     private func setLevel(_ m: MeterLevel, _ amplitude: Float, right: Float? = nil) {
         let db = X32Math.amplitudeToDB(amplitude)
-        holdPeak(m, max(db, right.map(X32Math.amplitudeToDB) ?? -90))
+        let rdb = right.map(X32Math.amplitudeToDB)
+        holdPeak(m, max(db, rdb ?? -90))
         let next = smoothed(current: m.level, incoming: db)
         if abs(next - m.level) >= 0.25 {
             m.level = next
         }
-        if let r = right {
-            let rdb = X32Math.amplitudeToDB(r)
+        if let rdb {
             let nextR = smoothed(current: m.level2, incoming: rdb)
             if abs(nextR - m.level2) >= 0.25 {
                 m.level2 = nextR

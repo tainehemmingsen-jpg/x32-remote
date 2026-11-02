@@ -42,8 +42,8 @@ struct ChannelView: View {
         }
         .overlay {
             ValueEditorOverlay(app: app)
+                .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         }
-        .animation(.easeOut(duration: 0.15), value: app.valueEditor?.id)
         .preferredColorScheme(.dark)
         .onAppear {
             app.visibleDetailStrip = strip
@@ -800,7 +800,7 @@ private struct ConfigColumn: View {
                 .padding(.vertical, 4)
                 .accessibilityHidden(true)
                 if strip.hasPolarity {
-                    OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø", width: 96)
+                    OnSwitch(app: app, address: strip.preampPath("invert"), title: "Ø Invert", width: 96)
                         .frame(height: 46)
                 }
                 if hasHeadamp {
@@ -861,8 +861,8 @@ private struct GateColumn: View {
             GateGraph(app: app, strip: strip, detailed: true)
                 .aspectRatio(1, contentMode: .fit)
                 .onTapGesture { app.detailTab = .gate }
-            ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Thr", enabled: on)
-            ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Depth", enabled: on)
+            ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Threshold", enabled: on)
+            ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Range", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", enabled: on)
             Spacer(minLength: 0)
@@ -917,11 +917,11 @@ private struct CompColumn: View {
             CompGraph(app: app, strip: strip, detailed: true)
                 .aspectRatio(1, contentMode: .fit)
                 .onTapGesture { app.detailTab = .comp }
-            ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Thr", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Threshold", enabled: on)
             EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", enabled: on)
-            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Gain", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Makeup", enabled: on)
             Spacer(minLength: 0)
         }
         .padding(8)
@@ -992,7 +992,7 @@ struct GatePage: View {
             GateGraph(app: app, strip: strip, detailed: true, interactive: true)
         } controls: {
             ParamKnob(app: app, address: strip.gatePath("thr"), spec: Specs.gateThreshold, title: "Threshold", enabled: on)
-            ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Depth", enabled: on)
+            ParamKnob(app: app, address: strip.gatePath("range"), spec: Specs.gateRange, title: "Range", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("hold"), spec: Specs.hold, title: "Hold", enabled: on)
             ParamKnob(app: app, address: strip.gatePath("release"), spec: Specs.release, title: "Release", enabled: on)
@@ -1025,7 +1025,7 @@ struct CompPage: View {
             ParamKnob(app: app, address: strip.dynPath("thr"), spec: Specs.dynThreshold, title: "Threshold", enabled: on)
             EnumKnob(app: app, address: strip.dynPath("ratio"), options: X32Enums.ratios, title: "Ratio", suffix: ":1", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("knee"), spec: Specs.knee, title: "Knee", enabled: on)
-            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Gain", enabled: on)
+            ParamKnob(app: app, address: strip.dynPath("mgain"), spec: Specs.makeup, title: "Makeup", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("attack"), spec: Specs.attack, title: "Attack", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("hold"), spec: Specs.hold, title: "Hold", enabled: on)
             ParamKnob(app: app, address: strip.dynPath("release"), spec: Specs.release, title: "Release", enabled: on)

@@ -67,7 +67,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Custom layers:** User 1 and User 2 — tap an empty one (or long‑press it) to pick channels.
 - **Config:** long‑press any channel name to jump to its name, colour and group settings.
 - **Meters:** the bar‑chart icon shows every meter on the desk.
-- **Undo and redo:** the curved arrow undoes your last change (a whole fader move counts as one); touch and hold it to redo. Recalling a scene clears it.
+- **Undo and redo:** the curved arrow undoes your last change (a whole fader move counts as one); the redo arrow appears beside it after an undo. Recalling a scene clears it.
 - **Keyboard:** ⌘Z / ⇧⌘Z, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ songs, ⌘O scene library; in a channel ⌘[ ⌘] and Esc.
 - **Copy / paste:** on a channel page, the copy icon copies everything or one section (preamp, gate, EQ, compressor, sends); open another channel and paste.
 - **Presets:** the same menu saves a channel's preamp, gate, EQ and compressor as a named preset on your iPad, and loads a preset (all of it or one section) onto any channel.

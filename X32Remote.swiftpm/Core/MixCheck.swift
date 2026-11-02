@@ -148,20 +148,25 @@ struct PeakTracker {
 
     mutating func add(_ strip: StripID, _ db: Float, at t: TimeInterval) {
         if started[strip] == nil { started[strip] = t }
-        var w = windows[strip] ?? []
+        // Called 20 times a second for 32 channels: change the stored array in place (no copies).
         // One sample a second is plenty: keep the loudest in each second.
-        if let last = w.last, t - last.t < 1 {
-            if db > last.db { w[w.count - 1] = (last.t, db) }
-        } else {
-            w.append((t, db))
+        if let last = windows[strip]?.last, t - last.t < 1 {
+            if db > last.db {
+                let i = windows[strip]!.count - 1
+                windows[strip]![i].db = db
+            }
+            return
         }
-        w.removeAll { t - $0.t > window }
-        windows[strip] = w
+        windows[strip, default: []].append((t, db))
+        // Samples are in time order, so anything too old is at the front.
+        while let first = windows[strip]?.first, t - first.t > window {
+            windows[strip]!.removeFirst()
+        }
     }
 
     /// nil until a few seconds have been watched.
     func peak(_ strip: StripID, now t: TimeInterval) -> Float? {
         guard let w = windows[strip], let since = started[strip], t - since >= 5, !w.isEmpty else { return nil }
-        return w.map(\.db).max()
+        return w.reduce(-Float.infinity) { max($0, $1.db) }
     }
 }

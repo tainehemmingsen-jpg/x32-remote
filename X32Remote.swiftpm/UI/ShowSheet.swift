@@ -74,8 +74,14 @@ struct ShowSheet: View {
             }
             .confirmationDialog(confirmTitle, isPresented: $confirming, titleVisibility: .visible, presenting: pending) { r in
                 Button("Recall \(r.control.singular)", role: .destructive) {
+                    let title = confirmTitle.trimmingCharacters(in: CharacterSet(charactersIn: "?"))
                     app.recall(r.control, r.number)
-                    dismiss()
+                    if r.control == .cues {
+                        // Stay here for the next GO.
+                        app.showToast(title.replacingOccurrences(of: "Go to ", with: "Went to "))
+                    } else {
+                        dismiss()
+                    }
                 }
                 Button("Cancel", role: .cancel) {}
             } message: { r in

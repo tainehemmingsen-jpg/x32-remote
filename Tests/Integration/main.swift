@@ -19,7 +19,7 @@ var values: [String: OSCArg] = [:]
 var meterCounts: [Int: Int] = [:]
 var info: ConsoleInfo?
 client.onInfo = { info = $0 }
-client.onMessage = { m in if let v = m.args.first { values[m.address] = v } }
+client.onMessage = { m, _ in if let v = m.args.first { values[m.address] = v } }
 client.onMeters = { block, floats in meterCounts[block] = floats.count }
 client.setMeterSubscriptions([0, 1, 2])
 
@@ -103,7 +103,7 @@ spin(0.3)
 
 let other = X32Client(transport: try UDPTransport(host: host))
 var otherValues: [String: OSCArg] = [:]
-other.onMessage = { m in if let v = m.args.first { otherValues[m.address] = v } }
+other.onMessage = { m, _ in if let v = m.args.first { otherValues[m.address] = v } }
 let checks = ["/ch/01/mix/fader", "/ch/02/mix/on", "/ch/03/config/name", "/ch/04/mix/05/level", "/ch/05/config/color", "/ch/06/eq/2/g", "/config/mute/3", "/ch/07/mix/fader",
               Outputs.path(.main, 5, "src"), Monitoring.talkDestinationPath("A")]
 spin(0.3)

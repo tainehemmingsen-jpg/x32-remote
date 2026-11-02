@@ -100,10 +100,21 @@ enum AddressNames {
     }
 
     /// The strip an address belongs to, and the rest of the path ("/mix/fader").
+    private static let kinds: [String: StripKind] = ["ch": .channel, "auxin": .auxIn, "fxrtn": .fxReturn, "bus": .bus, "mtx": .matrix, "dca": .dca]
+    /// Addresses are split over and over (every fader move), so remember the answers.
+    private static var splitCache: [String: (StripID, String)?] = [:]
+
     static func split(_ address: String) -> (StripID, String)? {
+        if let hit = splitCache[address] { return hit }
+        let result = splitUncached(address)
+        if splitCache.count > 20_000 { splitCache.removeAll() }
+        splitCache[address] = result
+        return result
+    }
+
+    private static func splitUncached(_ address: String) -> (StripID, String)? {
         let parts = address.split(separator: "/", omittingEmptySubsequences: true).map(String.init)
         guard parts.count >= 2 else { return nil }
-        let kinds: [String: StripKind] = ["ch": .channel, "auxin": .auxIn, "fxrtn": .fxReturn, "bus": .bus, "mtx": .matrix, "dca": .dca]
         if parts[0] == "main" {
             let strip = parts[1] == "m" ? StripID.monoC : StripID.mainLR
             return (strip, "/" + parts.dropFirst(2).joined(separator: "/"))

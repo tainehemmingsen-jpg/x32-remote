@@ -98,7 +98,13 @@ struct DuckSetup: Codable, Equatable {
                     (m.gatePath("on"), .int(1)),
                 ]
             } else {
-                out.append((m.gatePath("on"), .int(0)))
+                // Off, and back to a plain gate keyed from its own channel, so switching that
+                // gate on later for noise doesn't secretly duck the music.
+                out += [
+                    (m.gatePath("on"), .int(0)),
+                    (m.gatePath("mode"), .int(3)),            // GATE
+                    (m.gatePath("keysrc"), .int(0)),          // self
+                ]
             }
         }
         return out

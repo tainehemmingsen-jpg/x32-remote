@@ -144,9 +144,18 @@ struct CompareSheet: View {
                         }
                     }
                 } else if let c = app.comparison, c.scene.id == scene.id {
+                    if c.unread > 0 {
+                        Section {
+                            Label("\(c.unread) settings didn't answer, so they weren't compared. Compare again to retry.",
+                                  systemImage: "exclamationmark.triangle.fill")
+                                .font(.system(size: 13))
+                                .foregroundStyle(Theme.solo)
+                        }
+                    }
                     if c.changes.isEmpty {
                         Section {
-                            Label("The desk matches “\(scene.name)”", systemImage: "checkmark.seal.fill")
+                            Label(c.unread > 0 ? "Everything that answered matches “\(scene.name)”" : "The desk matches “\(scene.name)”",
+                                  systemImage: "checkmark.seal.fill")
                                 .foregroundStyle(Theme.on)
                         }
                     } else {
@@ -156,17 +165,10 @@ struct CompareSheet: View {
                                     VStack(alignment: .leading, spacing: 4) {
                                         Text(change.title)
                                             .font(.system(size: 14, weight: .semibold))
-                                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                                            Text(change.saved)
-                                                .foregroundStyle(Theme.secondary)
-                                            Image(systemName: "arrow.right")
-                                                .font(.system(size: 10))
-                                                .foregroundStyle(Theme.tertiary)
-                                            Text(change.now)
-                                                .foregroundStyle(Theme.accent)
-                                        }
-                                        .font(Theme.mono(12))
-                                        .lineLimit(2)
+                                        Text(change.summary)
+                                            .font(.system(size: 13))
+                                            .foregroundStyle(Theme.secondary)
+                                            .lineLimit(3)
                                     }
                                     Spacer()
                                     Button("Put back") { app.restore([change]) }
@@ -391,11 +393,31 @@ struct SetlistSheet: View {
                         .font(.system(size: 14))
                         .foregroundStyle(Theme.tertiary)
                 }
-            } else {
-                Text(list?.songs.isEmpty == false ? "Tap a song or Start" : "")
+            } else if let list, !list.songs.isEmpty {
+                Image(systemName: "play.circle")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Theme.accent)
+                Text("\(list.songs.count) song\(list.songs.count == 1 ? "" : "s") ready")
+                    .font(.system(size: 22, weight: .semibold))
+                Text("Start plays the first song: its delays set to the tempo, and anyone sitting out muted. Tap any song to jump to it.")
+                    .font(.system(size: 14))
                     .foregroundStyle(Theme.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
+            } else {
+                Image(systemName: "music.note.list")
+                    .font(.system(size: 44))
+                    .foregroundStyle(Theme.tertiary)
+                Text(list == nil ? "Pick a setlist" : "No songs yet")
+                    .font(.system(size: 22, weight: .semibold))
+                Text(list == nil ? "Choose one from the list on the left, or make a new one." : "Add the songs on the left: each can have a tempo for the delays, notes for the engineer, and a list of who sits out.")
+                    .font(.system(size: 14))
+                    .foregroundStyle(Theme.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: 420)
             }
             Spacer().frame(height: 10)
+            if list?.songs.isEmpty == false {
             HStack(spacing: 14) {
                 LitButton(title: "◀ Previous", isOn: false, height: 64, fontSize: 18) {
                     if let i = app.currentSongIndex, i > 0 { app.playSong(i - 1) }
@@ -407,7 +429,7 @@ struct SetlistSheet: View {
                 }
                 .frame(width: 240)
             }
-            .disabled(list?.songs.isEmpty ?? true)
+            }
         }
         .padding(30)
     }

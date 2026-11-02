@@ -277,16 +277,27 @@ private struct BandBar: View {
         let usesGain = type >= 1 && type <= 4
         let usesQ = type == 2 || type == 3
         let picker = HStack(spacing: 6) {
-            BandArrow(symbol: "chevron.left") {
-                band = selected <= 1 ? count : selected - 1
-            }
-            Text("Band \(selected)")
-                .font(.system(size: 13))
-                .foregroundStyle(Color.black.opacity(0.85))
-                .frame(width: 70, height: 40)
-                .background(RoundedRectangle(cornerRadius: 4).fill(tint))
-            BandArrow(symbol: "chevron.right") {
-                band = selected >= count ? 1 : selected + 1
+            // Every band one tap away, in its curve colour (rather than stepping with arrows).
+            HStack(spacing: 4) {
+                ForEach(1...count, id: \.self) { b in
+                    Button {
+                        band = b
+                        Haptics.click()
+                    } label: {
+                        Text("\(b)")
+                            .font(.system(size: 15, weight: b == selected ? .bold : .semibold))
+                            .foregroundStyle(b == selected ? Color.black.opacity(0.85) : EQColors.band(b))
+                            .frame(width: 40, height: 40)
+                            .background(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(b == selected ? EQColors.band(b) : Theme.raised))
+                            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .strokeBorder(EQColors.band(b).opacity(b == selected ? 0 : 0.5), lineWidth: 1))
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Band \(b)")
+                    .accessibilityAddTraits(b == selected ? .isSelected : [])
+                }
             }
             EnumMenu(app: app, address: typeAddress, options: options, tint: tint)
         }

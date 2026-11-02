@@ -57,6 +57,7 @@ struct SettingsSheet: View {
     let app: AppModel
     @Environment(\.dismiss) private var dismiss
     @State private var newPIN = ""
+    @State private var confirmDisconnect = false
 
     var body: some View {
         NavigationStack {
@@ -69,9 +70,16 @@ struct SettingsSheet: View {
                         LabeledContent("Firmware", value: info.firmware)
                     }
                     Toggle("Reconnect to the last desk on launch", isOn: binding(\.autoConnect))
-                    Button("Disconnect", role: .destructive) {
-                        dismiss()
-                        app.disconnect()
+                    Button("Disconnect…", role: .destructive) {
+                        confirmDisconnect = true
+                    }
+                    .confirmationDialog("Disconnect from \(app.connectedName)?", isPresented: $confirmDisconnect, titleVisibility: .visible) {
+                        Button("Disconnect", role: .destructive) {
+                            dismiss()
+                            app.disconnect()
+                        }
+                    } message: {
+                        Text("The desk keeps running as it is. You'll lose this app's undo history.")
                     }
                 }
                 Section("Mode") {

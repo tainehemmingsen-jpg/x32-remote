@@ -289,8 +289,9 @@ struct SendsPage: View {
     var body: some View {
         GeometryReader { geo in
             let count = max(strip.sendCount, 1)
-            let columnWidth = max(64, (geo.size.width - 4) / CGFloat(count))
-            ScrollView(.horizontal, showsIndicators: false) {
+            // 16 sends fit across an iPad at 56 pt each; anything narrower scrolls, and says so.
+            let columnWidth = max(56, (geo.size.width - 4) / CGFloat(count))
+            ScrollView(.horizontal) {
                 HStack(spacing: 1) {
                     ForEach(1...count, id: \.self) { n in
                         SendColumn(app: app, strip: strip, n: n)
@@ -301,6 +302,7 @@ struct SendsPage: View {
                 .padding(2)
             }
             .scrollDisabled(columnWidth * CGFloat(count) <= geo.size.width)
+            .scrollIndicatorsFlash(onAppear: true)
         }
         .background(Color.black)
     }
@@ -322,11 +324,16 @@ private struct SendColumn: View {
         let tap = app.param(strip.sendTypePath(n))
         VStack(spacing: 4) {
             ScribbleView(name: name, colorIndex: colorIndex, placeholder: target.footLabel, height: 30, fontSize: 11)
-                .onTapGesture {
-                    // Put this mix's sends on the faders.
-                    guard target.kind == .bus else { return }
-                    app.selectSendsBus(n)
-                    dismiss()
+                // A plain tap used to leave the channel without warning; now it's an explicit choice.
+                .contextMenu {
+                    if target.kind == .bus {
+                        Button {
+                            app.selectSendsBus(n)
+                            dismiss()
+                        } label: {
+                            Label("Put \(name.isEmpty ? target.footLabel : name) on the faders", systemImage: "slider.vertical.3")
+                        }
+                    }
                 }
             FaderReadout(app: app, address: levelAddress)
             ParamFader(app: app, address: levelAddress, steps: 160, editTitle: "\(app.stripTitle(strip)) → \(name.isEmpty ? target.footLabel : name)")
@@ -684,7 +691,7 @@ struct BitToggles: View {
                 let on = (mask >> bit) & 1 == 1
                 LitButton(title: "\(prefix) \(bit + 1)", isOn: on, color: color, height: 34, fontSize: 11) {
                     // Writing a mask we haven't read would silently drop the channel from its other groups.
-                    guard param.isKnown else { return }
+                    guard param.isKnown else { app.stillReading(); return }
                     let newMask = on ? (mask & ~(1 << bit)) : (mask | (1 << bit))
                     app.setInt(address, newMask)
                 }

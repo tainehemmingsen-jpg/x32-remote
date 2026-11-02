@@ -84,17 +84,25 @@ struct StripID: Hashable, Codable, Identifiable {
     // MARK: Addresses
 
     var base: String {
+        // Built once per strip: every path on a strip starts here, and views ask for paths constantly.
+        if let cached = StripID.baseCache[self] { return cached }
+        let b: String
         switch kind {
-        case .channel: return String(format: "/ch/%02d", index)
-        case .auxIn: return String(format: "/auxin/%02d", index)
-        case .fxReturn: return String(format: "/fxrtn/%02d", index)
-        case .bus: return String(format: "/bus/%02d", index)
-        case .matrix: return String(format: "/mtx/%02d", index)
-        case .main: return "/main/st"
-        case .mono: return "/main/m"
-        case .dca: return "/dca/\(index)"
+        case .channel: b = String(format: "/ch/%02d", index)
+        case .auxIn: b = String(format: "/auxin/%02d", index)
+        case .fxReturn: b = String(format: "/fxrtn/%02d", index)
+        case .bus: b = String(format: "/bus/%02d", index)
+        case .matrix: b = String(format: "/mtx/%02d", index)
+        case .main: b = "/main/st"
+        case .mono: b = "/main/m"
+        case .dca: b = "/dca/\(index)"
         }
+        StripID.baseCache[self] = b
+        return b
     }
+
+    private static var baseCache: [StripID: String] = [:]
+
 
     var faderPath: String { kind == .dca ? base + "/fader" : base + "/mix/fader" }
     var onPath: String { kind == .dca ? base + "/on" : base + "/mix/on" }

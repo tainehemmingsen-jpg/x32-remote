@@ -72,6 +72,19 @@ enum Theme {
 
 /// A console-style button. `.fill` buttons glow in their colour when on and show a dim version
 /// of it when off (mute, solo, +48V). `.outline` buttons get a green rim when on ("On", "Fine").
+private struct Glow: ViewModifier {
+    let color: Color
+    let on: Bool
+
+    func body(content: Content) -> some View {
+        if on {
+            content.shadow(color: color.opacity(0.45), radius: 6)
+        } else {
+            content
+        }
+    }
+}
+
 struct LitButton: View {
     enum Style { case fill, outline }
 
@@ -101,7 +114,8 @@ struct LitButton: View {
                 .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(isOn ? 0.22 : 0.06), .clear],
                                                    startPoint: .top, endPoint: .center)))
                 .overlay(shape.strokeBorder(border, lineWidth: style == .outline && isOn ? 1.5 : 1))
-                .shadow(color: style == .fill && isOn ? color.opacity(0.45) : .clear, radius: 6)
+                // Only lit keys glow; a shadow on every unlit key costs an offscreen pass each.
+                .modifier(Glow(color: color, on: style == .fill && isOn))
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

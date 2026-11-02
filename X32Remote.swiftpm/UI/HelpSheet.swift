@@ -36,7 +36,7 @@ struct HelpSheet: View {
             Tip(symbol: "square.stack.3d.down.right", title: "DCA spill",
                 text: "On the DCA layer, tap a DCA's name to see its channels. Tap again to go back."),
             Tip(symbol: "arrow.uturn.backward", title: "Undo",
-                text: "The curved arrow undoes your last change. A whole fader move counts as one. Touch and hold it to redo something you undid."),
+                text: "The curved arrow undoes your last change. A whole fader move counts as one. After an undo, a redo arrow appears beside it."),
             Tip(symbol: "keyboard", title: "Keyboard shortcuts",
                 text: "With a keyboard on the iPad (or on a Mac): ⌘Z undo, ⇧⌘Z redo, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ next and previous song, ⌘O scene library. In a channel: ⌘[ ⌘] previous and next, Esc to close. Hold ⌘ to see them all.")
         ]),

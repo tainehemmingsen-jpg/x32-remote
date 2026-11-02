@@ -14,6 +14,9 @@ enum SceneDiff {
         /// The scene's line: sending it to the desk puts this back.
         let restoreLine: String
         var id: String { path }
+
+        /// Just the fields that differ, in words: "Mute: on → off · Fader: -4.0 → -10.0".
+        var summary: String { SceneDiff.describe(path: path, saved: saved, now: now) }
     }
 
     /// Differences for the nodes in `scene` (nodes the desk didn't answer are left out).
@@ -53,6 +56,60 @@ enum SceneDiff {
             return (whole + (Double("0." + frac) ?? 0)) * 1000
         }
         return Double(s.replacingOccurrences(of: "+", with: ""))
+    }
+
+    /// Field names for the node types people change most (in the desk's own order).
+    static func fields(for path: String) -> [String]? {
+        let parts = path.split(separator: "/").map(String.init)
+        guard parts.count >= 2 else { return nil }
+        let head = parts[0]
+        let isStrip = ["ch", "auxin", "fxrtn", "bus", "mtx"].contains(head)
+        if head == "headamp" { return ["Gain", "48 V"] }
+        if head == "dca" && parts.count == 2 { return ["On", "Level"] }
+        if head == "dca" && parts.last == "config" { return ["Name", "Icon", "Colour"] }
+        if head == "fx" && parts.count == 2 { return ["Type", "Source"] }
+        if head == "main" && parts.count == 2 { return ["Mute", "Fader", "", "Pan", "", ""] }
+        if head == "main" && parts.last == "config" { return ["Name", "Icon", "Colour"] }
+        guard isStrip, parts.count >= 3 else { return nil }
+        let rest = Array(parts.dropFirst(2))
+        switch rest.first {
+        case "config": return ["Name", "Icon", "Colour", "Source"]
+        case "preamp": return head == "ch" ? ["Trim", "Polarity", "Low cut", "Slope", "Low cut Hz"] : ["Trim", "Polarity"]
+        case "gate": return rest.count == 1 ? ["On", "Mode", "Threshold", "Range", "Attack", "Hold", "Release", "Key"] : ["Key filter", "Type", "Hz"]
+        case "dyn": return rest.count == 1 ? ["On", "Mode", "Detector", "Envelope", "Threshold", "Ratio", "Knee", "Make-up", "Attack", "Hold", "Release", "Position", "Key", "Mix", "Auto"] : ["Key filter", "Type", "Hz"]
+        case "eq": return rest.count == 1 ? ["On"] : ["Type", "Hz", "Gain", "Q"]
+        case "mix":
+            if rest.count == 1 { return ["Mute", "Fader", "To LR", "Pan", "To M/C", "M/C level"] }
+            return ["On", "Level", "Pan", "Pre/post", "Pan follows"]
+        case "grp": return ["DCAs", "Mute groups"]
+        case "delay": return ["On", "Time"]
+        default: return nil
+        }
+    }
+
+    /// The differing fields of two value strings, in words.
+    static func describe(path: String, saved: String, now: String) -> String {
+        let a = saved.split(separator: " ").map(String.init)
+        let b = now.split(separator: " ").map(String.init)
+        guard a.count == b.count else { return "\(saved) → \(now)" }
+        let names = fields(for: path)
+        var parts: [String] = []
+        for i in a.indices where a[i] != b[i] {
+            if let fx = number(a[i]), let fy = number(b[i]), abs(fx - fy) < 0.011 { continue }
+            var name = names.flatMap { i < $0.count ? $0[i] : nil } ?? "Value \(i + 1)"
+            if name.isEmpty { name = "Value \(i + 1)" }
+            var x = a[i], y = b[i]
+            if name == "Mute" {
+                // The desk stores "ON" for not muted.
+                x = a[i] == "ON" ? "off" : "on"
+                y = b[i] == "ON" ? "off" : "on"
+            } else {
+                x = x.lowercased() == "on" || x.lowercased() == "off" ? x.lowercased() : x
+                y = y.lowercased() == "on" || y.lowercased() == "off" ? y.lowercased() : y
+            }
+            parts.append("\(name): \(x) → \(y)")
+        }
+        return parts.isEmpty ? "\(saved) → \(now)" : parts.joined(separator: " · ")
     }
 
     /// A readable name for a node path.

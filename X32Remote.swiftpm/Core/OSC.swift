@@ -85,7 +85,8 @@ enum OSCCodec {
     static func decode(_ data: Data) -> OSCMessage? {
         let bytes = [UInt8](data)
         var offset = 0
-        guard let address = readString(bytes, &offset), address.hasPrefix("/") else {
+        // The X32 answers /node with the address "node" (no slash), so allow that one too.
+        guard let address = readString(bytes, &offset), address.hasPrefix("/") || address == "node" else {
             return nil
         }
         if offset >= bytes.count {

@@ -204,6 +204,12 @@ final class AppModel {
         valueEditor = nil
         sheet = nil
         stopMixCheckWatch()
+        // Nothing from this desk should carry over to the next one (or keep sending to it).
+        cancelSceneTransfer()
+        comparison = nil
+        compares = [:]
+        currentSongIndex = nil
+        setlistMuted.removeAll()
         applyIdleTimer()
     }
 
@@ -224,8 +230,12 @@ final class AppModel {
         c.onInfo = { [weak self] info in
             self?.console = info
         }
-        c.onMessage = { [weak self] message in
-            self?.handle(message)
+        c.onMessage = { [weak self] message, isReply in
+            self?.handle(message, isReply: isReply)
+        }
+        c.onResubscribed = { [weak self] in
+            // The desk's updates lapsed for a moment: read everything again so nothing's missed.
+            self?.syncAll()
         }
         c.onMeters = { [weak self] block, values in
             self?.meters.ingest(block: block, values: values)
@@ -256,6 +266,8 @@ final class AppModel {
                     }
                 }
                 syncAll()
+                // What the Mix check badge needs (low cut, EQ…), so it's right without opening it.
+                loadMixCheck()
                 applyIdleTimer()
                 applyLaunchActionsAfterConnect()
             } else if wasLost || resyncOnConnect {
@@ -309,7 +321,7 @@ final class AppModel {
 
     // MARK: - Incoming
 
-    private func handle(_ message: OSCMessage) {
+    private func handle(_ message: OSCMessage, isReply: Bool = false) {
         guard let value = message.args.first else { return }
         let address = message.address
         if address == "node" {
@@ -330,7 +342,9 @@ final class AppModel {
         }
         let previous = store.value(address)
         if let t = lastLocalSet[address] {
-            if X32Client.now() - t < 0.6 { return }
+            // Only an answer to one of our own reads can be stale (asked before we changed it).
+            // A change the desk reports on its own, like someone moving the fader there, is new.
+            if isReply && X32Client.now() - t < 0.6 { return }
             lastLocalSet[address] = nil
         }
         store.applyRemote(address, value)
@@ -559,7 +573,9 @@ final class AppModel {
             clearRedo()
         }
         store.applyLocal(address, value)
-        lastLocalSet[address] = X32Client.now()
+        let t = X32Client.now()
+        lastLocalSet[address] = t
+        lastLocalChange = t
         client?.set(address, value)
         refreshLinkedPartner(of: address)
         rereadPreampIfSourceChanged(address)
@@ -668,6 +684,7 @@ final class AppModel {
         target.blocked = !store.param(address).isKnown
         if target.blocked {
             client?.get(address)
+            stillReading()
         }
         target.address = address
         touch(address, true)
@@ -696,10 +713,16 @@ final class AppModel {
         setFloat(target.address ?? address, value, steps: target.steps ?? steps)
     }
 
+    /// Said when a tap can't do anything yet because the desk hasn't told us the current value.
+    func stillReading() {
+        showToast(linkLost ? "Not connected to the desk right now" : "Still reading that from the desk…")
+    }
+
     func toggleMute(_ strip: StripID) {
         let p = store.param(strip.onPath)
         guard p.isKnown else {
             client?.get(strip.onPath)
+            stillReading()
             return
         }
         setBool(strip.onPath, p.int == 0)
@@ -711,6 +734,12 @@ final class AppModel {
         let anySolo = StripID.everything.contains { store.param($0.soloPath).bool }
         store.applyLocal("/-stat/solo", .int(anySolo ? 1 : 0))
     }
+
+    /// Something is soloed somewhere (the desk's own solo light).
+    var anySolo: Bool { store.param("/-stat/solo").bool }
+
+    /// A mute group is on.
+    var anyMuteGroup: Bool { (1...6).contains { store.param("/config/mute/\($0)").bool } }
 
     func clearSolo() {
         client?.send(OSCMessage("/-action/clearsolo", [.int(1)]))
@@ -815,7 +844,8 @@ final class AppModel {
             return
         }
         _ = undoStack.popLast()
-        redoEntries.append(swapIn(entry))
+        let back = swapIn(entry)
+        if !back.changes.isEmpty { redoEntries.append(back) }
         undoLabel = undoStack.last?.label
         redoLabel = redoEntries.last?.label
         Haptics.click()
@@ -825,7 +855,8 @@ final class AppModel {
     /// Puts back what the last undo took away.
     func redo() {
         guard let entry = redoEntries.popLast() else { return }
-        undoStack.push(swapIn(entry))
+        let back = swapIn(entry)
+        if !back.changes.isEmpty { undoStack.push(back) }
         undoLabel = undoStack.last?.label
         redoLabel = redoEntries.last?.label
         Haptics.click()
@@ -845,6 +876,10 @@ final class AppModel {
             set(change.address, change.previous)
         }
         restoring = false
+        // A different effect type has different parameters: read them again.
+        if entry.changes.contains(where: { $0.address.hasPrefix("/fx/") && $0.address.hasSuffix("/type") }) {
+            loadEffects()
+        }
         return UndoEntry(label: entry.label, changes: back, time: X32Client.now())
     }
 
@@ -1085,8 +1120,11 @@ final class AppModel {
         let title = name.trimmingCharacters(in: .whitespaces).isEmpty ? (connectedName.isEmpty ? "Desk" : connectedName) : name
         readDesk(nodes: SceneNodes.all, title: title) { [weak self] lines in
             guard let self else { return }
-            self.addToLibrary(SceneFile(name: title, note: "", origin: self.isDemo ? .demo : .desk, lines: lines))
-            self.showToast("Saved “\(title)” on this iPad")
+            let missing = self.lastReadMissing
+            // Say so in the scene itself if part of the desk never answered.
+            let note = missing == 0 ? "" : "\(missing) of \(SceneNodes.all.count) settings couldn't be read from the desk"
+            self.addToLibrary(SceneFile(name: title, note: note, origin: self.isDemo ? .demo : .desk, lines: lines))
+            self.showToast(missing == 0 ? "Saved “\(title)” on this iPad" : "Saved “\(title)”, but \(missing) settings couldn't be read")
         }
     }
 
@@ -1100,6 +1138,8 @@ final class AppModel {
         nodeOutstanding = [:]
         nodeResults = [:]
         nodeName = title
+        nodeRetried = false
+        lastReadMissing = 0
         sceneTransfer = SceneTransfer(kind: .reading, name: title, done: 0, total: nodes.count)
         pumpNodes()
     }
@@ -1148,7 +1188,20 @@ final class AppModel {
 
     @ObservationIgnored private var nodeOrder: [String] = []
 
+    /// How many nodes the last desk read couldn't get, even after asking again.
+    @ObservationIgnored private(set) var lastReadMissing = 0
+    @ObservationIgnored private var nodeRetried = false
+
     private func finishReadingDesk() {
+        let missing = nodeOrder.filter { nodeResults[$0] == nil }
+        if !missing.isEmpty && !nodeRetried {
+            // A busy Wi-Fi drops the odd reply: ask once more for just those.
+            nodeRetried = true
+            nodeQueue = missing
+            pumpNodes()
+            return
+        }
+        lastReadMissing = missing.count
         let lines = nodeOrder.compactMap { nodeResults[$0] }
         sceneTransfer = nil
         nodeResults = [:]
@@ -1166,6 +1219,8 @@ final class AppModel {
     struct Comparison {
         let scene: SceneFile
         var changes: [SceneDiff.Change]
+        /// Settings the desk didn't answer for, so they couldn't be compared.
+        var unread: Int = 0
     }
 
     private(set) var comparison: Comparison?
@@ -1177,7 +1232,7 @@ final class AppModel {
         readDesk(nodes: paths, title: "Comparing with “\(scene.name)”") { [weak self] desk in
             guard let self else { return }
             let changes = SceneDiff.changes(scene: scene.lines, desk: desk) { self.param($0.namePath).string }
-            self.comparison = Comparison(scene: scene, changes: changes)
+            self.comparison = Comparison(scene: scene, changes: changes, unread: self.lastReadMissing)
         }
     }
 
@@ -1237,16 +1292,22 @@ final class AppModel {
     /// How many "fix these" problems Mix check would show now (a badge on its button).
     private(set) var mixCheckProblems = 0
     @ObservationIgnored private var mixCheckTimer: Timer?
+    @ObservationIgnored private var lastLocalChange: TimeInterval = 0
 
     /// Mix check looks over the desk every few seconds in the background, so its button can say
     /// when something needs fixing without anyone opening it.
     private func startMixCheckWatch() {
         mixCheckTimer?.invalidate()
-        mixCheckTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+        // .common mode: keep checking while a list or the strips are being scrolled.
+        let timer = Timer(timeInterval: 3, repeats: true) { [weak self] _ in
             guard let self, self.phase == .connected else { return }
+            // Never steal time from a fader move: wait until hands are off for a second.
+            if X32Client.now() - self.lastLocalChange < 1 { return }
             let n = self.mixCheckIssues().filter { $0.severity == .problem }.count
             if n != self.mixCheckProblems { self.mixCheckProblems = n }
         }
+        RunLoop.main.add(timer, forMode: .common)
+        mixCheckTimer = timer
     }
 
     private func stopMixCheckWatch() {
@@ -1266,10 +1327,17 @@ final class AppModel {
     private(set) var setlists: [Setlist] = SetlistStore.load()
     var currentSetlistID: UUID?
     private(set) var currentSongIndex: Int?
+    /// Channels the setlist muted (they were on), so it unmutes exactly those and no others.
+    @ObservationIgnored private var setlistMuted: Set<String> = []
 
     func saveSetlists(_ lists: [Setlist]) {
+        // Keep pointing at the same song if songs were moved or deleted while it's playing.
+        let playing = currentSong.map { $0.list.songs[$0.index].id }
         setlists = lists
         SetlistStore.save(lists)
+        if let playing {
+            currentSongIndex = setlists.first(where: { $0.id == currentSetlistID })?.songs.firstIndex { $0.id == playing }
+        }
     }
 
     /// Goes to a song: delays to its tempo, its sitting-out channels muted (and the last song's
@@ -1278,8 +1346,20 @@ final class AppModel {
         guard let list = setlists.first(where: { $0.id == currentSetlistID }), list.songs.indices.contains(index) else { return }
         let previous = currentSongIndex.flatMap { list.songs.indices.contains($0) ? list.songs[$0] : nil }
         let song = list.songs[index]
-        let changes = SetlistMath.changes(for: song, previous: previous) { slot in
+        var changes = SetlistMath.changes(for: song, previous: previous) { slot in
             self.store.value(Effects.typePath(slot))?.intValue
+        }
+        // Only unmute what the setlist itself muted: a channel the engineer had muted anyway
+        // stays muted (bringing it back could open a dead or feeding-back mic).
+        changes = changes.compactMap { change in
+            let (path, value) = change
+            guard path.hasSuffix("/mix/on") else { return change }
+            if value.intValue == 0 {
+                guard store.value(path)?.intValue != 0 else { return nil }
+                setlistMuted.insert(path)
+                return change
+            }
+            return setlistMuted.remove(path) != nil ? change : nil
         }
         currentSongIndex = index
         if !changes.isEmpty { applyBatch(changes, label: "song “\(song.name)”") }
@@ -1310,10 +1390,9 @@ final class AppModel {
 
     func leaveSetlist() {
         // Unmute anything the current song had sitting out.
-        if let list = setlists.first(where: { $0.id == currentSetlistID }), let i = currentSongIndex, list.songs.indices.contains(i) {
-            let back = list.songs[i].sittingOut.compactMap { StripID(id: $0) }.map { ($0.onPath, OSCArg.int(1)) }
-            if !back.isEmpty { applyBatch(back, label: "end of setlist") }
-        }
+        let back = setlistMuted.sorted().map { ($0, OSCArg.int(1)) }
+        if !back.isEmpty { applyBatch(back, label: "end of setlist") }
+        setlistMuted.removeAll()
         currentSongIndex = nil
     }
 

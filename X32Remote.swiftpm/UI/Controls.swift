@@ -156,14 +156,26 @@ struct TouchSurface: UIViewRepresentable {
 }
 
 enum Haptics {
+    // Made once and kept ready, so a tick during a drag is instant and allocates nothing.
+    private static let impact: UIImpactFeedbackGenerator = {
+        let g = UIImpactFeedbackGenerator(style: .light)
+        g.prepare()
+        return g
+    }()
+    private static let selection: UISelectionFeedbackGenerator = {
+        let g = UISelectionFeedbackGenerator()
+        g.prepare()
+        return g
+    }()
+
     static func tick() {
-        let generator = UIImpactFeedbackGenerator(style: .light)
-        generator.impactOccurred()
+        impact.impactOccurred()
+        impact.prepare()
     }
 
     static func click() {
-        let generator = UISelectionFeedbackGenerator()
-        generator.selectionChanged()
+        selection.selectionChanged()
+        selection.prepare()
     }
 }
 
@@ -536,9 +548,11 @@ struct MeterView: View {
 
 /// Gain reduction as a red bar growing down from the top.
 struct GRBar: View {
-    let reduction: Float
+    /// Read here (not by the parent) so only this bar redraws when the reduction moves.
+    let meter: MeterLevel
 
     var body: some View {
+        let reduction = meter.dynReduction
         Canvas { ctx, size in
             ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.mute.opacity(0.14)))
             let fraction = CGFloat(min(max(reduction, 0), 24) / 24)
@@ -662,7 +676,7 @@ struct MainMeterChip: View {
         .padding(.horizontal, 6)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("Main LR level")
-        .accessibilityValue(main.clipped ? "Clipped" : String(format: "%.0f dB", max(main.level, main.level2)))
+        // No live value here: reading the level would redraw the chip on every meter tick.
     }
 }
 

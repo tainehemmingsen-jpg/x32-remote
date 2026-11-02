@@ -229,6 +229,30 @@ enum SceneBuilder {
         return plan(fromWords: description)
     }
 
+    /// The source words a helper (such as the on-device model) may use: each is a key the
+    /// reader understands, so names, colours, DCAs and mixes always come from the same rules.
+    static let sourceKinds = [
+        "drum kit", "kick", "snare", "hi-hat", "toms", "overheads", "cajon", "percussion",
+        "bass", "bass amp", "acoustic guitar", "electric guitar", "piano", "organ", "synth", "keys",
+        "sax", "trumpet", "violin",
+        "lead vocal", "backing vocal", "rapper", "choir",
+        "pastor", "lectern", "instructor", "headset", "lapel", "presenter", "handheld",
+        "dj", "playback",
+    ]
+
+    /// A plan from a list of kinds and counts ("2 electric guitar"), as a helper would give it.
+    /// Unknown kinds are ignored; with nothing useful left, the original description is read.
+    static func plan(title: String, kinds: [(kind: String, count: Int)], monitors: Bool, original: String) -> ScenePlan? {
+        let known = kinds.filter { sourceKinds.contains($0.kind.lowercased()) }
+        var words = known.map { "\(min(max($0.count, 1), 8)) \($0.kind.lowercased())" }.joined(separator: ", ")
+        if monitors { words += ", with wedges" }
+        var plan = known.isEmpty ? nil : plan(fromWords: words)
+        if plan == nil { plan = SceneBuilder.plan(from: original) }
+        let t = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !t.isEmpty, plan != nil { plan?.title = String(t.prefix(32)) }
+        return plan
+    }
+
     /// Reads a free description (not an input list).
     static func plan(fromWords description: String) -> ScenePlan? {
         // Punctuation separates items ("drums, mics"): keep it as its own word.
@@ -259,6 +283,11 @@ enum SceneBuilder {
                 // "pastor lapel mic", "vocal mic": a describing word right after something already
                 // recognised adds nothing of its own.
                 if modifiers.contains(key) && previousWordUsed(before: i, in: chars, used: used) {
+                    i += needle.count - 1
+                    continue
+                }
+                // "acoustic duo", "electric set": a style of act, not an instrument.
+                if styleWords.contains(key), let next = word(after: i + needle.count - 1, in: chars), actWords.contains(next) {
                     i += needle.count - 1
                     continue
                 }
@@ -296,6 +325,19 @@ enum SceneBuilder {
         "mic", "mics", "lapel", "lapels", "lav", "lavalier", "headset", "headsets", "handheld", "handhelds",
         "wireless mic", "wireless mics", "radio mics",
     ]
+
+    private static let styleWords: Set<String> = ["acoustic", "electric", "acoustics"]
+    private static let actWords: Set<String> = ["duo", "trio", "quartet", "band", "set", "act", "night", "gig", "session", "sessions", "show", "evening", "artist", "singer-songwriter", "songwriter"]
+
+    /// The word starting at or after `index` (past spaces), or nil at a comma or the end.
+    private static func word(after index: Int, in chars: [Character]) -> String? {
+        var start = index
+        while start < chars.count && chars[start] == " " { start += 1 }
+        guard start < chars.count, chars[start] != "," else { return nil }
+        var end = start
+        while end < chars.count && chars[end] != " " { end += 1 }
+        return String(chars[start..<end])
+    }
 
     private static func previousWordUsed(before index: Int, in chars: [Character], used: [Bool]) -> Bool {
         var end = index

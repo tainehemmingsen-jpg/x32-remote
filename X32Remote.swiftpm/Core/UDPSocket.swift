@@ -160,7 +160,12 @@ final class UDPSocket {
             }
             if n <= 0 { break }
             let data = Data(buffer[0..<n])
-            let ip = String(cString: inet_ntoa(from.sin_addr))
+            // inet_ntoa shares one static buffer between threads (discovery and the desk socket
+            // run at once), so write the address into a buffer of our own.
+            var addr = from.sin_addr
+            var text = [CChar](repeating: 0, count: Int(INET_ADDRSTRLEN))
+            guard inet_ntop(AF_INET, &addr, &text, socklen_t(INET_ADDRSTRLEN)) != nil else { continue }
+            let ip = String(cString: text)
             onReceive?(data, ip)
         }
     }

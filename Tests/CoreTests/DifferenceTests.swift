@@ -137,7 +137,9 @@ final class DuckTests: XCTestCase {
         XCTAssertEqual(Specs.gateRange.value(on["/ch/31/gate/range"]?.floatValue ?? 0), 12, accuracy: 0.6)
         XCTAssertTrue(duck.isOn { on[$0] })
         let off = duck.changes(on: false)
-        XCTAssertEqual(off.map(\.0), ["/ch/31/gate/on", "/ch/32/gate/on"])
+        XCTAssertEqual(off.map(\.0), ["/ch/31/gate/on", "/ch/31/gate/mode", "/ch/31/gate/keysrc",
+                                      "/ch/32/gate/on", "/ch/32/gate/mode", "/ch/32/gate/keysrc"])
+        XCTAssertFalse(duck.isOn { k in Dictionary(off.map { ($0.0, $0.1) }, uniquingKeysWith: { _, b in b })[k] })
         XCTAssertFalse(duck.isOn { _ in nil })
     }
 
@@ -170,5 +172,66 @@ final class InputListTests: XCTestCase {
 
     func testNotAList() {
         XCTAssertNil(SceneBuilder.inputList(from: "rock band with 2 vox"))
+    }
+}
+
+final class SceneDiffWordsTests: XCTestCase {
+    func testDescribesOnlyWhatChanged() {
+        XCTAssertEqual(SceneDiff.describe(path: "/ch/02/mix", saved: "ON -4.0 ON +0 OFF -oo", now: "OFF -4.0 ON +0 OFF -oo"), "Mute: off → on")
+        XCTAssertEqual(SceneDiff.describe(path: "/ch/02/mix", saved: "ON -4.0 ON +0 OFF -oo", now: "ON -10.0 ON +0 OFF -oo"), "Fader: -4.0 → -10.0")
+        XCTAssertEqual(SceneDiff.describe(path: "/ch/05/eq/2", saved: "PEQ 1k00 +3.0 2.0", now: "PEQ 2k50 +3.00 2.0"), "Hz: 1k00 → 2k50")
+        XCTAssertEqual(SceneDiff.describe(path: "/headamp/003", saved: "+20.0 OFF", now: "+20.0 ON"), "48 V: off → on")
+        XCTAssertEqual(SceneDiff.describe(path: "/fx/1/par", saved: "1 2", now: "1 3"), "Value 2: 2 → 3")
+    }
+}
+
+final class KindsPlanTests: XCTestCase {
+    func testKindsBecomeAPlanByTheUsualRules() {
+        let plan = SceneBuilder.plan(title: "Rock gig", kinds: [("drum kit", 1), ("bass", 1), ("electric guitar", 2), ("keys", 1), ("lead vocal", 1), ("backing vocal", 2), ("unicorn", 3)], monitors: true, original: "whatever")!
+        XCTAssertEqual(plan.title, "Rock gig")
+        XCTAssertEqual(plan.inputs.map(\.name).prefix(7), ["Kick", "Snare", "Hi-Hat", "Rack Tom", "Floor Tom", "OH L", "OH R"])
+        XCTAssertTrue(plan.inputs.contains { $0.name == "Gtr 2" })
+        XCTAssertTrue(plan.inputs.contains { $0.name == "BV 2" })
+        XCTAssertFalse(plan.inputs.contains { $0.starter == "Speech" || $0.starter == "Lapel mic" }, "no speech mics in a band")
+        XCTAssertFalse(plan.mixes.isEmpty)
+        XCTAssertLessThan(plan.mixes.count, plan.inputs.count, "a wedge per person, not per channel")
+    }
+
+    func testNothingUsefulFallsBackToTheWords() {
+        let plan = SceneBuilder.plan(title: "", kinds: [("unicorn", 1)], monitors: false, original: "acoustic duo: vocal and acoustic guitar")
+        XCTAssertEqual(plan?.inputs.map(\.name).sorted(), ["Acoustic", "Lead Vox"], "'acoustic duo' is a style, not a guitar")
+        XCTAssertEqual(SceneBuilder.plan(from: "Acoustic duo: vocal, acoustic guitar, cajon, backing vocal")?.inputs.count, 4)
+        XCTAssertNil(SceneBuilder.plan(title: "x", kinds: [], monitors: false, original: "hello"))
+    }
+}
+
+final class RobustnessTests: XCTestCase {
+    func testNodeRepliesDecode() {
+        // The X32 answers /node with the address "node", no slash.
+        let data = OSCCodec.encode(OSCMessage("node", [.string("/ch/01/config \"Kick\" 1 RD 1\n")]))
+        let m = OSCCodec.decode(data)
+        XCTAssertEqual(m?.address, "node")
+        XCTAssertNil(OSCCodec.decode(OSCCodec.encode(OSCMessage("junk", []))))
+    }
+
+    func testUnknownValueArrivesWhileTouched() {
+        let store = ParamStore()
+        let p = store.param("/ch/01/mix/fader")
+        p.touchCount = 1
+        store.applyRemote("/ch/01/mix/fader", .float(0.5))
+        XCTAssertEqual(store.value("/ch/01/mix/fader"), .float(0.5), "first value is taken even under a finger")
+        store.applyRemote("/ch/01/mix/fader", .float(0.2))
+        XCTAssertEqual(store.value("/ch/01/mix/fader"), .float(0.5), "after that the finger wins")
+    }
+
+    func testBigBatchesAreSentInChunks() {
+        let transport = MockTransport()
+        let client = X32Client(transport: transport)
+        for n in 1...32 { client.set(StripID(.channel, n).faderPath, .float(0.5)) }
+        RunLoop.main.run(until: Date().addingTimeInterval(0.02))
+        let first = transport.sent.filter { $0.address.hasSuffix("/mix/fader") }.count
+        XCTAssertLessThan(first, 32)
+        RunLoop.main.run(until: Date().addingTimeInterval(0.2))
+        XCTAssertEqual(transport.sent.filter { $0.address.hasSuffix("/mix/fader") }.count, 32)
     }
 }
