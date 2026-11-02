@@ -57,9 +57,14 @@ final class AppModel {
     var discovered: [X32Discovery.Console] = []
 
     // Mixer navigation
-    var layer: MixerLayer = .inputs
+    /// Remembered between launches, so the app opens where you left it.
+    var layer: MixerLayer = MixerLayer(rawValue: UserDefaults.standard.string(forKey: "mixer.layer") ?? "") ?? .inputs {
+        didSet { UserDefaults.standard.set(layer.rawValue, forKey: "mixer.layer") }
+    }
     /// Which bank (page of strips) of the layer is showing.
-    var mixerPage = 0
+    var mixerPage = UserDefaults.standard.integer(forKey: "mixer.page") {
+        didSet { UserDefaults.standard.set(mixerPage, forKey: "mixer.page") }
+    }
     var sendsBus: Int?
     /// Faders control preamp gain instead of level (red caps).
     var gainOnFaders = false
@@ -198,6 +203,7 @@ final class AppModel {
         spillDCA = nil
         valueEditor = nil
         sheet = nil
+        stopMixCheckWatch()
         applyIdleTimer()
     }
 
@@ -207,6 +213,7 @@ final class AppModel {
         meters.reset()
         isDemo = demo
         client = makeClient(transport)
+        startMixCheckWatch()
     }
 
     private func makeClient(_ transport: X32Transport) -> X32Client {
@@ -549,6 +556,7 @@ final class AppModel {
            let previous = store.value(address), previous != value {
             undoStack.record(address: address, previous: previous, newValue: value, label: undoName(address), now: X32Client.now())
             undoLabel = undoStack.last?.label
+            clearRedo()
         }
         store.applyLocal(address, value)
         lastLocalSet[address] = X32Client.now()
@@ -791,6 +799,7 @@ final class AppModel {
         if !changes.isEmpty {
             undoStack.push(UndoEntry(label: label, changes: changes, time: X32Client.now()))
             undoLabel = undoStack.last?.label
+            clearRedo()
         }
     }
 
@@ -806,18 +815,53 @@ final class AppModel {
             return
         }
         _ = undoStack.popLast()
+        redoEntries.append(swapIn(entry))
+        undoLabel = undoStack.last?.label
+        redoLabel = redoEntries.last?.label
+        Haptics.click()
+        showToast("Undone: \(entry.label)")
+    }
+
+    /// Puts back what the last undo took away.
+    func redo() {
+        guard let entry = redoEntries.popLast() else { return }
+        undoStack.push(swapIn(entry))
+        undoLabel = undoStack.last?.label
+        redoLabel = redoEntries.last?.label
+        Haptics.click()
+        showToast("Redone: \(entry.label)")
+    }
+
+    /// Sets an entry's values and returns the entry that would set them back.
+    private func swapIn(_ entry: UndoEntry) -> UndoEntry {
+        // What's there now, read before anything changes (an address can appear more than once).
+        var seen = Set<String>()
+        let back: [UndoEntry.Change] = entry.changes.compactMap { c in
+            guard seen.insert(c.address).inserted, let now = store.value(c.address) else { return nil }
+            return UndoEntry.Change(address: c.address, previous: now)
+        }
         restoring = true
         for change in entry.changes.reversed() {
             set(change.address, change.previous)
         }
         restoring = false
-        undoLabel = undoStack.last?.label
-        Haptics.click()
-        showToast("Undone: \(entry.label)")
+        return UndoEntry(label: entry.label, changes: back, time: X32Client.now())
+    }
+
+    @ObservationIgnored private var redoEntries: [UndoEntry] = []
+    /// What redo would put back, if anything.
+    private(set) var redoLabel: String?
+
+    private func clearRedo() {
+        if !redoEntries.isEmpty {
+            redoEntries.removeAll()
+            redoLabel = nil
+        }
     }
 
     func clearUndo() {
         undoStack.clear()
+        clearRedo()
         dragOriginals.removeAll()
         undoLabel = nil
     }
@@ -838,6 +882,7 @@ final class AppModel {
         restoring = false
         undoStack.push(UndoEntry(label: label, changes: previous, time: X32Client.now()))
         undoLabel = undoStack.last?.label
+        clearRedo()
     }
 
     func showToast(_ text: String) {
@@ -1189,6 +1234,27 @@ final class AppModel {
         return MixCheck.issues(channels, mainClipped: meters.meter(.mainLR).clipped)
     }
 
+    /// How many "fix these" problems Mix check would show now (a badge on its button).
+    private(set) var mixCheckProblems = 0
+    @ObservationIgnored private var mixCheckTimer: Timer?
+
+    /// Mix check looks over the desk every few seconds in the background, so its button can say
+    /// when something needs fixing without anyone opening it.
+    private func startMixCheckWatch() {
+        mixCheckTimer?.invalidate()
+        mixCheckTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+            guard let self, self.phase == .connected else { return }
+            let n = self.mixCheckIssues().filter { $0.severity == .problem }.count
+            if n != self.mixCheckProblems { self.mixCheckProblems = n }
+        }
+    }
+
+    private func stopMixCheckWatch() {
+        mixCheckTimer?.invalidate()
+        mixCheckTimer = nil
+        mixCheckProblems = 0
+    }
+
     func applyFix(_ issue: MixCheck.Issue) {
         guard case .changes(let values, let label)? = issue.fix else { return }
         applyBatch(values.sorted { $0.key < $1.key }.map { ($0.key, $0.value) }, label: "\(label): \(issue.title)")
@@ -1221,6 +1287,25 @@ final class AppModel {
         if let bpm = song.bpm { what.append(String(format: "delays at %.0f BPM", bpm)) }
         if !song.sittingOut.isEmpty { what.append("\(song.sittingOut.count) sitting out") }
         showToast("\(index + 1). \(song.name)" + (what.isEmpty ? "" : " — " + what.joined(separator: ", ")))
+    }
+
+    /// The song playing now, if a setlist is running.
+    var currentSong: (list: Setlist, index: Int)? {
+        guard let i = currentSongIndex, let list = setlists.first(where: { $0.id == currentSetlistID }),
+              list.songs.indices.contains(i) else { return nil }
+        return (list, i)
+    }
+
+    /// Next (or previous) song in the running setlist.
+    func stepSong(_ delta: Int) {
+        guard let current = currentSong else { return }
+        let list = current.list, i = current.index
+        let next = i + delta
+        guard list.songs.indices.contains(next) else {
+            showToast(delta > 0 ? "That was the last song" : "That's the first song")
+            return
+        }
+        playSong(next)
     }
 
     func leaveSetlist() {

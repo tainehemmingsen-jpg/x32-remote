@@ -36,7 +36,9 @@ struct HelpSheet: View {
             Tip(symbol: "square.stack.3d.down.right", title: "DCA spill",
                 text: "On the DCA layer, tap a DCA's name to see its channels. Tap again to go back."),
             Tip(symbol: "arrow.uturn.backward", title: "Undo",
-                text: "The curved arrow undoes your last change. A whole fader move counts as one.")
+                text: "The curved arrow undoes your last change. A whole fader move counts as one. Touch and hold it to redo something you undid."),
+            Tip(symbol: "keyboard", title: "Keyboard shortcuts",
+                text: "With a keyboard on the iPad (or on a Mac): ⌘Z undo, ⇧⌘Z redo, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ next and previous song, ⌘O scene library. In a channel: ⌘[ ⌘] previous and next, Esc to close. Hold ⌘ to see them all.")
         ]),
         ("Channel page", [
             Tip(symbol: "chart.xyaxis.line", title: "Gate and compressor graphs",
@@ -58,11 +60,11 @@ struct HelpSheet: View {
         ]),
         ("Sound check", [
             Tip(symbol: "stethoscope", title: "Mix check",
-                text: "The stethoscope in the top bar looks over every channel: clipping or quiet preamps, named channels with no signal, open channels with nothing on them, voices without low cut, big EQ boosts, heavy compression and very high faders. Each one is explained, and most have a one-tap fix. Run it while the band plays, as it judges the last minute."),
+                text: "The stethoscope in the top bar turns red with a count when something needs fixing. It looks over every channel: clipping or quiet preamps, named channels with no signal, open channels with nothing on them, voices without low cut, big EQ boosts, heavy compression and very high faders. Each one is explained, and most have a one-tap fix. Run it while the band plays, as it judges the last minute."),
             Tip(symbol: "arrow.left.arrow.right", title: "What's changed",
                 text: "Save the desk to the scene library after soundcheck. Later, tap What's changed on that scene to see every setting that's moved since, and put any of them back with one tap."),
             Tip(symbol: "music.note.list", title: "Setlist",
-                text: "Add the songs with their tempo and who sits out. Tapping a song sets every delay to the song's tempo and mutes the channels that aren't playing (and unmutes the ones that are back). TAP in a song works out the tempo for you."),
+                text: "Add the songs with their tempo and who sits out. Tapping a song sets every delay to the song's tempo and mutes the channels that aren't playing (and unmutes the ones that are back). TAP in a song works out the tempo for you. While a setlist runs, the song shows in the top bar with a button for the next one."),
             Tip(symbol: "mic.badge.plus", title: "Talk over music",
                 text: "From the console menu: pick a mic and the music channels, and the music dips by itself whenever someone talks into the mic, then comes back up. Made for gym classes, MCs and announcements. The switch also shows in Simple mode."),
             Tip(symbol: "list.number", title: "Paste an input list",

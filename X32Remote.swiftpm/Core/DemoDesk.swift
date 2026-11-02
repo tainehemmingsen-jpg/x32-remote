@@ -378,8 +378,11 @@ final class DemoTransport: X32Transport {
         switch i {
         case 0...4:
             // drums: hits
-            let beat = (t * (i == 0 ? 2.0 : 4.0) + seed).truncatingRemainder(dividingBy: 1.0)
-            db = beat < 0.08 ? -6 + 4 * sin(seed) : -55
+            // Each tick moves the beat on by 0.1 (kick) or 0.2, so a hit has to be at least that
+            // wide or some drums would never land on one.
+            let rate = i == 0 ? 2.0 : 4.0
+            let beat = (t * rate + seed).truncatingRemainder(dividingBy: 1.0)
+            db = beat < rate * 0.05 + 0.01 ? -8 + 3 * sin(seed) : -55
         case 5, 6:
             db = -24 + 6 * sin(t * 3.1 + seed) + 3 * sin(t * 7.3)
         case 7, 8:

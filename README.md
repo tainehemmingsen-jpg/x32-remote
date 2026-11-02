@@ -23,9 +23,9 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Go to…** — on a channel page, a grid of every strip on the desk to jump straight to one.
 - **Long-press a strip name** — open it, rename it, copy and paste its settings, or load a starting point, without leaving the mixer.
 - **Meters** hold their peaks and latch a red clip light until tapped; the Gate and Compressor pages draw a scrolling gain-reduction history and show the live signal as a dot on the curve; the Input page draws the last 10 seconds of input level with the zone where peaks should land. A small Main LR meter sits in the top bar everywhere.
-- **Mix check** — the stethoscope in the top bar looks over every channel for clipping or quiet preamps, dead named channels, open empty channels, voices without low cut, big EQ boosts, over-compression and very high faders, and explains each in plain words, mostly with a one-tap fix.
+- **Mix check** — the stethoscope in the top bar looks over every channel for clipping or quiet preamps, dead named channels, open empty channels, voices without low cut, big EQ boosts, over-compression and very high faders, and explains each in plain words, mostly with a one-tap fix. It keeps watching in the background, and its button shows a red count when something needs fixing.
 - **What's changed since soundcheck** — compare any saved scene with the desk right now and put back individual settings with a tap.
-- **Setlist** — songs with tempo and who sits out: one tap sets every delay to the song's tempo and mutes and unmutes the right channels. Tap tempo built in.
+- **Setlist** — songs with tempo and who sits out: one tap sets every delay to the song's tempo and mutes and unmutes the right channels. Tap tempo built in, and the song playing shows in the top bar with a next-song button.
 - **Talk over music** — pick a mic and the music channels; the music ducks by itself whenever someone talks (uses the gates' duck mode with the mic as key, so it runs on the desk even if the iPad drops off). For gym classes, MCs and announcements; there's a switch for it in Simple mode.
 - **Paste an input list** — paste a rider's input list into Build a scene and every channel is named, coloured and set up in its numbered slot.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console. Push a mix bus or the main fader up in Ring out and the demo desk "feeds back" so you can try it.
@@ -67,7 +67,8 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 - **Custom layers:** User 1 and User 2 — tap an empty one (or long‑press it) to pick channels.
 - **Config:** long‑press any channel name to jump to its name, colour and group settings.
 - **Meters:** the bar‑chart icon shows every meter on the desk.
-- **Undo:** the curved arrow undoes your last change (a whole fader move counts as one). Recalling a scene clears it.
+- **Undo and redo:** the curved arrow undoes your last change (a whole fader move counts as one); touch and hold it to redo. Recalling a scene clears it.
+- **Keyboard:** ⌘Z / ⇧⌘Z, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ songs, ⌘O scene library; in a channel ⌘[ ⌘] and Esc.
 - **Copy / paste:** on a channel page, the copy icon copies everything or one section (preamp, gate, EQ, compressor, sends); open another channel and paste.
 - **Presets:** the same menu saves a channel's preamp, gate, EQ and compressor as a named preset on your iPad, and loads a preset (all of it or one section) onto any channel.
 - **Solo and talkback:** the headphones icon has the solo/phones level, Dim, Mono, what the phones listen to, PFL/AFL, exclusive solo, and where Talk A and B go. Talk A/B: tap to latch on, or hold to talk and let go to stop.

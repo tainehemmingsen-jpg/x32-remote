@@ -117,6 +117,7 @@ private struct ChannelHeader: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel("Close")
+            .keyboardShortcut(.escape, modifiers: [])
             // Jump straight to any other strip.
             Button {
                 jumping = true
@@ -154,11 +155,14 @@ private struct ChannelHeader: View {
                 step(-1)
             }
             .disabled(strip.kind.count <= 1)
+            .keyboardShortcut("[", modifiers: .command)
             TopIcon(systemName: "arrow.right", label: "Next channel") {
                 step(1)
             }
             .disabled(strip.kind.count <= 1)
+            .keyboardShortcut("]", modifiers: .command)
         }
+        .background(UndoShortcuts(app: app))
         .padding(.horizontal, 10)
         .frame(height: 46)
         .background(Theme.topBar)

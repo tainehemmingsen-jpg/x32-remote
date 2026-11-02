@@ -29,6 +29,7 @@ struct MixerScreen: View {
             let detail = StripDetail.forHeight(bodyHeight)
             VStack(spacing: 0) {
                 MixerTopBar(app: app, wide: wide, page: $app.mixerPage, pageCount: layout.pageCount, perPage: layout.perPage, total: layout.total)
+                    .background(MixerShortcuts(app: app, pageCount: layout.pageCount))
                 HStack(spacing: 0) {
                     if layout.visible.isEmpty {
                         EmptyLayerView(app: app)
@@ -232,6 +233,9 @@ struct MixerTopBar: View {
                     .padding(.horizontal, 4)
                 }
             }
+            if app.currentSong != nil {
+                SetlistChip(app: app, compact: !wide)
+            }
             MainMeterChip(app: app)
             UndoButton(app: app)
             if wide {
@@ -253,7 +257,7 @@ struct MixerTopBar: View {
                 TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)") {
                     app.sheet = .ringOut
                 }
-                TopIcon(systemName: "stethoscope", label: "Mix check") {
+                TopIcon(systemName: "stethoscope", label: "Mix check", badge: app.mixCheckProblems) {
                     app.sheet = .mixCheck
                 }
                 TopIcon(systemName: "music.note.list", label: "Setlist") {
@@ -278,7 +282,9 @@ struct MixerTopBar: View {
                     Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
                     Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
                     Button { app.sheet = .ringOut } label: { Label("Ring out", systemImage: "waveform.badge.exclamationmark") }
-                    Button { app.sheet = .mixCheck } label: { Label("Mix check", systemImage: "stethoscope") }
+                    Button { app.sheet = .mixCheck } label: {
+                        Label(app.mixCheckProblems > 0 ? "Mix check (\(app.mixCheckProblems) to fix)" : "Mix check", systemImage: "stethoscope")
+                    }
                     Button { app.sheet = .setlist } label: { Label("Setlist", systemImage: "music.note.list") }
                     Button {
                         app.loadEffects()
@@ -294,6 +300,11 @@ struct MixerTopBar: View {
                         .font(.system(size: 20))
                         .foregroundStyle(Theme.text)
                         .frame(width: 42, height: 42)
+                        .overlay(alignment: .topTrailing) {
+                            if app.mixCheckProblems > 0 {
+                                Circle().fill(Theme.mute).frame(width: 9, height: 9).offset(x: -6, y: 6)
+                            }
+                        }
                         .contentShape(Rectangle())
                 }
                 .accessibilityLabel("More")
@@ -330,6 +341,7 @@ struct UndoButton: View {
 
     var body: some View {
         let label = app.undoLabel
+        let redo = app.redoLabel
         Button {
             app.undo()
         } label: {
@@ -341,7 +353,7 @@ struct UndoButton: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(label == nil)
+        .disabled(label == nil && redo == nil)
         .contextMenu {
             if let label {
                 Button {
@@ -350,8 +362,124 @@ struct UndoButton: View {
                     Label("Undo \(label)", systemImage: "arrow.uturn.backward")
                 }
             }
+            if let redo {
+                Button {
+                    app.redo()
+                } label: {
+                    Label("Redo \(redo)", systemImage: "arrow.uturn.forward")
+                }
+            }
         }
         .accessibilityLabel(label.map { "Undo \($0)" } ?? "Nothing to undo")
+        .accessibilityHint(redo == nil ? "" : "Touch and hold to redo \(redo!)")
+    }
+}
+
+/// While a setlist is running: the song playing now, with a button for the next one.
+/// Tap the name for the whole setlist.
+private struct SetlistChip: View {
+    let app: AppModel
+    let compact: Bool
+
+    var body: some View {
+        if let current = app.currentSong {
+            let list = current.list, i = current.index
+            HStack(spacing: 0) {
+                Button { app.sheet = .setlist } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "music.note")
+                            .foregroundStyle(Theme.accent)
+                        if !compact {
+                            Text("\(i + 1). \(list.songs[i].name)")
+                                .lineLimit(1)
+                                .frame(maxWidth: 150, alignment: .leading)
+                        }
+                    }
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Theme.text)
+                    .padding(.leading, 10)
+                    .padding(.trailing, 6)
+                    .frame(height: 36)
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Now playing: \(list.songs[i].name). Open setlist")
+                Rectangle().fill(Theme.line).frame(width: 1, height: 20)
+                Button { app.stepSong(1) } label: {
+                    Image(systemName: "forward.end.fill")
+                        .font(.system(size: 13))
+                        .foregroundStyle(i + 1 < list.songs.count ? Theme.text : Theme.tertiary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .disabled(i + 1 >= list.songs.count)
+                .accessibilityLabel(i + 1 < list.songs.count ? "Next song: \(list.songs[i + 1].name)" : "Last song")
+            }
+            .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.accent.opacity(0.14)))
+            .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.accent.opacity(0.35), lineWidth: 1))
+        }
+    }
+}
+
+/// ⌘Z and ⇧⌘Z for a keyboard on an iPad (or the Mac).
+struct UndoShortcuts: View {
+    let app: AppModel
+
+    var body: some View {
+        ZStack {
+            Button("Undo") { app.undo() }
+                .keyboardShortcut("z", modifiers: .command)
+            Button("Redo") { app.redo() }
+                .keyboardShortcut("z", modifiers: [.command, .shift])
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
+    }
+}
+
+/// Keyboard shortcuts for the console view. Hold ⌘ on an iPad keyboard to see them listed.
+private struct MixerShortcuts: View {
+    let app: AppModel
+    let pageCount: Int
+
+    var body: some View {
+        ZStack {
+            UndoShortcuts(app: app)
+            Button("Previous bank") { app.mixerPage = max(0, app.mixerPage - 1) }
+                .keyboardShortcut(.leftArrow, modifiers: .command)
+            Button("Next bank") { app.mixerPage = min(pageCount - 1, app.mixerPage + 1) }
+                .keyboardShortcut(.rightArrow, modifiers: .command)
+            ForEach(Array(MixerLayer.allCases.enumerated()), id: \.element) { i, layer in
+                Button(app.layerTitle(layer)) { app.selectLayer(layer) }
+                    .keyboardShortcut(KeyEquivalent(Character(String(i + 1))), modifiers: .command)
+            }
+            Button("Mix check") { app.sheet = .mixCheck }
+                .keyboardShortcut("k", modifiers: .command)
+            Button("Ring out") { app.sheet = .ringOut }
+                .keyboardShortcut("r", modifiers: [.command, .shift])
+            Button("Meters") { app.sheet = .meters }
+                .keyboardShortcut("m", modifiers: [.command, .shift])
+            Button("Effects") {
+                app.loadEffects()
+                app.sheet = .effects
+            }
+            .keyboardShortcut("e", modifiers: .command)
+            Button("Setlist") { app.sheet = .setlist }
+                .keyboardShortcut("l", modifiers: .command)
+            Button("Next song") { app.stepSong(1) }
+                .keyboardShortcut(.downArrow, modifiers: .command)
+            Button("Previous song") { app.stepSong(-1) }
+                .keyboardShortcut(.upArrow, modifiers: .command)
+            Button("Scene library") { app.sheet = .library }
+                .keyboardShortcut("o", modifiers: .command)
+            Button("Settings") { app.sheet = .settings }
+                .keyboardShortcut(",", modifiers: .command)
+        }
+        .opacity(0)
+        .frame(width: 0, height: 0)
+        .accessibilityHidden(true)
     }
 }
 
@@ -381,19 +509,33 @@ struct ToastView: View {
 struct TopIcon: View {
     let systemName: String
     let label: String
+    /// A red count in the corner (0 hides it).
+    var badge: Int = 0
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Image(systemName: systemName)
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(Theme.text.opacity(0.9))
+                .foregroundStyle(badge > 0 ? Theme.mute : Theme.text.opacity(0.9))
                 .frame(width: 40, height: 36)
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
+                .overlay(alignment: .topTrailing) {
+                    if badge > 0 {
+                        Text("\(min(badge, 9))")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(minWidth: 16, minHeight: 16)
+                            .background(Circle().fill(Theme.mute))
+                            .offset(x: 4, y: -4)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(duration: 0.3), value: badge)
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(label)
+        .accessibilityLabel(badge > 0 ? "\(label), \(badge) to fix" : label)
     }
 }
 
