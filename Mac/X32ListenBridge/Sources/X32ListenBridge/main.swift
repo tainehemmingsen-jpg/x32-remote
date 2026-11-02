@@ -8,6 +8,7 @@
 //     swift run -c release -- --channels 23,24   # if solo is on outputs 7/8 instead
 //     swift run -c release -- --list             # the Mac's audio inputs
 //     swift run -c release -- --device "X-USB"   # pick the input by (part of) its name
+//     swift run -c release -- --tone             # a test tone, no desk needed
 
 import AVFoundation
 import AudioToolbox
@@ -24,6 +25,8 @@ struct Options {
     var left = 31
     var right = 32
     var listOnly = false
+    /// Stream a quiet test tone instead of the desk (checks the Wi-Fi and the iPad without a desk).
+    var tone = false
 }
 
 func printUsage() {
@@ -33,6 +36,7 @@ func printUsage() {
       --channels L,R   USB channels carrying solo (default 31,32: desk outputs 15/16)
       --device NAME    the audio input to use (default: the first one called X-USB, X32 or M32)
       --list           show this Mac's audio inputs and stop
+      --tone           send a quiet test tone instead (check the Wi-Fi and the iPad without a desk)
     """)
 }
 
@@ -44,6 +48,8 @@ func parseOptions() -> Options {
         switch a {
         case "--list", "-l":
             o.listOnly = true
+        case "--tone", "-t":
+            o.tone = true
         case "--device", "-d":
             guard !args.isEmpty else { printUsage(); exit(1) }
             o.deviceMatch = args.removeFirst()
@@ -291,9 +297,65 @@ final class Server {
     }
 }
 
+// MARK: - Test tone
+
+/// Streams a quiet 440 Hz tone (beeping once a second) to any iPad that listens. Never returns.
+func runTestTone() -> Never {
+    let server: Server
+    do {
+        server = try Server(name: (Host.current().localizedName ?? "Mac") + " (test tone)")
+    } catch {
+        print("Couldn't listen on the network: \(error)")
+        exit(1)
+    }
+    print("""
+    X32 Listen Bridge: test tone
+      Network:  “\(server.name)” on port \(ListenProtocol.port)
+    In X32 Remote: Listen on this iPad › Audio from › Mac on Wi-Fi. You should hear a beep every second.
+    Press Ctrl-C to stop.
+    """)
+    let rate = 48000.0
+    var phase = 0.0
+    var sample = 0
+    var sequence: UInt32 = 0
+    let frames = ListenProtocol.framesPerPacket
+    let timer = DispatchSource.makeTimerSource(flags: .strict, queue: DispatchQueue(label: "x32listen.tone"))
+    timer.schedule(deadline: .now(), repeating: .microseconds(Int(Double(frames) / rate * 1_000_000)), leeway: .microseconds(200))
+    timer.setEventHandler {
+        var samples = [Int16](repeating: 0, count: frames * 2)
+        for i in 0..<frames {
+            // On for 0.2 s of every second, about -26 dB.
+            let on = (sample % 48000) < 9600
+            let v = on ? Float(sin(phase)) * 0.05 : 0
+            phase += 2 * Double.pi * 440 / rate
+            if phase > 2 * Double.pi { phase -= 2 * Double.pi }
+            sample += 1
+            samples[i * 2] = ListenProtocol.int16(v)
+            samples[i * 2 + 1] = ListenProtocol.int16(v)
+        }
+        server.broadcast(ListenProtocol.encode(.audio(.init(channels: 2, sequence: sequence, sampleRate: Int(rate), samples: samples))))
+        sequence &+= 1
+    }
+    timer.resume()
+    let status = DispatchSource.makeTimerSource(queue: .main)
+    status.schedule(deadline: .now() + 1, repeating: 1)
+    status.setEventHandler {
+        let n = server.listenerCount
+        print("\r  " + (n == 0 ? "no iPads listening" : (n == 1 ? "1 iPad listening" : "\(n) iPads listening")) + "      ", terminator: "")
+        fflush(stdout)
+    }
+    status.resume()
+    dispatchMain()
+}
+
 // MARK: - Main
 
 let options = parseOptions()
+
+if options.tone {
+    runTestTone()
+}
+
 let devices = inputDevices()
 
 if options.listOnly || devices.isEmpty {

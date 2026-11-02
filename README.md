@@ -111,7 +111,7 @@ cd Mac/X32ListenBridge
 swift run -c release
 ```
 
-It finds the desk's USB audio by itself, takes channels 31/32 (`--channels 23,24` for outputs 7/8, `--list` to see the inputs, `--device NAME` to pick one), shows a level meter so you can see solo arriving, and streams to any iPad that turns Listen on. The first run asks for microphone access for Terminal (that's how macOS lets a program read an audio input), and macOS may ask to allow incoming connections. Needs the Xcode command-line tools (`xcode-select --install`); nothing to pay for.
+It finds the desk's USB audio by itself, takes channels 31/32 (`--channels 23,24` for outputs 7/8, `--list` to see the inputs, `--device NAME` to pick one, `--tone` to send a test beep instead of the desk so you can check the Wi-Fi and the iPad before the show), shows a level meter so you can see solo arriving, and streams to any iPad that turns Listen on. The first run asks for microphone access for Terminal (that's how macOS lets a program read an audio input), and macOS may ask to allow incoming connections. Needs the Xcode command-line tools (`xcode-select --install`); nothing to pay for.
 
 The delay is the bridge (about 5 ms), the Wi-Fi cushion you choose in the app (10, 25 or 60 ms) and the iPad's output. Fine for checking sources and walking the room; not a replacement for a proper wireless IEM system for performers.
 

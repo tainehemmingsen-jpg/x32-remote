@@ -111,6 +111,9 @@ final class ListenEngine {
         let generation = searchGeneration
         var targets: [String] = []
         for interface in LocalIPv4Interface.all() {
+            // This device too: when the app runs on the Mac itself, the bridge can be right here.
+            let own = LocalIPv4Interface.format(interface.address)
+            if !targets.contains(own) { targets.append(own) }
             for ip in interface.scanTargets where !targets.contains(ip) { targets.append(ip) }
         }
         let probe = ListenProtocol.encode(.probe)
