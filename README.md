@@ -28,6 +28,7 @@ A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over W
 - **Setlist** — songs with tempo and who sits out: one tap sets every delay to the song's tempo and mutes and unmutes the right channels. Tap tempo built in, and the song playing shows in the top bar with a next-song button.
 - **Talk over music** — pick a mic and the music channels; the music ducks by itself whenever someone talks (uses the gates' duck mode with the mic as key, so it runs on the desk even if the iPad drops off). For gym classes, MCs and announcements; there's a switch for it in Simple mode.
 - **Paste an input list** — paste a rider's input list into Build a scene and every channel is named, coloured and set up in its numbered slot.
+- **Listen on this iPad** — hear the desk's solo bus in earphones plugged into the iPad, anywhere in the room: solo something and walk the venue with it. The X32 only sends audio out of its USB card, so one tap routes the solo bus (Monitor L/R) to two outputs and on to USB channels 31/32 (or 23/24). Then either a Mac plugged into the desk's USB port runs **X32 Listen Bridge** (below) and streams those channels over Wi-Fi, or the iPad itself is plugged into the desk's USB port. Wired earphones are best: Bluetooth adds about 200 ms.
 - **Demo desk** — a built-in simulated X32 so you can try everything without a console. Push a mix bus or the main fader up in Ring out and the demo desk "feeds back" so you can try it.
 
 It talks to the desk directly (OSC over UDP port 10023), so there's no extra box.
@@ -100,3 +101,17 @@ Not made by or affiliated with Behringer, Midas or Music Tribe. X32 and M32 are 
 ## Credits
 
 Effect parameter tables are generated (`tools/gen-fx-catalog.py`) from [x32-osc](https://github.com/markschwartzkopf/x32-osc) by Mark Schwartzkopf (MIT licence) and checked against Patrick-Gilles Maillot's X32 emulator.
+
+## X32 Listen Bridge (Mac)
+
+For **Listen on this iPad** over Wi-Fi. On the Mac plugged into the X32's USB port:
+
+```
+cd Mac/X32ListenBridge
+swift run -c release
+```
+
+It finds the desk's USB audio by itself, takes channels 31/32 (`--channels 23,24` for outputs 7/8, `--list` to see the inputs, `--device NAME` to pick one), shows a level meter so you can see solo arriving, and streams to any iPad that turns Listen on. The first run asks for microphone access for Terminal (that's how macOS lets a program read an audio input), and macOS may ask to allow incoming connections. Needs the Xcode command-line tools (`xcode-select --install`); nothing to pay for.
+
+The delay is the bridge (about 5 ms), the Wi-Fi cushion you choose in the app (10, 25 or 60 ms) and the iPad's output. Fine for checking sources and walking the room; not a replacement for a proper wireless IEM system for performers.
+

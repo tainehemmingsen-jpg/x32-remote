@@ -132,6 +132,8 @@ struct MixerScreen: View {
             SetlistSheet(app: app)
         case .duck:
             DuckSheet(app: app)
+        case .listen:
+            ListenSheet(app: app)
         }
     }
 
@@ -243,7 +245,9 @@ struct MixerTopBar: View {
             UndoButton(app: app)
             if wide {
                 BarGap()
-                TopIcon(systemName: "headphones", label: "Solo and talkback", lit: app.anySolo) {
+                TopIcon(systemName: app.listen.running ? "headphones.circle.fill" : "headphones",
+                        label: app.listen.running ? "Solo and talkback, listening on this iPad" : "Solo and talkback",
+                        lit: app.anySolo || app.listen.running) {
                     showMonitor = true
                 }
                 .popover(isPresented: $showMonitor) {
@@ -673,6 +677,9 @@ struct ConsoleMenu: View {
             }
             Section("During the show") {
                 Button { app.sheet = .setlist } label: { Label("Setlist", systemImage: "music.note.list") }
+                Button { app.sheet = .listen } label: {
+                    Label(app.listen.running ? "Listen on this iPad (on)" : "Listen on this iPad…", systemImage: "headphones")
+                }
                 Button { app.sheet = .duck } label: {
                     Label(app.settings.duck == nil ? "Talk over music…" : (app.duckOn ? "Talk over music (on)" : "Talk over music (off)"),
                           systemImage: "speaker.wave.2.bubble.left")
@@ -851,6 +858,42 @@ struct PageButtons: View {
 }
 
 /// Solo/headphone level, dim, and the two talkback switches.
+/// "Listen on this iPad": on/off and a way to set it up, at the top of the solo popover.
+private struct ListenRow: View {
+    let app: AppModel
+
+    var body: some View {
+        let listen = app.listen
+        HStack(spacing: 10) {
+            LitButton(title: listen.running ? "LISTENING ON THIS IPAD" : "LISTEN ON THIS IPAD", isOn: listen.running, color: Theme.on, height: 40, fontSize: 13) {
+                listen.toggle()
+                Haptics.click()
+            }
+            Button {
+                app.sheet = .listen
+            } label: {
+                Image(systemName: "gearshape")
+                    .font(.system(size: 16))
+                    .foregroundStyle(Theme.text)
+                    .frame(width: 44, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Theme.raised2))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Listen settings")
+        }
+        if let problem = listen.problem {
+            Text(problem)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.solo)
+                .fixedSize(horizontal: false, vertical: true)
+        } else if listen.running {
+            Text(listen.status)
+                .font(.system(size: 12))
+                .foregroundStyle(Theme.secondary)
+        }
+    }
+}
+
 private struct MonitorPopover: View {
     let app: AppModel
 
@@ -870,6 +913,7 @@ private struct MonitorPopover: View {
             Text("Solo and talkback")
                 .font(.system(size: 15))
                 .foregroundStyle(Theme.text)
+            ListenRow(app: app)
             ParamKnob(app: app, address: "/config/solo/level", spec: Specs.send, title: "Solo / phones level", editable: false)
             HStack(spacing: 8) {
                 OnSwitch(app: app, address: "/config/solo/dim", title: "Dim", width: 70)

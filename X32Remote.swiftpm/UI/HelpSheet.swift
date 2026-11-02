@@ -58,6 +58,14 @@ struct HelpSheet: View {
             Tip(symbol: "square.grid.2x2", title: "Start from…",
                 text: "Pick what's plugged in (vocal, kick, acoustic guitar, speech…) for a sensible low cut, gate, EQ and compressor to start from.")
         ]),
+        ("Listen on this iPad", [
+            Tip(symbol: "headphones", title: "Hear solo in your earphones",
+                text: "The headphones button in the top bar › Listen on this iPad. Solo anything and hear it in the earphones plugged into this iPad, wherever you're standing. Nothing soloed: you hear the desk's monitor source (usually the main mix)."),
+            Tip(symbol: "arrow.triangle.branch", title: "Setting it up",
+                text: "The X32 only sends audio out through its USB card. In Listen, tap Send solo to USB 31/32 once (it uses outputs 15/16; choose 7/8 if those are in use). Then either run X32 Listen Bridge on a Mac plugged into the desk's USB port (it streams over Wi-Fi), or plug this iPad into the desk's USB port."),
+            Tip(symbol: "cable.connector", title: "Wired earphones",
+                text: "Bluetooth earphones add about 200 ms of delay. Wired IEMs are much closer to live. With the iPad plugged into the desk, the earphones need the headphone socket or a USB-C hub with a headphone adapter: the app never plays back into the desk."),
+        ]),
         ("Sound check", [
             Tip(symbol: "stethoscope", title: "Mix check",
                 text: "The stethoscope in the top bar turns red with a count when something needs fixing. It looks over every channel: clipping or quiet preamps, named channels with no signal, open channels with nothing on them, voices without low cut, big EQ boosts, heavy compression and very high faders. Each one is explained, and most have a one-tap fix. Run it while the band plays, as it judges the last minute."),

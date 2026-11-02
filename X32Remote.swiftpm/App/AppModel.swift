@@ -24,6 +24,7 @@ final class AppModel {
         case editUser1
         case editUser2
         case ringOut
+        case listen
         case library
         case builder
         case mixCheck
@@ -210,6 +211,7 @@ final class AppModel {
         compares = [:]
         currentSongIndex = nil
         setlistMuted.removeAll()
+        listen.stop()
         applyIdleTimer()
     }
 
@@ -1394,6 +1396,55 @@ final class AppModel {
         if !back.isEmpty { applyBatch(back, label: "end of setlist") }
         setlistMuted.removeAll()
         currentSongIndex = nil
+    }
+
+    // MARK: - Listen (solo bus on this iPad's earphones)
+
+    /// Plays the desk's solo bus here, from a Mac bridge on Wi-Fi or the desk's USB port.
+    let listen = ListenEngine()
+
+    /// Which pair of local outputs carries the solo bus to USB (remembered).
+    var listenPlan = ListenRouting.Plan(output: UserDefaults.standard.object(forKey: "listen.output") as? Int ?? 15) {
+        didSet {
+            UserDefaults.standard.set(listenPlan.output, forKey: "listen.output")
+            listen.usbChannels = (listenPlan.usbLeft, listenPlan.usbRight)
+        }
+    }
+
+    /// Reads the desk routing the Listen setup depends on.
+    func loadListen() {
+        client?.get(ListenRouting.Plan.choices.flatMap(\.addresses))
+        listen.usbChannels = (listenPlan.usbLeft, listenPlan.usbRight)
+    }
+
+    /// True when the desk already sends solo to the chosen USB channels.
+    var listenRoutingReady: Bool {
+        listenPlan.isSet { store.value($0) }
+    }
+
+    /// What the routing change would replace, in words (so it can be said before changing it).
+    func listenRoutingReplaces() -> [String] {
+        var out: [String] = []
+        for n in [listenPlan.output, listenPlan.output + 1] {
+            let v = param(Outputs.path(.main, n, "src")).int(or: 0)
+            if v != 0 && v != ListenRouting.Plan.monitorL && v != ListenRouting.Plan.monitorR,
+               Outputs.sourceNames.indices.contains(v) {
+                out.append("Out \(n) carries \(Outputs.sourceNames[v])")
+            }
+        }
+        let block = param(listenPlan.cardBlockPath).int(or: -1)
+        if block >= 0, block != listenPlan.cardBlockValue, OutputRouting.digitalCodes.indices.contains(block) {
+            let first = listenPlan.output <= 8 ? 17 : 25
+            out.append("USB \(first)–\(first + 7) carries \(InputRouting.label(OutputRouting.digitalCodes[block]))")
+        }
+        return out
+    }
+
+    /// Sends the solo bus (Monitor L/R) to the chosen outputs and on to the USB card. One undo step.
+    func setUpListenRouting() {
+        applyBatch(listenPlan.changes, label: "solo to USB \(listenPlan.usbLeft)/\(listenPlan.usbRight)")
+        listen.usbChannels = (listenPlan.usbLeft, listenPlan.usbRight)
+        showToast("Solo now reaches USB \(listenPlan.usbLeft)/\(listenPlan.usbRight)")
     }
 
     // MARK: - Talk over music
