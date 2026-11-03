@@ -8,18 +8,18 @@ import PackageDescription
 import AppleProductTypes
 
 let package = Package(
-    name: "X32 Remote",
+    name: "Mixline",
     platforms: [
         .iOS("17.0")
     ],
     products: [
         .iOSApplication(
-            name: "X32 Remote",
+            name: "Mixline",
             targets: ["AppModule"],
             bundleIdentifier: "nz.taine.x32remote",
             teamIdentifier: "82M7WP2BBY",
             displayVersion: "1.0",
-            bundleVersion: "2",
+            bundleVersion: "3",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.orange),
             supportedDeviceFamilies: [
@@ -33,7 +33,7 @@ let package = Package(
                 .portraitUpsideDown(.when(deviceFamilies: [.pad]))
             ],
             capabilities: [
-                .localNetwork(purposeString: "X32 Remote talks to your X32 mixer over the local network.", bonjourServiceTypes: []),
+                .localNetwork(purposeString: "Mixline talks to your X32 mixer over the local network.", bonjourServiceTypes: []),
                 .microphone(purposeString: "Listen on this iPad reads the solo bus from the X32's USB port when the iPad is plugged into the desk.")
             ],
             additionalInfoPlistContentFilePath: "AppInfo.plist"

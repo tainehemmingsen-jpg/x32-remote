@@ -137,7 +137,7 @@ struct SettingsSheet: View {
                     Text("The PIN guards the locked Monitor and Simple modes.")
                 }
                 Section("About") {
-                    Text("X32 Remote talks to Behringer X32 and Midas M32 consoles over OSC on UDP port 10023. It isn't made by or affiliated with Behringer or Music Tribe.")
+                    Text("Mixline talks to Behringer X32 and Midas M32 consoles over OSC on UDP port 10023. It isn't made by or affiliated with Behringer or Music Tribe.")
                         .font(.system(size: 13))
                         .foregroundStyle(Theme.secondary)
                 }

@@ -16,9 +16,9 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: nz.taine.x32remote
         PRODUCT_NAME: X32Remote
-        INFOPLIST_KEY_CFBundleDisplayName: "X32 Remote"
+        INFOPLIST_KEY_CFBundleDisplayName: "Mixline"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "X32 Remote talks to your X32 mixer over the local network."
+        INFOPLIST_KEY_NSLocalNetworkUsageDescription: "Mixline talks to your X32 mixer over the local network."
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"

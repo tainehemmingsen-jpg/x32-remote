@@ -43,7 +43,7 @@ private struct ConnectHeader: View {
         VStack(spacing: 10) {
             AppMark()
                 .frame(width: 76, height: 76)
-            Text("X32 Remote")
+            Text("Mixline")
                 .font(.system(size: 34, weight: .bold))
                 .foregroundStyle(Theme.text)
             Text("Mix your Behringer X32 or Midas M32 from here.")

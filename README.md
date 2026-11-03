@@ -1,4 +1,4 @@
-# X32 Remote
+# Mixline
 
 A native iPad (and iPhone) app for mixing a **Behringer X32 / Midas M32** over Wi‑Fi — a replacement for the discontinued X32‑Mix app.
 
@@ -37,7 +37,7 @@ It talks to the desk directly (OSC over UDP port 10023), so there's no extra box
 
 1. Open **`X32Remote.swiftpm`** in Xcode (double-click it, or File › Open…). Give Xcode a moment to load the package.
 2. Plug the iPad into the Mac with a cable. On the iPad, tap **Trust**, then turn on **Settings › Privacy & Security › Developer Mode** (the iPad restarts).
-3. In Xcode, choose the **X32 Remote** scheme and your iPad as the run destination (top of the window).
+3. In Xcode, choose the **Mixline** scheme and your iPad as the run destination (top of the window).
 4. Click the project in the left sidebar, open **Signing & Capabilities**, and pick your Apple ID as the **Team** (Xcode › Settings › Accounts › + if it isn't listed).
    - If Xcode says the bundle identifier is taken, change `bundleIdentifier` in `Package.swift` to something unique, like `nz.yourname.x32remote`.
 5. Press **Run** (⌘R). The first time, the iPad may ask you to trust the developer: **Settings › General › VPN & Device Management** › your Apple ID › Trust.

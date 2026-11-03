@@ -171,7 +171,7 @@ final class AppModel {
                         return
                     }
                     self.disconnect()
-                    self.lastError = "No answer from \(host). Check the X32's IP address (Setup › Network), that this iPad is on the same network, and that Local Network is allowed for X32 Remote in Settings › Privacy."
+                    self.lastError = "No answer from \(host). Check the X32's IP address (Setup › Network), that this iPad is on the same network, and that Local Network is allowed for Mixline in Settings › Privacy."
                 }
             }
             connectTimeout = work

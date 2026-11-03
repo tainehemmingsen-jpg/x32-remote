@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds X32 Remote and uploads it to TestFlight. Run on the Mac:
+# Builds Mixline and uploads it to TestFlight. Run on the Mac:
 #     ci/testflight.sh
 # Bumps the build number in Package.swift, archives with the paid team, and uploads.
 # New builds go to the "Me" tester group automatically once Apple has processed them.
@@ -21,7 +21,7 @@ SDK=$(xcrun --sdk iphoneos --show-sdk-version)
 
 rm -rf "$OUT" && mkdir -p "$OUT"
 cd "$ROOT/X32Remote.swiftpm"
-xcodebuild -scheme "X32 Remote" -destination 'generic/platform=iOS' \
+xcodebuild -scheme "Mixline" -destination 'generic/platform=iOS' \
   -archivePath "$OUT/X32Remote.xcarchive" -derivedDataPath "$OUT/dd" \
   -skipPackagePluginValidation -allowProvisioningUpdates DEVELOPMENT_TEAM=$TEAM \
   OTHER_LDFLAGS="\$(inherited) -Xlinker -platform_version -Xlinker ios -Xlinker 17.0 -Xlinker $SDK" \

@@ -138,7 +138,7 @@ if [ -n "$IPHONE" ]; then
   shot "$IPHONE" 36-iphone-geq 10 0 -autoDemo YES -autoMode mixer -autoSheet effects -autoFXSlot 5
 fi
 
-xcrun simctl spawn "$IPAD" log show --last 5m --predicate 'process == "X32Remote" OR process == "X32 Remote"' --style compact > "$OUT/app-log.txt" 2>/dev/null || true
+xcrun simctl spawn "$IPAD" log show --last 5m --predicate 'process == "X32Remote" OR process == "Mixline" OR process == "X32 Remote"' --style compact > "$OUT/app-log.txt" 2>/dev/null || true
 xcrun simctl shutdown "$IPAD" > /dev/null 2>&1 || true
 [ -n "$IPHONE" ] && xcrun simctl shutdown "$IPHONE" > /dev/null 2>&1 || true
 if [ "$SIM_WAS_OPEN" = "0" ]; then

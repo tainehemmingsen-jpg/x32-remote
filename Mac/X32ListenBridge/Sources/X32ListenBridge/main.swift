@@ -1,8 +1,8 @@
 // X32 Listen Bridge
 //
 // Runs on a Mac plugged into the X32's USB port. Takes the two USB channels carrying the desk's
-// solo bus (set up from X32 Remote: Listen › On the desk) and streams them over the local
-// network to X32 Remote, which plays them into the earphones plugged into the iPad.
+// solo bus (set up from Mixline: Listen › On the desk) and streams them over the local
+// network to Mixline, which plays them into the earphones plugged into the iPad.
 //
 //     swift run -c release                       # finds the X32 by itself, channels 31/32
 //     swift run -c release -- --channels 23,24   # if solo is on outputs 7/8 instead
@@ -31,7 +31,7 @@ struct Options {
 
 func printUsage() {
     print("""
-    X32 Listen Bridge: streams the X32's solo bus to X32 Remote on an iPad.
+    X32 Listen Bridge: streams the X32's solo bus to Mixline on an iPad.
 
       --channels L,R   USB channels carrying solo (default 31,32: desk outputs 15/16)
       --device NAME    the audio input to use (default: the first one called X-USB, X32 or M32)
@@ -311,7 +311,7 @@ func runTestTone() -> Never {
     print("""
     X32 Listen Bridge: test tone
       Network:  “\(server.name)” on port \(ListenProtocol.port)
-    In X32 Remote: Listen on this iPad › Audio from › Mac on Wi-Fi. You should hear a beep every second.
+    In Mixline: Listen on this iPad › Audio from › Mac on Wi-Fi. You should hear a beep every second.
     Press Ctrl-C to stop.
     """)
     let rate = 48000.0
@@ -445,7 +445,7 @@ X32 Listen Bridge
   Input:    \(device.name), channels \(options.left)/\(options.right) at \(Int(capture.sampleRate)) Hz
   Network:  “\(server.name)” on port \(ListenProtocol.port)
 
-In X32 Remote: Listen on this iPad › Audio from › Mac on Wi-Fi. This Mac shows up there.
+In Mixline: Listen on this iPad › Audio from › Mac on Wi-Fi. This Mac shows up there.
 Press Ctrl-C to stop.
 """)
 

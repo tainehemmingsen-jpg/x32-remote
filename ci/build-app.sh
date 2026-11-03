@@ -11,7 +11,7 @@ echo "== Schemes"
 xcodebuild -list 2>&1 | tee "$OUT/schemes.log" || true
 echo "== Building App Playground package"
 set +e
-xcodebuild -scheme "X32 Remote" -destination 'generic/platform=iOS Simulator' \
+xcodebuild -scheme "Mixline" -destination 'generic/platform=iOS Simulator' \
   -derivedDataPath "$DERIVED" -skipPackagePluginValidation \
   CODE_SIGNING_ALLOWED=NO build 2>&1 | tee "$OUT/build-swiftpm.log" | grep -E "error:|warning: .*(deprecated|unused)|BUILD (SUCCEEDED|FAILED)" | head -200
 STATUS=${PIPESTATUS[0]}
