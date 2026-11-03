@@ -115,3 +115,7 @@ It finds the desk's USB audio by itself, takes channels 31/32 (`--channels 23,24
 
 The delay is the bridge (about 5 ms), the Wi-Fi cushion you choose in the app (10, 25 or 60 ms) and the iPad's output. Fine for checking sources and walking the room; not a replacement for a proper wireless IEM system for performers.
 
+## TestFlight
+
+With the paid Apple Developer team, `ci/testflight.sh` (on the Mac) bumps the build number, archives and uploads to App Store Connect; builds go to the internal "Me" group in TestFlight automatically once processed. Background audio (Listen keeps playing with the screen locked) and the microphone permission (Listen over USB) come from `AppInfo.plist` and Package.swift.
+
