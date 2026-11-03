@@ -35,7 +35,7 @@ struct GeneratorSheet: View {
                             .background(RoundedRectangle(cornerRadius: 8).fill(on ? Theme.solo : Theme.raised))
                             .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(on ? Theme.solo : Color.white.opacity(0.1), lineWidth: 1.5))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                         .disabled(!onParam.isKnown)
                         .accessibilityLabel("Generator")
                         .accessibilityValue(on ? "on" : "off")

@@ -465,7 +465,7 @@ private struct RackChoice: View {
                     .frame(height: 34)
                     .background(RoundedRectangle(cornerRadius: 5).fill(Color.black.opacity(0.35)))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             } else if options.count <= 4 {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(options.indices, id: \.self) { i in
@@ -484,7 +484,7 @@ private struct RackChoice: View {
                             .frame(minHeight: 26)
                             .contentShape(Rectangle())
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                     }
                 }
             } else {
@@ -524,7 +524,7 @@ private struct StepButton: View {
                 .frame(width: 30, height: 30)
                 .background(RoundedRectangle(cornerRadius: 4).fill(Color.black.opacity(0.35)))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -623,7 +623,7 @@ struct EffectPicker: View {
                                     } label: {
                                         MiniRackUnit(code: Effects.typeCode(slot: slot, type: value) ?? "", name: name, selected: value == current)
                                     }
-                                    .buttonStyle(.plain)
+                                    .buttonStyle(ConsoleKeyStyle())
                                     .accessibilityLabel(name + (value == current ? ", loaded" : ""))
                                 }
                             }

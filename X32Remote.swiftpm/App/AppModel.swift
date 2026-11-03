@@ -34,7 +34,7 @@ final class AppModel {
         /// Big working screens fill the iPad instead of sitting in a small card.
         var fillsScreen: Bool {
             switch self {
-            case .effects, .outputs, .meters, .ringOut, .setlist: return true
+            case .effects, .outputs, .meters, .ringOut, .setlist, .scenes: return true
             default: return false
             }
         }
@@ -1398,6 +1398,137 @@ final class AppModel {
         currentSongIndex = nil
     }
 
+    // MARK: - Snapshots (DiGiCo-style: stored on this iPad, with scope, recall safes and fades)
+
+    /// The snapshot list. Saved to a file (a full snapshot is a few hundred KB).
+    private(set) var snapshots: SnapshotShow = AppModel.loadSnapshotShow()
+    /// A fader fade from a snapshot is running.
+    private(set) var snapshotFading = false
+    @ObservationIgnored private var fadeTimer: Timer?
+
+    private static var snapshotFile: URL {
+        let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("snapshots.json")
+    }
+
+    private static func loadSnapshotShow() -> SnapshotShow {
+        guard let data = try? Data(contentsOf: snapshotFile), let show = try? JSONDecoder().decode(SnapshotShow.self, from: data) else {
+            return SnapshotShow(name: "Show")
+        }
+        return show
+    }
+
+    private func saveSnapshotShow() {
+        let show = snapshots
+        DispatchQueue.global(qos: .utility).async {
+            if let data = try? JSONEncoder().encode(show) {
+                try? data.write(to: AppModel.snapshotFile, options: .atomic)
+            }
+        }
+    }
+
+    /// Everything a snapshot captures, asked for from the desk (when the snapshots screen opens).
+    func loadSnapshotValues() {
+        client?.get(Snapshot.allAddresses { [weak self] strip in
+            guard let self, let path = strip.headampIndexPath else { return nil }
+            let v = self.store.value(path)?.intValue ?? -1
+            return v >= 0 && v < 128 ? v : nil
+        })
+    }
+
+    /// Stores the desk as it is now, as a new snapshot after the current one.
+    @discardableResult
+    func storeSnapshot(name: String? = nil) -> Int {
+        let name = name ?? snapshots.nextDefaultName
+        let snap = Snapshot.capture(name: name) { [store] in store.value($0) }
+        let i = snapshots.insertAfterCurrent(snap)
+        saveSnapshotShow()
+        showToast("Stored “\(name)”")
+        return i
+    }
+
+    /// Re-captures a snapshot from the desk, keeping its name, scope and fade.
+    func updateSnapshot(at i: Int) {
+        guard i < snapshots.count else { return }
+        snapshots.update(at: i) { [store] in store.value($0) }
+        saveSnapshotShow()
+        showToast("Updated “\(snapshots[i].name)”")
+    }
+
+    func editSnapshot(at i: Int, _ change: (inout Snapshot) -> Void) {
+        guard i < snapshots.count else { return }
+        var s = snapshots[i]
+        change(&s)
+        snapshots[i] = s
+        saveSnapshotShow()
+    }
+
+    func editSnapshots(_ change: (inout SnapshotShow) -> Void) {
+        change(&snapshots)
+        saveSnapshotShow()
+    }
+
+    /// Recalls a snapshot: everything in its scope (less the recall safes) at once, then faders
+    /// and send levels glide over its fade time. One undo step.
+    func recallSnapshot(at i: Int) {
+        guard i < snapshots.count, let recall = snapshots.recall(at: i, current: { [store] in store.value($0) }) else { return }
+        stopSnapshotFade()
+        let name = snapshots[i].name
+        // One undo step covering the instant changes and the faders' starting points (so undo
+        // goes back to before the fade, not to wherever it had got to).
+        var previous: [UndoEntry.Change] = recall.snaps.compactMap { change in
+            store.value(change.0).map { UndoEntry.Change(address: change.0, previous: $0) }
+        }
+        previous += recall.fades.map { UndoEntry.Change(address: $0.address, previous: .float($0.from)) }
+        restoring = true
+        for (address, value) in recall.snaps { set(address, value) }
+        restoring = false
+        undoStack.push(UndoEntry(label: "snapshot “\(name)”", changes: previous, time: X32Client.now()))
+        undoLabel = undoStack.last?.label
+        clearRedo()
+        if !recall.fades.isEmpty {
+            runSnapshotFade(SnapshotFade.Run(moves: recall.fades, duration: recall.duration))
+        }
+        snapshots.currentIndex = i
+        saveSnapshotShow()
+        Haptics.click()
+        showToast("\(snapshots[i].number). \(name)" + (recall.fades.isEmpty ? "" : String(format: " · %.1f s fade", recall.duration)))
+    }
+
+    func goNextSnapshot() {
+        if let i = snapshots.nextIndex { recallSnapshot(at: i) } else { showToast("That's the last snapshot") }
+    }
+
+    func goPreviousSnapshot() {
+        if let i = snapshots.previousIndex { recallSnapshot(at: i) } else { showToast("That's the first snapshot") }
+    }
+
+    private func runSnapshotFade(_ run: SnapshotFade.Run) {
+        var run = run
+        let start = X32Client.now()
+        snapshotFading = true
+        let timer = Timer(timeInterval: SnapshotFade.frameInterval, repeats: true) { [weak self] t in
+            guard let self else { t.invalidate(); return }
+            let step = run.step(elapsed: X32Client.now() - start)
+            self.restoring = true
+            for (address, value) in step where self.store.param(address).touchCount == 0 {
+                // A fader someone grabs mid-fade is theirs from then on.
+                self.set(address, value)
+            }
+            self.restoring = false
+            if run.isFinished { self.stopSnapshotFade() }
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        fadeTimer = timer
+    }
+
+    func stopSnapshotFade() {
+        fadeTimer?.invalidate()
+        fadeTimer = nil
+        snapshotFading = false
+    }
+
     // MARK: - Listen (solo bus on this iPad's earphones)
 
     /// Plays the desk's solo bus here, from a Mac bridge on Wi-Fi or the desk's USB port.
@@ -1592,7 +1723,10 @@ final class AppModel {
         loadDetail(strip)
         valueEditor = nil
         selectedStrip = strip
-        detailStrip = strip
+        // The channel page appears at once, like changing screens on a desk (no slide-up).
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { detailStrip = strip }
         selectOnDesk(strip)
     }
 

@@ -112,7 +112,7 @@ private struct TransportButton: View {
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.white.opacity(0.08), lineWidth: 1))
                 .opacity(enabled ? 1 : 0.35)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel(label)
         .accessibilityAddTraits(active ? .isSelected : [])
     }

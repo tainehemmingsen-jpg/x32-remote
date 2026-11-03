@@ -15,19 +15,40 @@ struct ShowSheet: View {
         var id: String { "\(control.rawValue)-\(number)" }
     }
 
-    init(app: AppModel) {
+    /// Inside the Scenes screen (which has its own title and Done).
+    var embedded = false
+
+    init(app: AppModel, embedded: Bool = false) {
         self.app = app
+        self.embedded = embedded
         // Open on whatever the desk's own GO button works with.
         let deskTab = Show.Control(rawValue: app.param(Show.controlPath).int(or: 1)) ?? .scenes
         _tab = State(initialValue: app.autoShowTab ?? deskTab)
     }
 
     var body: some View {
+        if embedded {
+            content
+        } else {
+            NavigationStack {
+                content
+                    .navigationTitle("Desk scenes")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { dismiss() }
+                        }
+                    }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var content: some View {
         let deskControl = Show.Control(rawValue: app.param(Show.controlPath).int(or: -1))
         let current = app.param(Show.currentPath).int(or: -1)
         let showName = app.param(Show.namePath).string
-        NavigationStack {
-            List {
+        return List {
                 Section {
                     Picker("Show", selection: $tab) {
                         ForEach(Show.Control.allCases) { c in
@@ -54,21 +75,6 @@ struct ShowSheet: View {
             .overlay(alignment: .bottom) {
                 ToastView(app: app)
             }
-            .navigationTitle("Show")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        app.sheet = .library
-                    } label: {
-                        Label("Scenes on this iPad", systemImage: "tray.full")
-                            .labelStyle(.titleAndIcon)
-                    }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                }
-            }
             .onChange(of: tab, initial: true) { _, newTab in
                 app.loadShow(newTab)
             }
@@ -89,8 +95,6 @@ struct ShowSheet: View {
                      ? "This changes the parts of the desk the snippet covers, straight away."
                      : "This changes the desk straight away: faders, mutes, EQ and routing.")
             }
-        }
-        .preferredColorScheme(.dark)
     }
 
     private var confirmTitle: String {
@@ -148,7 +152,7 @@ private struct CueList: View {
                         .frame(width: 92, height: 54)
                         .background(RoundedRectangle(cornerRadius: 8).fill(Theme.on))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .disabled(next == nil)
                 .opacity(next == nil ? 0.4 : 1)
                 .accessibilityLabel("Go to the next cue")
@@ -224,7 +228,7 @@ private struct CueRow: View {
             .contentShape(Rectangle())
             .opacity(skip ? 0.55 : 1)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel("Cue \(Show.cueNumber(numb)) \(name)" + (skip ? ", skipped" : "") + (isCurrent ? ", current" : ""))
     }
 }
@@ -316,7 +320,7 @@ private struct NumberedRow: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel("\(control.singular.capitalized) \(number) \(name)" + (isCurrent ? ", current" : ""))
     }
 }

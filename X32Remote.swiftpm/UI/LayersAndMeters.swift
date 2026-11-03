@@ -101,7 +101,7 @@ struct UserLayerEditor: View {
             }
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 
     private func save() {

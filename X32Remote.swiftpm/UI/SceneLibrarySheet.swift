@@ -5,6 +5,8 @@ import UniformTypeIdentifiers
 /// in the app. Any of them can be sent to the desk when you connect, and exported back out.
 struct SceneLibrarySheet: View {
     let app: AppModel
+    /// Inside the Scenes screen (which has its own title and Done).
+    var embedded = false
     @Environment(\.dismiss) private var dismiss
     @State private var importing = false
     @State private var sending: SceneFile?
@@ -22,12 +24,29 @@ struct SceneLibrarySheet: View {
     }
 
     var body: some View {
-        NavigationStack {
+        if embedded {
+            content
+        } else {
+            NavigationStack {
+                content
+                    .navigationTitle("Scene files")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .confirmationAction) {
+                            Button("Done") { dismiss() }
+                        }
+                    }
+            }
+            .preferredColorScheme(.dark)
+        }
+    }
+
+    private var content: some View {
             List {
                 Section {
                     HStack(spacing: 10) {
-                        LibraryAction(title: "Import .scn", symbol: "square.and.arrow.down") { importing = true }
-                        LibraryAction(title: "Save the desk here", symbol: "arrow.down.doc") {
+                        LibraryAction(title: "Import from X32-Edit", symbol: "square.and.arrow.down") { importing = true }
+                        LibraryAction(title: "Save desk as a file", symbol: "arrow.down.doc") {
                             deskSceneName = ""
                             savingDesk = true
                         }
@@ -40,7 +59,7 @@ struct SceneLibrarySheet: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                 } footer: {
-                    Text("Make a scene in X32-Edit, save it (File › Save Scene), and get the .scn file onto this iPad with AirDrop or the Files app. Import it here, and send it to the desk whenever you're connected.")
+                    Text("Scene files are X32-Edit .scn files kept on this iPad. In X32-Edit use File › Save Scene, AirDrop the .scn here, import it, then Send to desk when you're connected. Save desk as a file does the reverse.")
                 }
 
                 if let t = app.sceneTransfer {
@@ -62,9 +81,9 @@ struct SceneLibrarySheet: View {
                     }
                 }
 
-                Section(app.sceneLibrary.isEmpty ? "" : "On this iPad") {
+                Section(app.sceneLibrary.isEmpty ? "" : "Scene files on this iPad") {
                     if app.sceneLibrary.isEmpty {
-                        Text("No scenes yet.")
+                        Text("No scene files yet. Import one from X32-Edit, or save the desk.")
                             .foregroundStyle(Theme.secondary)
                     }
                     ForEach(app.sceneLibrary) { scene in
@@ -89,13 +108,6 @@ struct SceneLibrarySheet: View {
                                 .tint(Theme.accent)
                         }
                     }
-                }
-            }
-            .navigationTitle("Scene library")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
                 }
             }
             .overlay(alignment: .bottom) {
@@ -149,8 +161,6 @@ struct SceneLibrarySheet: View {
                     deleting = nil
                 }
             }
-        }
-        .preferredColorScheme(.dark)
     }
 
     private func export(_ scene: SceneFile) {
@@ -185,7 +195,7 @@ private struct LibraryAction: View {
             .background(RoundedRectangle(cornerRadius: 10, style: .continuous).fill(Theme.raised))
             .opacity(enabled ? 1 : 0.4)
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -215,7 +225,7 @@ private struct SceneRow: View {
                     .frame(height: 36)
                     .background(Capsule().fill(Theme.raised2))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             Button(action: send) {
                 Label("Send to desk", systemImage: "arrow.up.doc")
                     .font(.system(size: 13, weight: .medium))
@@ -223,7 +233,7 @@ private struct SceneRow: View {
                     .frame(height: 36)
                     .background(Capsule().fill(Theme.accent.opacity(0.25)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
         }
         .padding(.vertical, 4)
     }

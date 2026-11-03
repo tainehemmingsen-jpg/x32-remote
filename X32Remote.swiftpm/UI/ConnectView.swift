@@ -124,7 +124,7 @@ private struct DiscoveredRow: View {
             .padding(12)
             .background(RoundedRectangle(cornerRadius: 10).fill(Theme.raised))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -159,7 +159,7 @@ private struct ManualConnect: View {
                         .foregroundStyle(Color.black.opacity(0.85))
                         .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accent))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .disabled(hostText.isEmpty)
             }
             if !app.settings.recentHosts.isEmpty {
@@ -177,7 +177,7 @@ private struct ManualConnect: View {
                                     .font(Theme.mono(13))
                                     .barChip()
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ConsoleKeyStyle())
                         }
                     }
                 }
@@ -212,7 +212,7 @@ private struct DemoButton: View {
             .background(RoundedRectangle(cornerRadius: 12).fill(Theme.raised))
             .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(Theme.line, lineWidth: 1))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 

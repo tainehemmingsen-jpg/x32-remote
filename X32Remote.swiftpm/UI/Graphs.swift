@@ -151,6 +151,7 @@ struct GateGraph: View {
     var interactive = false
 
     var body: some View {
+        let _ = PerfProbe.hit("GateGraph")
         let gate = Dynamics.Gate(app: app, strip: strip)
         let meter = app.meters.meter(strip)
         // Only the big graph shows the live input dot; reading it in thumbnails would redraw them on every meter tick.
@@ -188,6 +189,7 @@ struct CompGraph: View {
     var interactive = false
 
     var body: some View {
+        let _ = PerfProbe.hit("CompGraph")
         let comp = Dynamics.Comp(app: app, strip: strip)
         let meter = app.meters.meter(strip)
         let level: Double? = detailed ? Double(strip.kind == .channel ? meter.input : meter.level) : nil
@@ -422,6 +424,7 @@ struct EQThumb: View {
     var showsZeroLine = true
 
     var body: some View {
+        let _ = PerfProbe.hit("EQThumb")
         let eqOn = app.param(strip.eqOnPath).int(or: 1) != 0
         let lowCut = EQResponse.lowCut(app: app, strip: strip)
         let values = EQResponse.curve(bands: EQResponse.bands(app: app, strip: strip), eqOn: eqOn, lowCut: lowCut, bandCount: strip.eqBandCount, steps: 48)

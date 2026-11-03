@@ -36,7 +36,7 @@ struct ModesSheet: View {
                         .padding(.vertical, 6)
                         .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                 }
             }
             .navigationTitle("Mode")

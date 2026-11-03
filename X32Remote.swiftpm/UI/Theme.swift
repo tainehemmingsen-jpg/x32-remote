@@ -72,19 +72,10 @@ enum Theme {
 
 /// A console-style button. `.fill` buttons glow in their colour when on and show a dim version
 /// of it when off (mute, solo, +48V). `.outline` buttons get a green rim when on ("On", "Fine").
-private struct Glow: ViewModifier {
-    let color: Color
-    let on: Bool
-
-    func body(content: Content) -> some View {
-        if on {
-            content.shadow(color: color.opacity(0.45), radius: 6)
-        } else {
-            content
-        }
-    }
-}
-
+///
+/// Nothing about it animates: it changes the frame the desk does. `instant` keys act the moment a
+/// finger lands (like a hardware key), not when it lifts; use them on the strips and sidebar, not
+/// inside scrolling lists (where a touch might be the start of a scroll).
 struct LitButton: View {
     enum Style { case fill, outline }
 
@@ -96,31 +87,47 @@ struct LitButton: View {
     var style: Style = .fill
     var offColor: Color? = nil
     var enabled: Bool = true
+    var instant: Bool = false
     let action: () -> Void
 
     var body: some View {
-        let shape = RoundedRectangle(cornerRadius: min(7, height * 0.22), style: .continuous)
-        Button(action: action) {
-            Text(title)
-                .font(.system(size: fontSize, weight: isOn && style == .fill ? .bold : .semibold))
-                .tracking(fontSize >= 12 ? 0.3 : 0)
-                .lineLimit(1)
-                .minimumScaleFactor(0.55)
-                .foregroundStyle(textColor)
-                .padding(.horizontal, 2)
-                .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-                .background(shape.fill(fill))
-                // A soft top highlight, like a backlit console key.
-                .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(isOn ? 0.22 : 0.06), .clear],
-                                                   startPoint: .top, endPoint: .center)))
-                .overlay(shape.strokeBorder(border, lineWidth: style == .outline && isOn ? 1.5 : 1))
-                // Only lit keys glow; a shadow on every unlit key costs an offscreen pass each.
-                .modifier(Glow(color: color, on: style == .fill && isOn))
-                .contentShape(Rectangle())
+        if instant {
+            face
+                .modifier(PressAction(action: action))
+                .opacity(enabled ? 1 : 0.4)
+                .allowsHitTesting(enabled)
+        } else {
+            Button(action: action) { face }
+                .buttonStyle(ConsoleKeyStyle())
+                .opacity(enabled ? 1 : 0.4)
+                .allowsHitTesting(enabled)
         }
-        .buttonStyle(.plain)
-        .opacity(enabled ? 1 : 0.4)
-        .allowsHitTesting(enabled)
+    }
+
+    private var face: some View {
+        let shape = RoundedRectangle(cornerRadius: min(6, height * 0.2), style: .continuous)
+        let glowing = style == .fill && isOn
+        return Text(title)
+            .font(.system(size: fontSize, weight: isOn && style == .fill ? .bold : .semibold))
+            .tracking(fontSize >= 12 ? 0.3 : 0)
+            .lineLimit(1)
+            .minimumScaleFactor(0.55)
+            .foregroundStyle(textColor)
+            .padding(.horizontal, 2)
+            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+            .background {
+                // The glow sits behind the key and only exists while it's lit, so the key itself
+                // never changes identity (which is what made state changes cross-fade).
+                if glowing {
+                    shape.fill(color.opacity(0.5)).blur(radius: 5)
+                }
+            }
+            .background(shape.fill(fill))
+            .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(isOn ? 0.22 : 0.06), .clear],
+                                               startPoint: .top, endPoint: .center)))
+            .overlay(shape.strokeBorder(border, lineWidth: style == .outline && isOn ? 1.5 : 1))
+            .contentShape(Rectangle())
+            .transaction { $0.animation = nil }
     }
 
     private var fill: Color {
@@ -146,6 +153,42 @@ struct LitButton: View {
 }
 
 /// How a scribble colour is drawn on a button or chip.
+/// No fade, no spring: pressed keys darken for exactly as long as the finger is down.
+struct ConsoleKeyStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .brightness(configuration.isPressed ? -0.12 : 0)
+            .transaction { $0.animation = nil }
+    }
+}
+
+/// Fires on touch-down, once per touch. Still a button to VoiceOver.
+struct PressAction: ViewModifier {
+    let action: () -> Void
+    @GestureState private var down = false
+    @State private var fired = false
+
+    func body(content: Content) -> some View {
+        content
+            .brightness(down ? -0.12 : 0)
+            .transaction { $0.animation = nil }
+            .gesture(
+                DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                    .updating($down) { _, state, _ in state = true }
+                    .onChanged { _ in
+                        if !fired {
+                            fired = true
+                            action()
+                        }
+                    }
+                    .onEnded { _ in fired = false }
+            )
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { action() }
+    }
+}
+
 struct ScribbleStyle {
     let text: Color
     let fill: Color

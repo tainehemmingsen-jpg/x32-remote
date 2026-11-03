@@ -246,7 +246,7 @@ private struct EQSideControls: View {
                     .frame(maxWidth: .infinity)
                     .barChip()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .confirmationDialog("Set every EQ band's gain to 0 dB?", isPresented: $confirmFlatten, titleVisibility: .visible) {
                 Button("Flatten EQ", role: .destructive) {
                     // One undo step for the whole flatten.
@@ -294,7 +294,7 @@ private struct BandBar: View {
                                 .strokeBorder(EQColors.band(b).opacity(b == selected ? 0 : 0.5), lineWidth: 1))
                             .contentShape(Rectangle())
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                     .accessibilityLabel("Band \(b)")
                     .accessibilityAddTraits(b == selected ? .isSelected : [])
                 }
@@ -332,7 +332,7 @@ private struct BandArrow: View {
                 .frame(width: 40, height: 40)
                 .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -393,7 +393,7 @@ private struct RTAIdleNotice: View {
                     .frame(height: 26)
                     .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .disabled(app.rtaWaking)
             .opacity(app.rtaWaking ? 0.5 : 1)
             .accessibilityHint("Briefly shows the RTA page on the desk's screen to start its analyser")

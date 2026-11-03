@@ -59,6 +59,9 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 ## Tips
 
 - **Faders:** touch anywhere on a fader and drag — it never jumps to your finger. Slide your finger sideways off the strip while dragging for fine control. Several faders can be moved at once.
+- **Quick editors:** tap a strip's gain, gate, EQ or compressor and a small editor opens over the faders, DiGiCo-style. Touch and hold the gate/EQ/comp picture for the full channel page.
+- **0 dB catch:** faders click into 0 dB; push a little further to go past.
+- **Snapshots:** Scenes and snapshots → Snapshots. Store, GO (space bar), Previous; per-snapshot scope and fade time; recall safes. Desk scenes (the X32's 100) and Scene files (on the iPad / X32-Edit) are the other two tabs.
 - **Parameters** (gain, EQ, dynamics…) are slider bars with the name and value inside: drag left/right anywhere on the bar. Double‑tap resets EQ gain and trim.
 - **Fine:** switch it on (right-hand panel, or the channel page header) and every fader, pan and bar moves 4× more slowly under your finger.
 - **Pan:** drag sideways — it sticks at centre so C is easy to hit. Tap the pan box for a big pan pad (L100, L50, C, R50, R100). The Config page has the same pad.

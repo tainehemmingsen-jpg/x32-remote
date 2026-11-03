@@ -147,7 +147,7 @@ private struct StepButton: View {
                 .frame(width: 40, height: 34)
                 .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Theme.raised))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .buttonRepeatBehavior(.enabled)
     }
 }

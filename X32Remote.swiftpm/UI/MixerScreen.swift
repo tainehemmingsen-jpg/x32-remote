@@ -19,6 +19,7 @@ struct MixerScreen: View {
     @Bindable var app: AppModel
 
     var body: some View {
+        let _ = PerfProbe.hit("MixerScreen")
         GeometryReader { geo in
             let wide = geo.size.width >= 700
             let column: CGFloat = geo.size.width >= 1100 ? 100 : 86
@@ -99,7 +100,7 @@ struct MixerScreen: View {
     private func sheetContent(_ sheet: AppModel.Sheet) -> some View {
         switch sheet {
         case .scenes:
-            ShowSheet(app: app)
+            ScenesSheet(app: app)
         case .settings:
             SettingsSheet(app: app)
         case .modes:
@@ -174,6 +175,7 @@ private struct StripBank: View {
     let stripWidth: CGFloat
 
     var body: some View {
+        let _ = PerfProbe.hit("StripBank")
         let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
         HStack(spacing: 3) {
             ForEach(strips) { strip in
@@ -214,6 +216,7 @@ struct MixerTopBar: View {
     @State private var showMonitor = false
 
     var body: some View {
+        let _ = PerfProbe.hit("MixerTopBar")
         HStack(spacing: 4) {
             ConsoleMenu(app: app)
             if wide {
@@ -238,6 +241,9 @@ struct MixerTopBar: View {
             if app.currentSong != nil {
                 SetlistChip(app: app, compact: !wide)
             }
+            if app.snapshots.count > 0 {
+                SnapshotChip(app: app, compact: !wide)
+            }
             if wide && app.settings.duck != nil {
                 DuckChip(app: app)
             }
@@ -252,12 +258,6 @@ struct MixerTopBar: View {
                 }
                 .popover(isPresented: $showMonitor) {
                     MonitorPopover(app: app)
-                }
-                TopIcon(systemName: "square.grid.3x2", label: "Mute groups", lit: app.anyMuteGroup) {
-                    showMuteGroups = true
-                }
-                .popover(isPresented: $showMuteGroups) {
-                    MuteGroupsPopover(app: app)
                 }
                 TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
                     app.sheet = .meters
@@ -274,7 +274,7 @@ struct MixerTopBar: View {
                 }
                 BarGap()
                 FXIcon(app: app)
-                TopIcon(systemName: "folder", label: "Show: cues, scenes and snippets") {
+                TopIcon(systemName: "square.stack.3d.up", label: "Scenes and snapshots") {
                     app.loadScenes()
                     app.sheet = .scenes
                 }
@@ -301,7 +301,7 @@ struct MixerTopBar: View {
                     Button {
                         app.loadScenes()
                         app.sheet = .scenes
-                    } label: { Label("Show", systemImage: "folder") }
+                    } label: { Label("Scenes and snapshots", systemImage: "square.stack.3d.up") }
                     Button { app.sheet = .settings } label: { Label("Settings", systemImage: "gearshape") }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -348,6 +348,7 @@ struct UndoButton: View {
     let app: AppModel
 
     var body: some View {
+        let _ = PerfProbe.hit("UndoButton")
         let label = app.undoLabel
         let redo = app.redoLabel
         HStack(spacing: 4) {
@@ -361,7 +362,7 @@ struct UndoButton: View {
                     .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                     .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .disabled(label == nil)
             .contextMenu {
                 if let label {
@@ -385,12 +386,60 @@ struct UndoButton: View {
                         .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
                 .accessibilityLabel("Redo \(redo)")
             }
         }
         .animation(.easeOut(duration: 0.15), value: redo == nil)
+    }
+}
+
+/// The snapshot recalled last, with GO for the next one (like the snapshot keys on a DiGiCo).
+/// Tap the name for the snapshot list.
+private struct SnapshotChip: View {
+    let app: AppModel
+    let compact: Bool
+
+    var body: some View {
+        let show = app.snapshots
+        let current = show.current
+        HStack(spacing: 0) {
+            Button {
+                UserDefaults.standard.set("snapshots", forKey: "scenes.tab")
+                app.sheet = .scenes
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: "square.stack.3d.up.fill")
+                        .foregroundStyle(Theme.accent)
+                    if !compact {
+                        Text(current.map { "\($0.number). \($0.name)" } ?? "Snapshots")
+                            .lineLimit(1)
+                            .frame(maxWidth: 140, alignment: .leading)
+                    }
+                }
+                .font(.system(size: 13, weight: .semibold))
+                .foregroundStyle(Theme.text)
+                .padding(.leading, 10)
+                .padding(.trailing, 6)
+                .frame(height: 36)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(ConsoleKeyStyle())
+            Rectangle().fill(Theme.line).frame(width: 1, height: 20)
+            Button { app.goNextSnapshot() } label: {
+                Text("GO")
+                    .font(.system(size: 13, weight: .heavy))
+                    .foregroundStyle(show.nextIndex == nil ? Theme.tertiary : Theme.on)
+                    .frame(width: 40, height: 36)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(ConsoleKeyStyle())
+            .disabled(show.nextIndex == nil)
+            .accessibilityLabel(show.nextIndex.map { "Go to snapshot \(show[$0].name)" } ?? "No next snapshot")
+        }
+        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.accent.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1))
     }
 }
 
@@ -421,7 +470,7 @@ private struct SetlistChip: View {
                     .frame(height: 36)
                     .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .accessibilityLabel("Now playing: \(list.songs[i].name). Open setlist")
                 Rectangle().fill(Theme.line).frame(width: 1, height: 20)
                 Button { app.stepSong(1) } label: {
@@ -431,7 +480,7 @@ private struct SetlistChip: View {
                         .frame(width: 36, height: 36)
                         .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .disabled(i + 1 >= list.songs.count)
                 .accessibilityLabel(i + 1 < list.songs.count ? "Next song: \(list.songs[i + 1].name)" : "Last song")
             }
@@ -487,6 +536,8 @@ private struct MixerShortcuts: View {
             .keyboardShortcut("e", modifiers: .command)
             Button("Setlist") { app.sheet = .setlist }
                 .keyboardShortcut("l", modifiers: .command)
+            Button("GO next snapshot") { app.goNextSnapshot() }
+                .keyboardShortcut(.space, modifiers: [])
             Button("Next song") { app.stepSong(1) }
                 .keyboardShortcut(.downArrow, modifiers: .command)
             Button("Previous song") { app.stepSong(-1) }
@@ -554,7 +605,7 @@ private struct DuckChip: View {
             .shadow(color: on ? Theme.accent.opacity(0.5) : .clear, radius: 6)
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel(on ? "Talk over music is on" : "Talk over music is off")
     }
 }
@@ -589,7 +640,7 @@ struct TopIcon: View {
                 .animation(.spring(duration: 0.3), value: badge)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel(badge > 0 ? "\(label), \(badge) to fix" : label)
     }
 }
@@ -637,7 +688,7 @@ private struct FaderModeBanner: View {
                 .background(Capsule().fill(color.opacity(0.22)))
                 .overlay(Capsule().strokeBorder(color, lineWidth: 1.5))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("\(text). Back to the main mix")
         }
     }
@@ -648,6 +699,7 @@ struct ConsoleMenu: View {
     @State private var confirmDisconnect = false
 
     var body: some View {
+        let _ = PerfProbe.hit("ConsoleMenu")
         let mix: String = {
             var text = "LR Mix"
             if app.gainOnFaders {
@@ -845,7 +897,7 @@ struct PageButtons: View {
                         .fixedSize()
                         .barChip(active: page == p)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             }
         }
     }
@@ -878,7 +930,7 @@ private struct ListenRow: View {
                     .frame(width: 44, height: 40)
                     .background(RoundedRectangle(cornerRadius: 7, style: .continuous).fill(Theme.raised2))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("Listen settings")
         }
         if let problem = listen.problem {
@@ -1050,7 +1102,7 @@ struct MuteGroupButton: View {
     var body: some View {
         let address = "/config/mute/\(group)"
         let on = app.param(address).bool
-        LitButton(title: "MG \(group)", isOn: on, color: Theme.mute, height: height, fontSize: 13, offColor: Theme.muteOff) {
+        LitButton(title: "MG \(group)", isOn: on, color: Theme.mute, height: height, fontSize: 13, offColor: Theme.muteOff, instant: true) {
             app.setBool(address, !on)
         }
     }
@@ -1066,6 +1118,7 @@ struct MixerSidebar: View {
     let perPage: Int
 
     var body: some View {
+        let _ = PerfProbe.hit("MixerSidebar")
         VStack(spacing: 6) {
             HStack(alignment: .top, spacing: 4) {
                 // What the faders control: the main mix, a bus's sends, or gain.
@@ -1214,7 +1267,7 @@ struct SideButton: View {
             )
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 
     private var rim: Bool { active && style != .red }
@@ -1308,7 +1361,7 @@ struct ClearSoloButton: View {
 
     var body: some View {
         let anySolo = app.param("/-stat/solo").bool
-        LitButton(title: "Clear solo", isOn: anySolo, color: Theme.solo, height: height, fontSize: 13, offColor: Theme.raised) {
+        LitButton(title: "Clear solo", isOn: anySolo, color: Theme.solo, height: height, fontSize: 13, offColor: Theme.raised, instant: true) {
             app.clearSolo()
         }
         .disabled(!anySolo)
@@ -1321,7 +1374,7 @@ struct FineButton: View {
     var height: CGFloat = 36
 
     var body: some View {
-        LitButton(title: "Fine", isOn: app.fineMode, height: height, fontSize: 13, style: .outline) {
+        LitButton(title: "Fine", isOn: app.fineMode, height: height, fontSize: 13, style: .outline, instant: true) {
             app.fineMode.toggle()
             Haptics.click()
         }
@@ -1373,7 +1426,7 @@ struct StripView: View {
     var isMaster = false
 
     var body: some View {
-        let selected = app.selectedStrip == strip
+        let _ = PerfProbe.hit("StripView")
         let target = FaderTarget.make(app: app, strip: strip, sendsBus: sendsBus, gain: gain)
         let thumb: CGFloat = tallThumbs ? 62 : 46
         VStack(spacing: 3) {
@@ -1381,8 +1434,6 @@ struct StripView: View {
                 SourceChip(app: app, strip: strip, isMaster: isMaster)
                     .frame(height: 20)
                 GainCell(app: app, strip: strip)
-                    .frame(height: 26)
-                StripLights(app: app, strip: strip)
                     .frame(height: 30)
             }
             if detail == .full {
@@ -1406,10 +1457,21 @@ struct StripView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(LinearGradient(colors: [Theme.panel.opacity(1), Theme.panel.opacity(0.75)], startPoint: .top, endPoint: .bottom))
         )
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .strokeBorder(selected ? Theme.accent : Theme.line, lineWidth: selected ? 1.5 : 1)
-        )
+        .overlay(SelectionRing(app: app, strip: strip))
+    }
+}
+
+/// The strip's outline, amber when it's the selected strip. Its own view, so changing the
+/// selection redraws two outlines rather than every strip on the page.
+private struct SelectionRing: View {
+    let app: AppModel
+    let strip: StripID
+
+    var body: some View {
+        let selected = app.selectedStrip == strip
+        RoundedRectangle(cornerRadius: 8, style: .continuous)
+            .strokeBorder(selected ? Theme.accent : Theme.line, lineWidth: selected ? 1.5 : 1)
+            .allowsHitTesting(false)
     }
 }
 
@@ -1441,6 +1503,7 @@ private struct StripName: View {
     let strip: StripID
 
     var body: some View {
+        let _ = PerfProbe.hit("StripName")
         let name = app.param(strip.namePath).string
         let spilled = strip.kind == .dca && app.spillDCA == strip.index
         ScribbleView(name: name, colorIndex: app.param(strip.colorPath).int, placeholder: strip.defaultName, height: 34, fontSize: 12.5, selected: spilled)
@@ -1500,6 +1563,7 @@ private struct StripPanSlot: View {
     @State private var showPad = false
 
     var body: some View {
+        let _ = PerfProbe.hit("StripPanSlot")
         if let bus = sendsBus {
             SendOnButton(app: app, strip: strip, bus: bus)
         } else if let panPath = strip.panPath {
@@ -1532,6 +1596,7 @@ private struct StripFader: View {
     }
 
     var body: some View {
+        let _ = PerfProbe.hit("StripFader")
         HStack(spacing: 2) {
             ParamFader(app: app, address: target.address, steps: target.spec.steps, capTint: target.capTint,
                        channelColor: stripColor, editTitle: "\(app.stripTitle(strip)) · \(target.label)", spec: target.spec)
@@ -1556,6 +1621,7 @@ private struct SourceChip: View {
     let isMaster: Bool
 
     var body: some View {
+        let _ = PerfProbe.hit("SourceChip")
         let index = app.param(strip.colorPath).int
         let color = index % 8 == 0 ? Theme.tertiary : Theme.scribble(index)
         let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
@@ -1618,26 +1684,30 @@ enum StripSource {
 private struct GainCell: View {
     let app: AppModel
     let strip: StripID
+    @State private var editor: StripEditor?
 
     // Preamp gain is the one setting a brushing finger shouldn't change mid-show, so on the
     // strip it only shows the value: tap for the precise editor. (Gain on faders is there for
     // setting several at once.)
     var body: some View {
+        let _ = PerfProbe.hit("GainCell")
         let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
         if ha >= 0 && ha < 128 {
             let address = StripID.headampGainPath(ha)
             let p = app.param(address)
             GainReadout(value: p.float(or: 0), display: p.isKnown ? Specs.headampGain.display(p.float) : "—", bipolar: false) {
-                app.editValue("\(app.stripTitle(strip)) · Gain", address, Specs.headampGain)
+                editor = .input
             }
+            .stripEditor($editor, app: app, strip: strip)
             .accessibilityLabel("\(app.stripTitle(strip)) gain")
             .accessibilityValue(p.isKnown ? Specs.headampGain.display(p.float) : "unknown")
         } else if strip.hasTrim {
             let address = strip.preampPath("trim")
             let p = app.param(address)
             GainReadout(value: p.float(or: 0.5), display: p.isKnown ? Specs.trim.display(p.float) : "—", bipolar: true) {
-                app.editValue("\(app.stripTitle(strip)) · Trim", address, Specs.trim, reset: 0.5)
+                editor = .input
             }
+            .stripEditor($editor, app: app, strip: strip)
             .accessibilityLabel("\(app.stripTitle(strip)) trim")
             .accessibilityValue(p.isKnown ? Specs.trim.display(p.float) : "unknown")
         } else {
@@ -1668,7 +1738,7 @@ private struct GainReadout: View {
                 .padding(.horizontal, 1)
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -1761,6 +1831,7 @@ private struct StripLights: View {
     let strip: StripID
 
     var body: some View {
+        let _ = PerfProbe.hit("StripLights")
         HStack(spacing: 2) {
             StripLight(text: "G", on: strip.hasGate && app.param(strip.gatePath("on")).bool, color: Theme.on, off: Theme.raised2, present: strip.hasGate) {
                 toggle(strip.gatePath("on"))
@@ -1809,6 +1880,7 @@ private struct StripThumbs: View {
     var wide = false
 
     var body: some View {
+        let _ = PerfProbe.hit("StripThumbs")
         // The EQ curve is the one worth reading at a glance, so it gets the full width; the
         // gate and compressor sit under it side by side. That leaves more height for the fader.
         VStack(spacing: 2) {
@@ -1834,15 +1906,32 @@ private struct ThumbSlot<Content: View>: View {
     let present: Bool
     let height: CGFloat
     @ViewBuilder var content: Content
+    @State private var editor: StripEditor?
 
     var body: some View {
         if present {
             content
                 .frame(height: height)
                 .contentShape(Rectangle())
+                // Tap: edit it here, over the faders. Long press: the full channel page.
                 .onTapGesture {
+                    editor = tab == .gate ? .gate : (tab == .comp ? .comp : .eq)
+                }
+                .onLongPressGesture(minimumDuration: 0.4) {
                     app.openDetail(strip, tab: tab)
                 }
+                .overlay(alignment: .topLeading) {
+                    Text(tab == .gate ? "Gate" : (tab == .comp ? "Comp" : "EQ"))
+                        .font(.system(size: 9, weight: .semibold))
+                        .foregroundStyle(Theme.secondary)
+                        .padding(.horizontal, 3)
+                        .padding(.top, 2)
+                        .allowsHitTesting(false)
+                }
+                .stripEditor($editor, app: app, strip: strip)
+                .accessibilityAddTraits(.isButton)
+                .accessibilityLabel("\(app.stripTitle(strip)) \(tab.title)")
+                .accessibilityHint("Opens a quick editor. Touch and hold for the channel page.")
         } else {
             Theme.graphBack.opacity(0.4)
                 .frame(height: height)
@@ -1857,8 +1946,9 @@ struct MuteButton: View {
     var fontSize: CGFloat = 12
 
     var body: some View {
+        let _ = PerfProbe.hit("MuteButton")
         let muted = app.param(strip.onPath).int(or: 1) == 0
-        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: fontSize, offColor: Theme.muteOff) {
+        LitButton(title: "MUTE", isOn: muted, color: Theme.mute, height: height, fontSize: fontSize, offColor: Theme.muteOff, instant: true) {
             app.toggleMute(strip)
             Haptics.click()
         }
@@ -1873,8 +1963,9 @@ struct SoloButton: View {
     var height: CGFloat = 30
 
     var body: some View {
+        let _ = PerfProbe.hit("SoloButton")
         let solo = app.param(strip.soloPath).bool
-        LitButton(title: "SOLO", isOn: solo, color: Theme.solo, height: height, fontSize: 12, offColor: Theme.soloOff) {
+        LitButton(title: "SOLO", isOn: solo, color: Theme.solo, height: height, fontSize: 12, offColor: Theme.soloOff, instant: true) {
             app.toggleSolo(strip)
             Haptics.click()
         }
@@ -1955,6 +2046,7 @@ struct ParamFader: View {
             fine: app.fineMode,
             capTint: capTint,
             channelColor: channelColor,
+            readout: { v in editSpec.display(v) },
             onLongPress: { app.editValue(editTitle, address, editSpec) },
             onChange: { v in app.dragSet(address, drag, v, steps: steps) },
             onTouch: { began in
@@ -1972,6 +2064,7 @@ struct FaderReadout: View {
     var spec: ParamSpec? = nil
 
     var body: some View {
+        let _ = PerfProbe.hit("FaderReadout")
         let p = app.param(address)
         Text(p.isKnown ? text(p.float) : "—")
             .font(Theme.mono(size))

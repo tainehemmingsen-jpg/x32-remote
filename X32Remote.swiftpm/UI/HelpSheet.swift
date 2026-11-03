@@ -14,7 +14,9 @@ struct HelpSheet: View {
     private let sections: [(String, [Tip])] = [
         ("Faders and sliders", [
             Tip(symbol: "hand.draw", title: "Drag anywhere on a fader",
-                text: "It never jumps to your finger. Slide sideways off the strip while dragging for fine control. Several faders can move at once."),
+                text: "It never jumps to your finger. Slide sideways off the strip while dragging for fine control. Several faders can move at once. The value shows above the cap while you hold it."),
+            Tip(symbol: "equal", title: "0 dB catch",
+                text: "Faders catch at 0 dB with a click. Keep pushing a little further to go past it."),
             Tip(symbol: "slider.horizontal.3", title: "Slider bars",
                 text: "Gain, EQ, dynamics and effect settings are bars: drag left or right anywhere on the bar."),
             Tip(symbol: "hand.tap", title: "Double-tap",
@@ -27,8 +29,14 @@ struct HelpSheet: View {
                 text: "With Fine on, everything moves four times more slowly under your finger.")
         ]),
         ("Mixer", [
-            Tip(symbol: "rectangle.and.hand.point.up.left", title: "Open a channel",
-                text: "Tap a channel's name, or its gain, EQ or compressor picture."),
+            Tip(symbol: "rectangle.and.hand.point.up.left", title: "Quick editors",
+                text: "Tap a strip's gain, gate, EQ or compressor and a small editor opens over the faders, so you never leave the mix. Channel, at its top right, opens the whole channel."),
+            Tip(symbol: "rectangle.expand.vertical", title: "Open a channel",
+                text: "Tap a channel's name, or touch and hold its gate, EQ or compressor picture."),
+            Tip(symbol: "square.stack.3d.up", title: "Snapshots",
+                text: "Like a DiGiCo: Store saves the mix as the next snapshot, GO recalls the next one (space bar with a keyboard). Each snapshot can recall only some strips or parts, with a fade time. Recall safes protect strips from every recall. Each recall is one undo."),
+            Tip(symbol: "square.stack.3d.up.fill", title: "Desk scenes and scene files",
+                text: "Desk scenes are the 100 scenes stored in the X32 itself. Scene files are saved on this iPad, or imported from X32-Edit."),
             Tip(symbol: "hand.tap.fill", title: "Long-press a strip name",
                 text: "Open it, rename it, copy or paste its settings, or load a starting point (vocal, kick…)."),
             Tip(symbol: "arrow.left.arrow.right", title: "Sends on faders",
@@ -38,7 +46,7 @@ struct HelpSheet: View {
             Tip(symbol: "arrow.uturn.backward", title: "Undo",
                 text: "The curved arrow undoes your last change. A whole fader move counts as one. After an undo, a redo arrow appears beside it."),
             Tip(symbol: "keyboard", title: "Keyboard shortcuts",
-                text: "With a keyboard on the iPad (or on a Mac): ⌘Z undo, ⇧⌘Z redo, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ next and previous song, ⌘O scene library. In a channel: ⌘[ ⌘] previous and next, Esc to close. Hold ⌘ to see them all.")
+                text: "With a keyboard on the iPad (or on a Mac): ⌘Z undo, ⇧⌘Z redo, ⌘← ⌘→ banks, ⌘1–⌘7 layers, ⌘K Mix check, ⌘E effects, ⌘L setlist, ⌘↓ ⌘↑ next and previous song, ⌘O scenes, space GO next snapshot. In a channel: ⌘[ ⌘] previous and next, Esc to close. Hold ⌘ to see them all.")
         ]),
         ("Channel page", [
             Tip(symbol: "chart.xyaxis.line", title: "Gate and compressor graphs",

@@ -23,7 +23,7 @@ struct GraphicEQPanel: View {
                                 .frame(minWidth: 30)
                                 .barChip(active: shownSide == s)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                         .accessibilityLabel(s == 0 ? "Side A" : "Side B")
                         .accessibilityAddTraits(shownSide == s ? .isSelected : [])
                     }
@@ -34,7 +34,7 @@ struct GraphicEQPanel: View {
                 } label: {
                     Text("Flatten").barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .confirmationDialog("Set all 31 bands\(sides == 2 ? " of side \(shownSide == 0 ? "A" : "B")" : "") to 0 dB?",
                                     isPresented: $confirmFlat, titleVisibility: .visible) {
                     Button("Flatten", role: .destructive) {

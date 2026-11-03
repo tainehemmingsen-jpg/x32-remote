@@ -103,7 +103,7 @@ private struct IssueRow: View {
                     .frame(maxWidth: .infinity, minHeight: 36)
                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.accent))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
         case .open(let tab)?:
             Button {
                 if let s = issue.strip {
@@ -117,7 +117,7 @@ private struct IssueRow: View {
                     .frame(maxWidth: .infinity, minHeight: 36)
                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised2))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
         case nil:
             EmptyView()
         }
@@ -496,7 +496,7 @@ private struct SongEditor: View {
                                 .frame(width: 110, height: 52)
                                 .background(RoundedRectangle(cornerRadius: 10).fill(Theme.accent.opacity(0.25)))
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                     }
                 } header: {
                     Text("Tempo")
@@ -524,7 +524,7 @@ private struct SongEditor: View {
                                         .frame(maxWidth: .infinity, minHeight: 36)
                                         .background(RoundedRectangle(cornerRadius: 7).fill(out ? Theme.mute : Theme.raised))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ConsoleKeyStyle())
                             }
                         }
                     }
@@ -608,7 +608,7 @@ struct DuckSheet: View {
                                     .frame(maxWidth: .infinity, minHeight: 34)
                                     .background(RoundedRectangle(cornerRadius: 7).fill(on ? Theme.accent : Theme.raised))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ConsoleKeyStyle())
                             .disabled(s == mic)
                         }
                     }

@@ -19,7 +19,10 @@ struct ChannelView: View {
             let wide = geo.size.width >= 700
             VStack(spacing: 0) {
                 ChannelHeader(app: app, strip: $strip, tab: tab) {
-                    dismiss()
+                    // Straight back to the faders, no slide.
+                    var t = Transaction()
+                    t.disablesAnimations = true
+                    withTransaction(t) { app.detailStrip = nil }
                 }
                 BlockBar(app: app, strip: strip, tabs: tabs, tab: tab, wide: wide)
                     .frame(height: 58)
@@ -115,7 +118,7 @@ private struct ChannelHeader: View {
                 .frame(minWidth: 120, minHeight: 44, alignment: .leading)
                 .contentShape(Rectangle())
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("Close")
             .keyboardShortcut(.escape, modifiers: [])
             // Jump straight to any other strip.
@@ -129,7 +132,7 @@ private struct ChannelHeader: View {
                 .font(.system(size: 13))
                 .barChip()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .popover(isPresented: $jumping) {
                 StripJumpGrid(app: app, current: strip) { picked in
                     jumping = false
@@ -197,7 +200,7 @@ private struct CompareControl: View {
                             .frame(width: 38, height: 30)
                             .background(RoundedRectangle(cornerRadius: 5).fill(c.showing == v ? Theme.solo : Theme.raised2))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                     .accessibilityLabel("Version \(v)")
                 }
                 Button {
@@ -207,7 +210,7 @@ private struct CompareControl: View {
                         .font(.system(size: 13))
                         .barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             }
         } else {
             Button {
@@ -217,7 +220,7 @@ private struct CompareControl: View {
                     .font(.system(size: 13, weight: .semibold))
                     .barChip()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("Compare two versions")
         }
     }
@@ -265,7 +268,7 @@ private struct StripJumpGrid: View {
                                 .background(RoundedRectangle(cornerRadius: 5).fill(style.fill))
                                 .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(s == current ? Theme.accent : Color.clear, lineWidth: 2.5))
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ConsoleKeyStyle())
                         }
                     }
                 }
@@ -773,7 +776,7 @@ private struct ConfigColumn: View {
                         .background(RoundedRectangle(cornerRadius: 4).fill(Theme.raised2))
                         .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.white.opacity(0.08)))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 StarterButton(app: app, strip: strip, height: 36)
                 if hasHeadamp {
                     ParamKnob(app: app, address: StripID.headampGainPath(ha), spec: Specs.headampGain, title: "Gain")

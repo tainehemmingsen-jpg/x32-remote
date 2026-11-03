@@ -632,7 +632,7 @@ struct ColorPicker32: View {
                         } label: {
                             ColorSwatch(index: index, selected: index == current)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                     }
                 }
             }

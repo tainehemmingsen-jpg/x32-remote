@@ -187,8 +187,9 @@ private let faderMarks: [(Float, String)] = [
     (-20, "-20"), (-30, "-30"), (-50, "-50")
 ]
 
-/// A console fader: a scale on the left, a thin slot, and a grey cap. Drag anywhere on it (the cap
-/// never jumps to your finger). Slide sideways off the strip for extra-fine control.
+/// A console fader: a scale on the left, a thin slot, and a cap. Drag anywhere on it (the cap
+/// never jumps to your finger). Slide sideways off the strip for extra-fine control. Level faders
+/// catch at 0 dB like a hardware detent, and show their value beside the cap while moving.
 struct FaderView: View {
     let value: Float
     var tint: Color = Theme.accent
@@ -202,6 +203,8 @@ struct FaderView: View {
     var capTint: Color? = nil
     /// The channel's colour: lights the slot up to the cap and the line across the cap.
     var channelColor: Color? = nil
+    /// The value in words, shown beside the cap while it moves.
+    var readout: ((Float) -> String)? = nil
     /// Double-tap (without moving) opens the precision editor. Not long-press: engineers often
     /// rest a finger on a fader.
     var onLongPress: (() -> Void)? = nil
@@ -211,32 +214,50 @@ struct FaderView: View {
     @State private var dragValue: Float = 0
     @State private var lastPoint: CGPoint = .zero
     @State private var touching = false
+    /// Movement banked while the cap sits in the 0 dB detent.
+    @State private var held: Float = 0
 
     var body: some View {
+        let _ = PerfProbe.hit("FaderView")
         GeometryReader { geo in
             let width = geo.size.width
             let height = geo.size.height
             let scaleWidth: CGFloat = showScale && width >= 34 ? min(20, width * 0.34) : 0
-            let capHeight = min(50, max(28, height * 0.1))
+            let capHeight = min(56, max(32, height * 0.11))
             let travel = max(1, height - capHeight)
             let clamped = CGFloat(min(max(value, 0), 1))
             let capCenterY = (1 - clamped) * travel + capHeight / 2
             let trackX = scaleWidth + (width - scaleWidth) / 2
-            let capWidth = max(18, min(width - scaleWidth - 4, 46))
-            ZStack {
-                FaderTrack(capHeight: capHeight, scaleWidth: scaleWidth, trackX: trackX, maxValue: maxValue,
-                           level: clamped, fill: channelColor ?? capTint ?? Theme.accent)
+            let capWidth = max(20, min(width - scaleWidth - 2, 50))
+            ZStack(alignment: .topLeading) {
+                FaderTrack(capHeight: capHeight, scaleWidth: scaleWidth, trackX: trackX, tickHalf: capWidth / 2 - 2,
+                           maxValue: maxValue, level: clamped, fill: channelColor ?? capTint ?? Theme.accent)
                 FaderCap(touching: touching, tint: capTint, label: capLabel, lineColor: channelColor)
                     .frame(width: capWidth, height: capHeight)
                     .position(x: trackX, y: capCenterY)
+                if touching, let readout {
+                    // Above the cap (below it near the top), where the finger isn't.
+                    let above = capCenterY - capHeight / 2 - 14
+                    Text(readout(value))
+                        .font(.system(size: 12, weight: .semibold).monospacedDigit())
+                        .foregroundStyle(Color.black)
+                        .padding(.horizontal, 5)
+                        .frame(height: 20)
+                        .background(RoundedRectangle(cornerRadius: 4, style: .continuous).fill(Theme.accent))
+                        .fixedSize()
+                        .position(x: trackX, y: above > 12 ? above : capCenterY + capHeight / 2 + 14)
+                        .allowsHitTesting(false)
+                }
             }
             .frame(width: width, height: height)
+            .transaction { $0.animation = nil }
             .overlay(
                 TouchSurface(
                     axis: .vertical,
                     onBegin: { p in
                         touching = true
                         dragValue = value
+                        held = 0
                         lastPoint = p
                         onTouch(true)
                     },
@@ -246,12 +267,29 @@ struct FaderView: View {
                         let sideways: CGFloat = abs(p.x - width / 2) > max(80, width) ? 0.25 : 1
                         let fine: CGFloat = sideways * (self.fine ? 0.25 : 1)
                         // Never let a short fader become hair-trigger: at least 150 pt per full throw.
-                        var next = dragValue - Float(dy / max(travel, 150) * fine)
-                        next = min(max(next, 0), maxValue)
-                        let unity = X32Math.unityFader
-                        if hapticAtUnity && ((dragValue < unity) != (next < unity)) {
-                            Haptics.tick()
+                        let perPoint = 1 / Float(max(travel, 150))
+                        let delta = -Float(dy * fine) * perPoint
+                        var next = dragValue + delta
+                        if hapticAtUnity {
+                            // The 0 dB detent: crossing unity parks the cap there; it takes about
+                            // 8 pt more travel to pull it off again.
+                            let unity = X32Math.unityFader
+                            let detent = 8 * perPoint
+                            if abs(dragValue - unity) < 0.0005 {
+                                held += delta
+                                if abs(held) < detent {
+                                    next = unity
+                                } else {
+                                    next = unity + (held > 0 ? held - detent : held + detent)
+                                    held = 0
+                                }
+                            } else if (dragValue < unity) != (next < unity) {
+                                next = unity
+                                held = 0
+                                Haptics.tick()
+                            }
                         }
+                        next = min(max(next, 0), maxValue)
                         dragValue = next
                         onChange(next)
                     },
@@ -278,6 +316,8 @@ private struct FaderTrack: View {
     let capHeight: CGFloat
     let scaleWidth: CGFloat
     let trackX: CGFloat
+    /// How far the scale ticks reach either side of the slot.
+    var tickHalf: CGFloat = 12
     let maxValue: Float
     var level: CGFloat = 0
     var fill: Color = Theme.accent
@@ -289,31 +329,30 @@ private struct FaderTrack: View {
             let top = capHeight / 2
             func y(_ f: CGFloat) -> CGFloat { top + (1 - f) * travel }
 
-            // marks
+            // Scale: ticks the width of the cap (so the cap's line can be read against them),
+            // numbers on the left, 0 dB brighter and longer.
             for mark in faderMarks {
-                let my = y(CGFloat(X32Math.dbToFader(mark.0)))
+                let my = (y(CGFloat(X32Math.dbToFader(mark.0))) * 2).rounded() / 2
                 let isUnity = mark.0 == 0
+                let reach = isUnity ? tickHalf + 2 : tickHalf * 0.7
                 var tick = Path()
-                tick.move(to: CGPoint(x: trackX - (isUnity ? 13 : 10), y: my))
-                tick.addLine(to: CGPoint(x: trackX + (isUnity ? 13 : 10), y: my))
-                ctx.stroke(tick, with: .color(isUnity ? Color.white.opacity(0.85) : Color.white.opacity(0.32)), lineWidth: isUnity ? 1.5 : 1)
+                tick.move(to: CGPoint(x: trackX - reach, y: my))
+                tick.addLine(to: CGPoint(x: trackX + reach, y: my))
+                ctx.stroke(tick, with: .color(isUnity ? Color.white.opacity(0.8) : Color.white.opacity(0.22)), lineWidth: isUnity ? 1.5 : 1)
                 if scaleWidth > 0 {
                     let text = Text(mark.1)
-                        .font(.system(size: 9.5).monospacedDigit())
-                        .foregroundColor(Color.white.opacity(0.55))
+                        .font(.system(size: 9.5, weight: isUnity ? .bold : .regular).monospacedDigit())
+                        .foregroundColor(Color.white.opacity(isUnity ? 0.85 : 0.5))
                     ctx.draw(text, at: CGPoint(x: scaleWidth - 1, y: my), anchor: .trailing)
                 }
             }
-            // slot, lit from the bottom up to the cap
-            let slot = CGRect(x: trackX - 3, y: top - 2, width: 6, height: travel + 4)
-            ctx.fill(Path(roundedRect: slot, cornerRadius: 3), with: .color(Color.black))
-            ctx.stroke(Path(roundedRect: slot.insetBy(dx: -0.5, dy: -0.5), cornerRadius: 3.5), with: .color(Color.white.opacity(0.06)), lineWidth: 1)
+            // The slot, lit from the bottom up to the cap.
+            let slot = CGRect(x: trackX - 2.5, y: top - 2, width: 5, height: travel + 4)
+            ctx.fill(Path(roundedRect: slot, cornerRadius: 2.5), with: .color(Color.black))
             let litTop = y(level)
             if level > 0.001 {
-                let lit = CGRect(x: trackX - 2, y: litTop, width: 4, height: max(0, top + travel + 1 - litTop))
-                ctx.fill(Path(roundedRect: lit, cornerRadius: 2),
-                         with: .linearGradient(Gradient(colors: [fill.opacity(0.95), fill.opacity(0.25)]),
-                                               startPoint: CGPoint(x: trackX, y: litTop), endPoint: CGPoint(x: trackX, y: top + travel)))
+                let lit = CGRect(x: trackX - 1.5, y: litTop, width: 3, height: max(0, top + travel + 1 - litTop))
+                ctx.fill(Path(roundedRect: lit, cornerRadius: 1.5), with: .color(fill.opacity(0.85)))
             }
 
             if limit < 1 {
@@ -327,6 +366,8 @@ private struct FaderTrack: View {
     }
 }
 
+/// The fader cap: a dark, slightly domed key with a bright index line across it (in the channel
+/// colour), like a console's. Its shadow is drawn in, not added as a live effect.
 private struct FaderCap: View {
     let touching: Bool
     let tint: Color?
@@ -335,33 +376,30 @@ private struct FaderCap: View {
 
     var body: some View {
         Canvas { ctx, size in
-            let rect = CGRect(origin: .zero, size: size)
-            let base = tint
-            let shades: [Color] = base.map { c in [c.opacity(0.95), c.opacity(0.7), c.opacity(0.95)] }
-                ?? [Color(white: touching ? 0.86 : 0.78), Color(white: touching ? 0.62 : 0.52), Color(white: touching ? 0.80 : 0.70)]
-            ctx.fill(
-                Path(roundedRect: rect, cornerRadius: 5),
-                with: .linearGradient(Gradient(colors: shades), startPoint: CGPoint(x: 0, y: 0), endPoint: CGPoint(x: 0, y: size.height))
-            )
-            // grip grooves
-            let grooves = 6
-            for i in 0..<grooves {
-                let gy = size.height * (CGFloat(i) + 0.5) / CGFloat(grooves)
-                if abs(gy - size.height / 2) < 3 { continue }
-                var g = Path()
-                g.move(to: CGPoint(x: 2, y: gy))
-                g.addLine(to: CGPoint(x: size.width - 2, y: gy))
-                ctx.stroke(g, with: .color(Color.black.opacity(0.22)), lineWidth: 1)
+            let body = CGRect(x: 0, y: 0, width: size.width, height: size.height - 2)
+            // drop shadow
+            ctx.fill(Path(roundedRect: body.offsetBy(dx: 0, dy: 2), cornerRadius: 4), with: .color(Color.black.opacity(0.55)))
+            let lift: Double = touching ? 0.08 : 0
+            let shades: [Color] = tint.map { c in [c.opacity(0.95), c.opacity(0.72), c.opacity(0.9)] }
+                ?? [Color(white: 0.40 + lift), Color(white: 0.24 + lift), Color(white: 0.30 + lift)]
+            ctx.fill(Path(roundedRect: body, cornerRadius: 4),
+                     with: .linearGradient(Gradient(colors: shades), startPoint: .zero, endPoint: CGPoint(x: 0, y: body.height)))
+            // top edge catching the light
+            ctx.fill(Path(CGRect(x: 2, y: 1, width: body.width - 4, height: 1)), with: .color(Color.white.opacity(0.28)))
+            // grip lines either side of the index
+            for i in [-3, -2, 2, 3] {
+                let gy = body.midY + CGFloat(i) * body.height / 9
+                ctx.fill(Path(CGRect(x: 3, y: gy, width: body.width - 6, height: 1)), with: .color(Color.black.opacity(0.28)))
             }
-            // centre line
-            ctx.fill(Path(CGRect(x: 2, y: size.height / 2 - 1.5, width: size.width - 4, height: 3)),
-                     with: .color(touching ? Theme.accent : (lineColor ?? Color.white)))
-            ctx.stroke(Path(roundedRect: rect.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 5), with: .color(Color.black.opacity(0.5)), lineWidth: 1)
+            // the index line
+            let line = touching ? Theme.accent : (lineColor ?? Color.white)
+            ctx.fill(Path(CGRect(x: 1, y: body.midY - 1.5, width: body.width - 2, height: 3)), with: .color(line))
+            ctx.stroke(Path(roundedRect: body.insetBy(dx: 0.5, dy: 0.5), cornerRadius: 4), with: .color(Color.black.opacity(0.6)), lineWidth: 1)
             if let label {
-                ctx.draw(Text(label).font(.system(size: 7, weight: .bold)).foregroundColor(Color.black.opacity(0.6)), at: CGPoint(x: size.width / 2, y: size.height * 0.22))
+                ctx.draw(Text(label).font(.system(size: 8, weight: .bold)).foregroundColor(Color.white.opacity(0.75)),
+                         at: CGPoint(x: body.midX, y: body.height * 0.2))
             }
         }
-        .shadow(color: .black.opacity(0.55), radius: 3, y: 2)
     }
 }
 
@@ -501,6 +539,7 @@ struct MeterView: View {
     var showsPeak: Bool = true
 
     var body: some View {
+        let _ = PerfProbe.hit("MeterView")
         let left = meter.level
         let right = meter.level2
         let peak = meter.peak
@@ -552,6 +591,7 @@ struct GRBar: View {
     let meter: MeterLevel
 
     var body: some View {
+        let _ = PerfProbe.hit("GRBar")
         let reduction = meter.dynReduction
         Canvas { ctx, size in
             ctx.fill(Path(CGRect(origin: .zero, size: size)), with: .color(Theme.mute.opacity(0.14)))
@@ -665,6 +705,7 @@ struct MainMeterChip: View {
     let app: AppModel
 
     var body: some View {
+        let _ = PerfProbe.hit("MainMeterChip")
         let main = app.meters.meter(StripID.mainLR)
         HStack(spacing: 5) {
             Text("LR")

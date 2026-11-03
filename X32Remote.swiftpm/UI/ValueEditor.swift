@@ -50,7 +50,7 @@ private struct ValueEditorCard: View {
                         .frame(width: 36, height: 36)
                         .background(Circle().fill(Theme.raised2))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 .accessibilityLabel("Close")
             }
             Text(p.isKnown ? display(norm) : "—")
@@ -81,7 +81,7 @@ private struct ValueEditorCard: View {
                     .foregroundStyle(Theme.text)
                     .frame(width: 70, height: 46)
                     .background(RoundedRectangle(cornerRadius: 6).fill(Theme.raised2))
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                     .disabled(text.isEmpty)
             }
             if let reset = request.resetNorm {
@@ -95,7 +95,7 @@ private struct ValueEditorCard: View {
                         .background(RoundedRectangle(cornerRadius: 6).fill(Theme.raised))
                         .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.white.opacity(0.08)))
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             }
         }
         .padding(18)
@@ -216,7 +216,7 @@ private struct StepKey: View {
                 .background(RoundedRectangle(cornerRadius: 6).fill(Theme.raised2))
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color.white.opacity(0.08)))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .buttonRepeatBehavior(.enabled)
     }
 }

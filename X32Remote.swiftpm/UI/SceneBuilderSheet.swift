@@ -42,7 +42,7 @@ struct SceneBuilderSheet: View {
                                         .frame(height: 30)
                                         .background(Capsule().fill(Theme.raised2))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ConsoleKeyStyle())
                             }
                         }
                     }

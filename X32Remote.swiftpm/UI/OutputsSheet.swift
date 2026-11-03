@@ -31,7 +31,7 @@ struct OutputsSheet: View {
                         } label: {
                             Text("Inputs").barChip(active: tab == .inputs)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                         .accessibilityAddTraits(tab == .inputs ? .isSelected : [])
                         ForEach(Outputs.Group.allCases) { g in
                             Button {
@@ -40,7 +40,7 @@ struct OutputsSheet: View {
                             } label: {
                                 Text(g.title).barChip(active: tab == .outputs && g == group)
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ConsoleKeyStyle())
                             .accessibilityAddTraits(tab == .outputs && g == group ? .isSelected : [])
                         }
                         Button {
@@ -48,7 +48,7 @@ struct OutputsSheet: View {
                         } label: {
                             Text("Out blocks").barChip(active: tab == .blocks)
                         }
-                        .buttonStyle(.plain)
+                        .buttonStyle(ConsoleKeyStyle())
                         .accessibilityAddTraits(tab == .blocks ? .isSelected : [])
                     }
                     .padding(10)

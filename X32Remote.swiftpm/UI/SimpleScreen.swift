@@ -89,7 +89,7 @@ struct SimpleScreen: View {
                     Label("Locked", systemImage: "lock.fill")
                         .barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             } else {
                 Button {
                     if app.hasPIN {
@@ -102,14 +102,14 @@ struct SimpleScreen: View {
                     Label("Edit", systemImage: "pencil")
                         .barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
                 Button {
                     app.setMode(.mixer)
                 } label: {
                     Label("Mixer", systemImage: "slider.vertical.3")
                         .barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             }
         }
         .padding(.horizontal, 16)

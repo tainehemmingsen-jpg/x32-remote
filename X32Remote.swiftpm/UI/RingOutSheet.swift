@@ -214,7 +214,7 @@ private struct OutputPicker: View {
                         .background(Capsule().fill(selection == s ? Theme.raised2 : Theme.raised))
                         .overlay(Capsule().strokeBorder(selection == s ? Theme.accent : Color.clear, lineWidth: 2))
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                 }
             }
         }
@@ -248,7 +248,7 @@ private struct CandidateRow: View {
                     .foregroundStyle(Theme.secondary)
                     .frame(width: 34, height: 40)
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("Ignore")
             LitButton(title: cutText == nil ? "Cut" : "Cut more", isOn: true, color: Theme.mute, height: 40, fontSize: 14, action: cut)
                 .frame(width: 92)

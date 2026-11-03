@@ -23,7 +23,7 @@ struct GainWizardButton: View {
                     .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.raised2))
                     .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Theme.accent.opacity(0.6)))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .popover(isPresented: $open) {
                 GainWizardView(app: app, strip: strip, headamp: ha) { open = false }
                     .frame(width: 380)
@@ -188,7 +188,7 @@ struct StarterButton: View {
                     .frame(maxWidth: .infinity, minHeight: height)
                     .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(Theme.raised2))
             }
-            .buttonStyle(.plain)
+            .buttonStyle(ConsoleKeyStyle())
             .popover(isPresented: $open) {
                 StarterPicker(app: app, strip: strip) { open = false }
                     .frame(width: 440, height: 560)
@@ -236,7 +236,7 @@ private struct StarterPicker: View {
                                     .frame(maxWidth: .infinity, minHeight: 66)
                                     .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised))
                                 }
-                                .buttonStyle(.plain)
+                                .buttonStyle(ConsoleKeyStyle())
                             }
                         }
                     }

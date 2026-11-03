@@ -43,7 +43,7 @@ struct MonitorScreen: View {
                             .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                 } else {
                     Button {
                         editing = true
@@ -52,7 +52,7 @@ struct MonitorScreen: View {
                             .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                     Button {
                         app.setMode(.mixer)
                     } label: {
@@ -60,7 +60,7 @@ struct MonitorScreen: View {
                             .labelStyle(AdaptiveLabelStyle(iconOnly: compact))
                             .barChip()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                 }
             }
             .padding(.horizontal, 14)
@@ -163,7 +163,7 @@ private struct FilterChip: View {
                 .background(Capsule().fill(active ? Theme.raised2 : Theme.raised))
                 .overlay(Capsule().strokeBorder(active ? Theme.accent : Color.clear, lineWidth: 1.5))
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 

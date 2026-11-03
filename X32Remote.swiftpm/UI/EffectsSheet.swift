@@ -16,7 +16,7 @@ struct FXIcon: View {
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
                 .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel("Effects")
     }
 }
@@ -131,7 +131,7 @@ private struct SlotTile: View {
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(selected ? Theme.accent : Color.white.opacity(0.07), lineWidth: selected ? 2 : 1))
             .contentShape(Rectangle())
         }
-        .buttonStyle(.plain)
+        .buttonStyle(ConsoleKeyStyle())
     }
 }
 
@@ -169,7 +169,7 @@ private struct SlotDetail: View {
                         }
                         .barChip()
                     }
-                    .buttonStyle(.plain)
+                    .buttonStyle(ConsoleKeyStyle())
                     .disabled(!typeParam.isKnown)
                     .accessibilityLabel("Choose an effect")
                 }
@@ -333,7 +333,7 @@ private struct InsertedOnRow: View {
                             } label: {
                                 Text(app.stripTitle(strip)).barChip()
                             }
-                            .buttonStyle(.plain)
+                            .buttonStyle(ConsoleKeyStyle())
                         }
                     }
                 }
@@ -368,7 +368,7 @@ private struct SourceRow: View {
                     Text("Sends on faders")
                         .barChip()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(ConsoleKeyStyle())
             } else {
                 Spacer()
             }
