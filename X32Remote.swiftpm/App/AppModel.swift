@@ -355,7 +355,7 @@ final class AppModel {
         }
 
         if address.hasPrefix("/-ha/") && address.hasSuffix("/index"), let ha = value.intValue, ha >= 0, ha < 128 {
-            client?.get([StripID.headampGainPath(ha), StripID.headampPhantomPath(ha)])
+            client?.getSoon([StripID.headampGainPath(ha), StripID.headampPhantomPath(ha)])
         }
         if address == Show.currentPath, let position = value.intValue {
             // The position is a cue, scene or snippet index depending on the desk's show-control mode.
@@ -1713,6 +1713,15 @@ final class AppModel {
 
     // MARK: - Navigation
 
+    /// Opens a sheet. The big working screens appear at once, like changing screens on a desk;
+    /// the small cards keep their usual slide.
+    func show(_ s: Sheet) {
+        guard s.fillsScreen, UIDevice.current.userInterfaceIdiom == .pad else { sheet = s; return }
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { sheet = s }
+    }
+
     func openDetail(_ strip: StripID, tab: DetailTab? = nil) {
         if let tab {
             detailTab = tab
@@ -1989,7 +1998,7 @@ enum DetailTab: String, CaseIterable, Identifiable {
 
     var title: String {
         switch self {
-        case .overview: return "Overview"
+        case .overview: return "Home"
         case .input: return "Input"
         case .gate: return "Gate"
         case .eq: return "EQ"

@@ -253,33 +253,37 @@ struct MixerTopBar: View {
                 BarGap()
                 TopIcon(systemName: app.listen.running ? "headphones.circle.fill" : "headphones",
                         label: app.listen.running ? "Solo and talkback, listening on this iPad" : "Solo and talkback",
+                        title: "Monitor",
                         lit: app.anySolo || app.listen.running) {
                     showMonitor = true
                 }
                 .popover(isPresented: $showMonitor) {
                     MonitorPopover(app: app)
                 }
-                TopIcon(systemName: "chart.bar.xaxis", label: "Meters") {
-                    app.sheet = .meters
+                TopIcon(systemName: "chart.bar.xaxis", label: "Meters", title: "Meters") {
+                    app.show(.meters)
                 }
                 BarGap()
-                TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)") {
-                    app.sheet = .ringOut
+                TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)", title: "Ring out") {
+                    app.show(.ringOut)
                 }
-                TopIcon(systemName: "stethoscope", label: "Mix check", badge: app.mixCheckProblems) {
+                TopIcon(systemName: "stethoscope", label: "Mix check", title: "Mix check", badge: app.mixCheckProblems) {
                     app.sheet = .mixCheck
                 }
-                TopIcon(systemName: "music.note.list", label: "Setlist") {
-                    app.sheet = .setlist
+                TopIcon(systemName: "music.note.list", label: "Setlist", title: "Setlist") {
+                    app.show(.setlist)
                 }
                 BarGap()
-                FXIcon(app: app)
-                TopIcon(systemName: "square.stack.3d.up", label: "Scenes and snapshots") {
+                TopIcon(systemName: "sparkles", label: "Effects", title: "Effects") {
+                    app.loadEffects()
+                    app.show(.effects)
+                }
+                TopIcon(systemName: "square.stack.3d.up", label: "Scenes and snapshots", title: "Scenes") {
                     app.loadScenes()
-                    app.sheet = .scenes
+                    app.show(.scenes)
                 }
                 BarGap()
-                TopIcon(systemName: "gearshape", label: "Settings") {
+                TopIcon(systemName: "gearshape", label: "Settings", title: "Settings") {
                     app.sheet = .settings
                 }
             } else {
@@ -288,19 +292,19 @@ struct MixerTopBar: View {
                     // Present after the menu has finished closing, or iOS can refuse the popover.
                     Button { DispatchQueue.main.async { showMonitor = true } } label: { Label("Solo and talkback", systemImage: "headphones") }
                     Button { DispatchQueue.main.async { showMuteGroups = true } } label: { Label("Mute groups", systemImage: "square.grid.3x2") }
-                    Button { app.sheet = .meters } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
-                    Button { app.sheet = .ringOut } label: { Label("Ring out", systemImage: "waveform.badge.exclamationmark") }
+                    Button { app.show(.meters) } label: { Label("Meters", systemImage: "chart.bar.xaxis") }
+                    Button { app.show(.ringOut) } label: { Label("Ring out", systemImage: "waveform.badge.exclamationmark") }
                     Button { app.sheet = .mixCheck } label: {
                         Label(app.mixCheckProblems > 0 ? "Mix check (\(app.mixCheckProblems) to fix)" : "Mix check", systemImage: "stethoscope")
                     }
-                    Button { app.sheet = .setlist } label: { Label("Setlist", systemImage: "music.note.list") }
+                    Button { app.show(.setlist) } label: { Label("Setlist", systemImage: "music.note.list") }
                     Button {
                         app.loadEffects()
-                        app.sheet = .effects
+                        app.show(.effects)
                     } label: { Label("Effects", systemImage: "sparkles") }
                     Button {
                         app.loadScenes()
-                        app.sheet = .scenes
+                        app.show(.scenes)
                     } label: { Label("Scenes and snapshots", systemImage: "square.stack.3d.up") }
                     Button { app.sheet = .settings } label: { Label("Settings", systemImage: "gearshape") }
                 } label: {
@@ -407,7 +411,7 @@ private struct SnapshotChip: View {
         HStack(spacing: 0) {
             Button {
                 UserDefaults.standard.set("snapshots", forKey: "scenes.tab")
-                app.sheet = .scenes
+                app.show(.scenes)
             } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "square.stack.3d.up.fill")
@@ -453,7 +457,7 @@ private struct SetlistChip: View {
         if let current = app.currentSong {
             let list = current.list, i = current.index
             HStack(spacing: 0) {
-                Button { app.sheet = .setlist } label: {
+                Button { app.show(.setlist) } label: {
                     HStack(spacing: 6) {
                         Image(systemName: "music.note")
                             .foregroundStyle(Theme.accent)
@@ -525,16 +529,16 @@ private struct MixerShortcuts: View {
             }
             Button("Mix check") { app.sheet = .mixCheck }
                 .keyboardShortcut("k", modifiers: .command)
-            Button("Ring out") { app.sheet = .ringOut }
+            Button("Ring out") { app.show(.ringOut) }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-            Button("Meters") { app.sheet = .meters }
+            Button("Meters") { app.show(.meters) }
                 .keyboardShortcut("m", modifiers: [.command, .shift])
             Button("Effects") {
                 app.loadEffects()
-                app.sheet = .effects
+                app.show(.effects)
             }
             .keyboardShortcut("e", modifiers: .command)
-            Button("Setlist") { app.sheet = .setlist }
+            Button("Setlist") { app.show(.setlist) }
                 .keyboardShortcut("l", modifiers: .command)
             Button("GO next snapshot") { app.goNextSnapshot() }
                 .keyboardShortcut(.space, modifiers: [])
@@ -613,6 +617,8 @@ private struct DuckChip: View {
 struct TopIcon: View {
     let systemName: String
     let label: String
+    /// A word under the icon, like the screen keys on the X32 (Monitor, Meters, Effects…).
+    var title: String? = nil
     /// A red count in the corner (0 hides it).
     var badge: Int = 0
     /// Something is active behind this button (a solo, a mute group).
@@ -621,10 +627,8 @@ struct TopIcon: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: systemName)
-                .font(.system(size: 17, weight: .medium))
+            face
                 .foregroundStyle(badge > 0 ? Theme.mute : (lit ? Theme.solo : Theme.text.opacity(0.9)))
-                .frame(width: 40, height: 36)
                 .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(lit ? Theme.solo.opacity(0.18) : Theme.raised.opacity(0.7)))
                 .overlay(alignment: .topTrailing) {
                     if badge > 0 {
@@ -642,6 +646,26 @@ struct TopIcon: View {
         }
         .buttonStyle(ConsoleKeyStyle())
         .accessibilityLabel(badge > 0 ? "\(label), \(badge) to fix" : label)
+    }
+
+    @ViewBuilder private var face: some View {
+        if let title {
+            VStack(spacing: 2) {
+                Image(systemName: systemName)
+                    .font(.system(size: 14, weight: .medium))
+                Text(title)
+                    .font(.system(size: 10, weight: .semibold))
+                    .lineLimit(1)
+                    .fixedSize()
+            }
+            .padding(.horizontal, 8)
+            .frame(minWidth: 50)
+            .frame(height: 38)
+        } else {
+            Image(systemName: systemName)
+                .font(.system(size: 17, weight: .medium))
+                .frame(width: 40, height: 36)
+        }
     }
 }
 
@@ -724,11 +748,11 @@ struct ConsoleMenu: View {
             Section("Sound check") {
                 Button { app.sheet = .builder } label: { Label("Build a scene…", systemImage: "wand.and.stars") }
                 Button { app.sheet = .library } label: { Label("Scene library (.scn)", systemImage: "tray.full") }
-                Button { app.sheet = .ringOut } label: { Label("Ring out (find feedback)", systemImage: "waveform.badge.exclamationmark") }
+                Button { app.show(.ringOut) } label: { Label("Ring out (find feedback)", systemImage: "waveform.badge.exclamationmark") }
                 Button { app.sheet = .mixCheck } label: { Label("Mix check", systemImage: "stethoscope") }
             }
             Section("During the show") {
-                Button { app.sheet = .setlist } label: { Label("Setlist", systemImage: "music.note.list") }
+                Button { app.show(.setlist) } label: { Label("Setlist", systemImage: "music.note.list") }
                 Button { app.sheet = .listen } label: {
                     Label(app.listen.running ? "Listen on this iPad (on)" : "Listen on this iPad…", systemImage: "headphones")
                 }
@@ -740,7 +764,7 @@ struct ConsoleMenu: View {
             Section("Desk") {
                 Button {
                     app.loadOutputs()
-                    app.sheet = .outputs
+                    app.show(.outputs)
                 } label: { Label("Routing", systemImage: "arrow.triangle.branch") }
                 Button {
                     app.loadRecorder()
@@ -1123,7 +1147,7 @@ struct MixerSidebar: View {
             HStack(alignment: .top, spacing: 4) {
                 // What the faders control: the main mix, a bus's sends, or gain.
                 VStack(spacing: 4) {
-                    SidebarHeader(title: "Mix")
+                    SidebarHeader(title: "Sends on fader")
                     ScrollView {
                         VStack(spacing: 4) {
                             SideButton(title: "LR Mix", active: app.sendsBus == nil && !app.gainOnFaders, stripe: Theme.solo, height: 40) {
@@ -1141,7 +1165,7 @@ struct MixerSidebar: View {
                 .frame(width: column)
                 // Which strips are on the faders: one button per bank of strips.
                 VStack(spacing: 4) {
-                    SidebarHeader(title: "Strips")
+                    SidebarHeader(title: "Layers")
                     ScrollView {
                         VStack(spacing: 4) {
                             ForEach(MixerLayer.allCases) { layer in
@@ -1218,10 +1242,11 @@ private struct SidebarHeader: View {
     let title: String
 
     var body: some View {
-        Text(title.uppercased())
-            .font(.system(size: 10, weight: .semibold))
-            .tracking(0.8)
+        Text(title)
+            .font(.system(size: 11, weight: .semibold))
             .foregroundStyle(Theme.secondary)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 2)
             .padding(.top, 2)

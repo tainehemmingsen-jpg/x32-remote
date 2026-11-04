@@ -109,7 +109,7 @@ private struct ChannelHeader: View {
                         Text(name.isEmpty ? strip.footLabel : name)
                             .font(.system(size: 15))
                             .lineLimit(1)
-                        Text(tab == .overview ? "Overview" : tab.title)
+                        Text(tab.title)
                             .font(.system(size: 12))
                             .foregroundStyle(Theme.secondary)
                     }
@@ -468,7 +468,7 @@ private struct BlockTile: View {
     private var content: some View {
         switch block {
         case .overview:
-            Label("Overview", systemImage: "square.grid.2x2")
+            Label("Home", systemImage: "square.grid.2x2")
                 .font(.system(size: 13, weight: .semibold))
                 .foregroundStyle(Theme.text)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -892,7 +892,7 @@ private struct EQColumn: View {
                 .onTapGesture { app.detailTab = .eq }
             if strip.hasHighPass {
                 HStack(spacing: 8) {
-                    OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 84)
+                    OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Low cut", width: 84)
                         .frame(height: 34)
                     ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Freq",
                               enabled: app.param(strip.preampPath("hpon")).bool)

@@ -109,13 +109,19 @@ struct SnapshotsView: View {
                         showingSafes = true
                     } label: {
                         Label(show.safes.isEmpty ? "Recall safes" : "Recall safes (on)", systemImage: "lock.shield")
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(show.safes.isEmpty ? Theme.text : Theme.solo)
+                            .padding(.horizontal, 12)
+                            .frame(height: 34)
+                            .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised2))
+                            .contentShape(Rectangle())
                     }
-                    .font(.system(size: 13))
-                    .foregroundStyle(show.safes.isEmpty ? Theme.secondary : Theme.solo)
+                    .buttonStyle(ConsoleKeyStyle())
+                    .textCase(nil)
                 }
             } footer: {
                 if show.count > 0 {
-                    Text("Tap a snapshot's play button to recall it, or GO for the next one. Touch and hold for update, scope and fade. Each recall is one Undo step.")
+                    Text("Play recalls a snapshot; GO recalls the next one. Edit sets what it recalls and its fade. Touch and hold to update, duplicate or delete. Each recall is one Undo step.")
                 }
             }
         }
@@ -246,10 +252,12 @@ private struct SnapshotRow: View {
             }
             Spacer()
             Button(action: edit) {
-                Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Theme.secondary)
-                    .frame(width: 44, height: 44)
+                Text("Edit")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(Theme.text)
+                    .frame(width: 56, height: 40)
+                    .background(RoundedRectangle(cornerRadius: 8, style: .continuous).fill(Theme.raised2))
+                    .contentShape(Rectangle())
             }
             .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("Scope and fade for \(snap.name)")

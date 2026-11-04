@@ -368,6 +368,29 @@ final class ClientTests: XCTestCase {
         client.close()
     }
 
+    func testGetSoonJumpsTheQueue() {
+        let transport = MockTransport()
+        let client = X32Client(transport: transport)
+        spin(0.2)
+        transport.sent.removeAll()
+        let many = (1...32).flatMap { n in (1...4).map { b in StripID(.channel, n).eqPath(b, "f") } }
+        client.get(many)
+        client.getSoon([StripID(.channel, 5).faderPath])
+        spin(0.6)
+        let gainAt = transport.sent.firstIndex { $0.address == StripID(.channel, 5).faderPath }
+        XCTAssertNotNil(gainAt)
+        // The first window of 32 was already sent; the gain goes straight after it.
+        XCTAssertLessThanOrEqual(gainAt ?? 999, 33, "the gain read waited behind the whole queue")
+        XCTAssertEqual(client.pendingRequests, 0)
+        client.close()
+    }
+
+    func testRequestsOverviewAsksForHeadampSourcesFirst() {
+        let a = Requests.stripOverview()
+        let firstOther = a.firstIndex { !$0.hasPrefix("/-ha/") } ?? 0
+        XCTAssertEqual(a.prefix(firstOther).count, StripID.everything.compactMap(\.headampIndexPath).count)
+    }
+
     func testUnansweredRequestsAreRetriedThenDropped() {
         let transport = MockTransport()
         let client = X32Client(transport: transport)

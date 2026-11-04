@@ -1,26 +1,5 @@
 import SwiftUI
 
-/// "FX" in the top bar.
-struct FXIcon: View {
-    let app: AppModel
-
-    var body: some View {
-        Button {
-            app.loadEffects()
-            app.sheet = .effects
-        } label: {
-            Text("FX")
-                .font(.system(size: 15, weight: .heavy))
-                .foregroundStyle(Theme.text.opacity(0.9))
-                .frame(width: 40, height: 36)
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.raised.opacity(0.7)))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(ConsoleKeyStyle())
-        .accessibilityLabel("Effects")
-    }
-}
-
 /// The eight effects slots: what's in each, what feeds it, its return level, and (for the
 /// reverbs, delays and modulation effects in slots 1-4) every parameter.
 struct EffectsSheet: View {

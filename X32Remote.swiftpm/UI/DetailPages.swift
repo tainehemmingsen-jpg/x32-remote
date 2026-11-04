@@ -143,7 +143,7 @@ private struct LowCutControls: View {
                 .font(.system(size: 13))
                 .foregroundStyle(Theme.secondary)
             HStack(spacing: 10) {
-                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)
+                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Low cut", width: 100)
                 EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
             }
             ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Frequency", enabled: app.param(strip.preampPath("hpon")).bool)

@@ -62,7 +62,7 @@ struct HelpSheet: View {
             Tip(symbol: "square.grid.3x3", title: "Go to…",
                 text: "Jump straight to any channel, aux, FX return, bus or matrix from the channel page."),
             Tip(symbol: "wand.and.stars", title: "Auto gain",
-                text: "On Overview or Input: tap Auto gain, have them play as loud as they will in the show, and tap Listen. After 8 seconds it suggests a gain that leaves 12 dB of headroom; tap Set gain (Undo takes it back)."),
+                text: "On Home or Input: tap Auto gain, have them play as loud as they will in the show, and tap Listen. After 8 seconds it suggests a gain that leaves 12 dB of headroom; tap Set gain (Undo takes it back)."),
             Tip(symbol: "square.grid.2x2", title: "Start from…",
                 text: "Pick what's plugged in (vocal, kick, acoustic guitar, speech…) for a sensible low cut, gate, EQ and compressor to start from.")
         ]),

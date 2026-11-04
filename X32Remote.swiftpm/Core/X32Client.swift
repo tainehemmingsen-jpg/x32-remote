@@ -201,6 +201,16 @@ final class X32Client {
         pump()
     }
 
+    /// Like get, but ahead of everything already waiting: for values on screen right now (the
+    /// preamp gains, which can only be asked for once the inputs' headamps are known).
+    func getSoon(_ addresses: [String]) {
+        let fresh = addresses.filter { !queued.contains($0) && outstanding[$0] == nil }
+        guard !fresh.isEmpty else { return }
+        for address in fresh { queued.insert(address) }
+        requestQueue.insert(contentsOf: fresh, at: queueHead)
+        pump()
+    }
+
     /// Change a parameter. Rapid changes to the same address are coalesced (about 80 per second max).
     func set(_ address: String, _ value: OSCArg) {
         if pendingSets[address] == nil {

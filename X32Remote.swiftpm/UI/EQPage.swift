@@ -209,7 +209,7 @@ struct EQPage: View {
                     HStack(spacing: 8) {
                         OnToggle(app: app, address: strip.eqOnPath)
                         if strip.hasHighPass {
-                            OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 90)
+                            OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Low cut", width: 90)
                         }
                         Spacer()
                         RTAToggle(app: app, strip: strip)
@@ -233,7 +233,7 @@ private struct EQSideControls: View {
         VStack(spacing: 10) {
             OnToggle(app: app, address: strip.eqOnPath)
             if strip.hasHighPass {
-                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Lowcut", width: 100)
+                OnSwitch(app: app, address: strip.preampPath("hpon"), title: "Low cut", width: 100)
                 ParamKnob(app: app, address: strip.preampPath("hpf"), spec: Specs.hpf, title: "Freq", enabled: app.param(strip.preampPath("hpon")).bool)
                 EnumMenu(app: app, address: strip.preampPath("hpslope"), options: X32Enums.hpfSlopes.map { $0 + " dB/oct" })
             }

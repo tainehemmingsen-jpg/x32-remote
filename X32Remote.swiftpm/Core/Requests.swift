@@ -31,9 +31,9 @@ enum Requests {
 
     /// What the strip overviews show: gain, +48, gate/EQ/comp state and the mini EQ and comp graphs.
     static func stripOverview() -> [String] {
-        var a: [String] = []
+        // Which headamp feeds each input comes first: the gains can only be read once it's known.
+        var a: [String] = StripID.everything.compactMap(\.headampIndexPath)
         for s in StripID.everything where s.kind != .dca {
-            if let ha = s.headampIndexPath { a.append(ha) }
             if s.kind == .channel || s.kind == .auxIn { a.append(s.sourcePath) }
             if s.hasTrim { a.append(s.preampPath("trim")) }
             if s.hasHighPass {
