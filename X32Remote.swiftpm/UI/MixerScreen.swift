@@ -250,41 +250,10 @@ struct MixerTopBar: View {
             MainMeterChip(app: app)
             UndoButton(app: app)
             if wide {
-                BarGap()
-                TopIcon(systemName: app.listen.running ? "headphones.circle.fill" : "headphones",
-                        label: app.listen.running ? "Solo and talkback, listening on this iPad" : "Solo and talkback",
-                        title: "Monitor",
-                        lit: app.anySolo || app.listen.running) {
-                    showMonitor = true
-                }
-                .popover(isPresented: $showMonitor) {
-                    MonitorPopover(app: app)
-                }
-                TopIcon(systemName: "chart.bar.xaxis", label: "Meters", title: "Meters") {
-                    app.show(.meters)
-                }
-                BarGap()
-                TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)", title: "Ring out") {
-                    app.show(.ringOut)
-                }
-                TopIcon(systemName: "stethoscope", label: "Mix check", title: "Mix check", badge: app.mixCheckProblems) {
-                    app.sheet = .mixCheck
-                }
-                TopIcon(systemName: "music.note.list", label: "Setlist", title: "Setlist") {
-                    app.show(.setlist)
-                }
-                BarGap()
-                TopIcon(systemName: "sparkles", label: "Effects", title: "Effects") {
-                    app.loadEffects()
-                    app.show(.effects)
-                }
-                TopIcon(systemName: "square.stack.3d.up", label: "Scenes and snapshots", title: "Scenes") {
-                    app.loadScenes()
-                    app.show(.scenes)
-                }
-                BarGap()
-                TopIcon(systemName: "gearshape", label: "Settings", title: "Settings") {
-                    app.sheet = .settings
+                // Named keys like the X32's screen keys; icons alone if the bar is too narrow.
+                ViewThatFits(in: .horizontal) {
+                    HStack(spacing: 4) { screenKeys(titled: true) }
+                    HStack(spacing: 4) { screenKeys(titled: false) }
                 }
             } else {
                 // Phones: everything else lives in one menu so the bar fits.
@@ -343,6 +312,49 @@ struct MixerTopBar: View {
                 if name == "monitor" { showMonitor = true }
                 if name == "mutegroups" { showMuteGroups = true }
             }
+        }
+    }
+
+    @ViewBuilder private func screenKeys(titled: Bool) -> some View {
+        BarGap()
+        TopIcon(systemName: app.listen.running ? "headphones.circle.fill" : "headphones",
+                label: app.listen.running ? "Solo and talkback, listening on this iPad" : "Solo and talkback",
+                title: titled ? "Monitor" : nil,
+                lit: app.anySolo || app.listen.running) {
+            showMonitor = true
+        }
+        .popover(isPresented: $showMonitor) {
+            MonitorPopover(app: app)
+        }
+        TopIcon(systemName: "chart.bar.xaxis", label: "Meters", title: titled ? "Meters" : nil) {
+            app.show(.meters)
+        }
+        BarGap()
+        TopIcon(systemName: "waveform.badge.exclamationmark", label: "Ring out (find feedback)", title: titled ? "Ring out" : nil) {
+            app.show(.ringOut)
+        }
+        TopIcon(systemName: "stethoscope", label: "Mix check", title: titled ? "Mix check" : nil, badge: app.mixCheckProblems) {
+            app.sheet = .mixCheck
+        }
+        TopIcon(systemName: "music.note.list", label: "Setlist", title: titled ? "Setlist" : nil) {
+            app.show(.setlist)
+        }
+        BarGap()
+        TopIcon(systemName: "arrow.triangle.branch", label: "Routing", title: titled ? "Routing" : nil) {
+            app.loadOutputs()
+            app.show(.outputs)
+        }
+        TopIcon(systemName: "sparkles", label: "Effects", title: titled ? "Effects" : nil) {
+            app.loadEffects()
+            app.show(.effects)
+        }
+        TopIcon(systemName: "square.stack.3d.up", label: "Scenes and snapshots", title: titled ? "Scenes" : nil) {
+            app.loadScenes()
+            app.show(.scenes)
+        }
+        BarGap()
+        TopIcon(systemName: "gearshape", label: "Settings", title: titled ? "Settings" : nil) {
+            app.sheet = .settings
         }
     }
 }
@@ -747,7 +759,7 @@ struct ConsoleMenu: View {
             }
             Section("Sound check") {
                 Button { app.sheet = .builder } label: { Label("Build a scene…", systemImage: "wand.and.stars") }
-                Button { app.sheet = .library } label: { Label("Scene library (.scn)", systemImage: "tray.full") }
+                Button { app.sheet = .library } label: { Label("Scene files (.scn)", systemImage: "tray.full") }
                 Button { app.show(.ringOut) } label: { Label("Ring out (find feedback)", systemImage: "waveform.badge.exclamationmark") }
                 Button { app.sheet = .mixCheck } label: { Label("Mix check", systemImage: "stethoscope") }
             }

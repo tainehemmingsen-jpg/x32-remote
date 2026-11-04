@@ -19,7 +19,7 @@ let package = Package(
             bundleIdentifier: "nz.taine.x32remote",
             teamIdentifier: "82M7WP2BBY",
             displayVersion: "1.0",
-            bundleVersion: "3",
+            bundleVersion: "5",
             appIcon: .asset("AppIcon"),
             accentColor: .presetColor(.orange),
             supportedDeviceFamilies: [

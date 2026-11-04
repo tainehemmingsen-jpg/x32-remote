@@ -1722,6 +1722,14 @@ final class AppModel {
         withTransaction(t) { sheet = s }
     }
 
+    /// Closes the open sheet; a full-screen one goes at once, the way it came.
+    func closeSheet() {
+        guard sheet?.fillsScreen == true, UIDevice.current.userInterfaceIdiom == .pad else { sheet = nil; return }
+        var t = Transaction()
+        t.disablesAnimations = true
+        withTransaction(t) { sheet = nil }
+    }
+
     func openDetail(_ strip: StripID, tab: DetailTab? = nil) {
         if let tab {
             detailTab = tab

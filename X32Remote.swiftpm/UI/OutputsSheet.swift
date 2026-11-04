@@ -118,7 +118,7 @@ struct OutputsSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { app.closeSheet() }
                 }
             }
             .confirmationDialog("Patch \(pending?.output ?? "") to \(pending?.valueName ?? "")?",

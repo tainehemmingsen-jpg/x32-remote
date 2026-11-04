@@ -262,7 +262,7 @@ struct SetlistSheet: View {
                     }
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { app.closeSheet() }
                 }
             }
             .alert("New setlist", isPresented: $naming) {

@@ -59,6 +59,7 @@ The app remembers the desk and reconnects on launch (turn that off in Settings).
 ## Tips
 
 - **Faders:** touch anywhere on a fader and drag — it never jumps to your finger. Slide your finger sideways off the strip while dragging for fine control. Several faders can be moved at once.
+- **Screen keys:** the top bar has named keys like the X32's: Monitor, Meters, Ring out, Mix check, Setlist, Routing, Effects, Scenes, Settings. The right-hand panel is Sends on fader and Layers, as on the desk.
 - **Quick editors:** tap a strip's gain, gate, EQ or compressor and a small editor opens over the faders, DiGiCo-style. Touch and hold the gate/EQ/comp picture for the full channel page.
 - **0 dB catch:** faders click into 0 dB; push a little further to go past.
 - **Snapshots:** Scenes and snapshots → Snapshots. Store, GO (space bar), Previous; per-snapshot scope and fade time; recall safes. Desk scenes (the X32's 100) and Scene files (on the iPad / X32-Edit) are the other two tabs.

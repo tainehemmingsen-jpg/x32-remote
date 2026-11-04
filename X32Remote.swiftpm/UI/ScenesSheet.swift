@@ -41,7 +41,7 @@ struct ScenesSheet: View {
                     .frame(width: 420)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
+                    Button("Done") { app.closeSheet() }
                 }
             }
             .onChange(of: tab) { _, t in UserDefaults.standard.set(t.rawValue, forKey: "scenes.tab") }

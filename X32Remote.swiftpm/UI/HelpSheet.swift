@@ -33,6 +33,8 @@ struct HelpSheet: View {
                 text: "Tap a strip's gain, gate, EQ or compressor and a small editor opens over the faders, so you never leave the mix. Channel, at its top right, opens the whole channel."),
             Tip(symbol: "rectangle.expand.vertical", title: "Open a channel",
                 text: "Tap a channel's name, or touch and hold its gate, EQ or compressor picture."),
+            Tip(symbol: "rectangle.grid.1x2", title: "Screen keys",
+                text: "Across the top, like the X32's own keys: Monitor (solo, phones and talkback), Meters, Ring out, Mix check, Setlist, Routing, Effects, Scenes and Settings. If the screen is too narrow for the names, they show as icons only."),
             Tip(symbol: "square.stack.3d.up", title: "Snapshots",
                 text: "Like a DiGiCo: Store saves the mix as the next snapshot, GO recalls the next one (space bar with a keyboard). Each snapshot can recall only some strips or parts, with a fade time. Recall safes protect strips from every recall. Each recall is one undo."),
             Tip(symbol: "square.stack.3d.up.fill", title: "Desk scenes and scene files",
