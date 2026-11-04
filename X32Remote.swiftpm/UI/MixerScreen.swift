@@ -255,6 +255,8 @@ struct MixerTopBar: View {
                     HStack(spacing: 4) { screenKeys(titled: true) }
                     HStack(spacing: 4) { screenKeys(titled: false) }
                 }
+                // Offered the room first, so the names only go when they really don't fit.
+                .layoutPriority(1)
             } else {
                 // Phones: everything else lives in one menu so the bar fits.
                 Menu {
