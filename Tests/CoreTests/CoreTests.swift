@@ -385,6 +385,23 @@ final class ClientTests: XCTestCase {
         client.close()
     }
 
+    func testGetSoonMovesAnAlreadyQueuedReadForwardAndSendsItOnce() {
+        let transport = MockTransport()
+        let client = X32Client(transport: transport)
+        spin(0.2)
+        transport.sent.removeAll()
+        let many = (1...32).flatMap { n in (1...4).map { b in StripID(.channel, n).eqPath(b, "f") } }
+        let late = many.last!
+        client.get(many)
+        client.getSoon([late])
+        spin(0.6)
+        let sends = transport.sent.enumerated().filter { $0.element.address == late }
+        XCTAssertEqual(sends.count, 1, "sent twice")
+        XCTAssertLessThanOrEqual(sends.first?.offset ?? 999, 33)
+        XCTAssertEqual(client.pendingRequests, 0)
+        client.close()
+    }
+
     func testRequestsOverviewAsksForHeadampSourcesFirst() {
         let a = Requests.stripOverview()
         let firstOther = a.firstIndex { !$0.hasPrefix("/-ha/") } ?? 0

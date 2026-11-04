@@ -190,6 +190,8 @@ final class AppModel {
     }
 
     func disconnect() {
+        // A fade left running would keep sending levels to whichever desk comes next.
+        stopSnapshotFade()
         connectTimeout?.cancel()
         connectTimeout = nil
         client?.close()
@@ -350,6 +352,9 @@ final class AppModel {
             lastLocalSet[address] = nil
         }
         store.applyRemote(address, value)
+        // Moved on the desk itself mid-fade: the engineer has it now.
+        // (Not an echo of the level the fade itself just sent.)
+        if snapshotFading && !isReply && previous != value { fadeTakenOver.insert(address) }
         if let old = previous, old != value {
             rereadPreampIfSourceChanged(address)
         }
@@ -568,6 +573,7 @@ final class AppModel {
     }
 
     func set(_ address: String, _ value: OSCArg) {
+        if !restoring && snapshotFading { fadeTakenOver.insert(address) }
         if !restoring && AppModel.recordsUndo(address) && dragOriginals[address] == nil,
            let previous = store.value(address), previous != value {
             undoStack.record(address: address, previous: previous, newValue: value, label: undoName(address), now: X32Client.now())
@@ -840,6 +846,8 @@ final class AppModel {
 
     func undo() {
         guard let entry = undoStack.last else { return }
+        // Otherwise a running snapshot fade drags the faders straight back.
+        stopSnapshotFade()
         // Undoing something a finger is still moving would be overwritten straight away.
         if entry.changes.contains(where: { store.param($0.address).touchCount > 0 }) {
             showToast("Let go of the control first")
@@ -857,6 +865,7 @@ final class AppModel {
     /// Puts back what the last undo took away.
     func redo() {
         guard let entry = redoEntries.popLast() else { return }
+        stopSnapshotFade()
         let back = swapIn(entry)
         if !back.changes.isEmpty { undoStack.push(back) }
         undoLabel = undoStack.last?.label
@@ -905,6 +914,7 @@ final class AppModel {
 
     /// Sets several parameters as one undoable step (e.g. pasting an EQ).
     func applyBatch(_ changes: [(String, OSCArg)], label: String) {
+        stopSnapshotFade()
         var previous: [UndoEntry.Change] = []
         for (address, value) in changes {
             // Nothing to undo for values that were already there.
@@ -1405,6 +1415,14 @@ final class AppModel {
     /// A fader fade from a snapshot is running.
     private(set) var snapshotFading = false
     @ObservationIgnored private var fadeTimer: Timer?
+    /// Faders and sends someone moved during the running fade (here or on the desk): theirs
+    /// from then on, even after they let go.
+    @ObservationIgnored private var fadeTakenOver: Set<String> = []
+    /// More reads than this waiting means the desk is still being read in bulk (after connecting
+    /// or opening the snapshots screen), so a snapshot taken now would be missing parts.
+    static let bulkReadThreshold = 64
+    /// Snapshot saves, in order (two quick saves must not land the older one last).
+    private static let snapshotSaveQueue = DispatchQueue(label: "snapshots.save", qos: .utility)
 
     private static var snapshotFile: URL {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -1413,7 +1431,12 @@ final class AppModel {
     }
 
     private static func loadSnapshotShow() -> SnapshotShow {
-        guard let data = try? Data(contentsOf: snapshotFile), let show = try? JSONDecoder().decode(SnapshotShow.self, from: data) else {
+        guard let data = try? Data(contentsOf: snapshotFile) else { return SnapshotShow(name: "Show") }
+        guard let show = try? JSONDecoder().decode(SnapshotShow.self, from: data) else {
+            // Keep the unreadable file rather than overwriting the show with an empty one.
+            let backup = snapshotFile.deletingLastPathComponent()
+                .appendingPathComponent("snapshots-unreadable-\(Int(Date().timeIntervalSince1970)).json")
+            try? FileManager.default.copyItem(at: snapshotFile, to: backup)
             return SnapshotShow(name: "Show")
         }
         return show
@@ -1421,7 +1444,7 @@ final class AppModel {
 
     private func saveSnapshotShow() {
         let show = snapshots
-        DispatchQueue.global(qos: .utility).async {
+        AppModel.snapshotSaveQueue.async {
             if let data = try? JSONEncoder().encode(show) {
                 try? data.write(to: AppModel.snapshotFile, options: .atomic)
             }
@@ -1439,7 +1462,11 @@ final class AppModel {
 
     /// Stores the desk as it is now, as a new snapshot after the current one.
     @discardableResult
-    func storeSnapshot(name: String? = nil) -> Int {
+    func storeSnapshot(name: String? = nil) -> Int? {
+        if let c = client, c.pendingRequests > AppModel.bulkReadThreshold {
+            showToast("Still reading the desk. Store again in a moment.")
+            return nil
+        }
         let name = name ?? snapshots.nextDefaultName
         let snap = Snapshot.capture(name: name) { [store] in store.value($0) }
         let i = snapshots.insertAfterCurrent(snap)
@@ -1451,6 +1478,10 @@ final class AppModel {
     /// Re-captures a snapshot from the desk, keeping its name, scope and fade.
     func updateSnapshot(at i: Int) {
         guard i < snapshots.count else { return }
+        if let c = client, c.pendingRequests > AppModel.bulkReadThreshold {
+            showToast("Still reading the desk. Update again in a moment.")
+            return
+        }
         snapshots.update(at: i) { [store] in store.value($0) }
         saveSnapshotShow()
         showToast("Updated “\(snapshots[i].name)”")
@@ -1512,8 +1543,10 @@ final class AppModel {
             guard let self else { t.invalidate(); return }
             let step = run.step(elapsed: X32Client.now() - start)
             self.restoring = true
-            for (address, value) in step where self.store.param(address).touchCount == 0 {
+            for (address, value) in step {
                 // A fader someone grabs mid-fade is theirs from then on.
+                if self.store.param(address).touchCount > 0 { self.fadeTakenOver.insert(address) }
+                if self.fadeTakenOver.contains(address) { continue }
                 self.set(address, value)
             }
             self.restoring = false
@@ -1526,7 +1559,8 @@ final class AppModel {
     func stopSnapshotFade() {
         fadeTimer?.invalidate()
         fadeTimer = nil
-        snapshotFading = false
+        fadeTakenOver = []
+        if snapshotFading { snapshotFading = false }
     }
 
     // MARK: - Listen (solo bus on this iPad's earphones)
@@ -1716,6 +1750,19 @@ final class AppModel {
     /// Opens a sheet. The big working screens appear at once, like changing screens on a desk;
     /// the small cards keep their usual slide.
     func show(_ s: Sheet) {
+        guard sheet != s else { return }
+        // Something else is up (from a keyboard shortcut): close it first, or iOS refuses the
+        // new one and the app thinks a sheet is showing that never appeared.
+        if sheet != nil || detailStrip != nil {
+            var t = Transaction()
+            t.disablesAnimations = true
+            withTransaction(t) {
+                sheet = nil
+                detailStrip = nil
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in self?.show(s) }
+            return
+        }
         guard s.fillsScreen, UIDevice.current.userInterfaceIdiom == .pad else { sheet = s; return }
         var t = Transaction()
         t.disablesAnimations = true

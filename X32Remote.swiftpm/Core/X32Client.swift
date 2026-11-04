@@ -204,10 +204,18 @@ final class X32Client {
     /// Like get, but ahead of everything already waiting: for values on screen right now (the
     /// preamp gains, which can only be asked for once the inputs' headamps are known).
     func getSoon(_ addresses: [String]) {
-        let fresh = addresses.filter { !queued.contains($0) && outstanding[$0] == nil }
-        guard !fresh.isEmpty else { return }
-        for address in fresh { queued.insert(address) }
-        requestQueue.insert(contentsOf: fresh, at: queueHead)
+        var front: [String] = []
+        for address in addresses {
+            if outstanding[address] != nil {
+                wantedAgain.insert(address)
+                continue
+            }
+            // Already waiting further back: moved up front (the later copy is skipped in pump).
+            queued.insert(address)
+            front.append(address)
+        }
+        guard !front.isEmpty else { return }
+        requestQueue.insert(contentsOf: front, at: queueHead)
         pump()
     }
 
@@ -270,7 +278,8 @@ final class X32Client {
         while outstanding.count < window && queueHead < requestQueue.count {
             let address = requestQueue[queueHead]
             queueHead += 1
-            queued.remove(address)
+            // Not queued any more: a copy of it already went (moved up by getSoon).
+            guard queued.remove(address) != nil, outstanding[address] == nil else { continue }
             outstanding[address] = Outstanding(sentAt: t, attempts: 1)
             transport.send(OSCMessage(address))
         }
