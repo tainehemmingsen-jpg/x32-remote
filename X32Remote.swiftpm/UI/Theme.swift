@@ -1,12 +1,13 @@
 import SwiftUI
 
-/// Colours and type: deep graphite with one warm signal-amber accent for anything selected or
-/// adjustable, and console-standard colours for state (green on, red mute, yellow solo).
+/// Colours and type: a console's surface. Dark steel, rubber keys with LEDs, channel names on
+/// console tape, panel legends in narrow caps, and the desk's own colours for state (green on,
+/// red mute, yellow solo, amber for what's selected).
 enum Theme {
     /// Behind everything.
-    static let background = Color(red: 0.047, green: 0.051, blue: 0.059)
-    /// Top bars.
-    static let topBar = Color(red: 0.035, green: 0.039, blue: 0.045)
+    static let background = Color(red: 0.090, green: 0.098, blue: 0.106)
+    /// Top bars: the desk's screen surround.
+    static let topBar = Color(red: 0.122, green: 0.133, blue: 0.145)
     /// Strip and panel cells.
     static let panel = Color(red: 0.086, green: 0.094, blue: 0.110)
     /// Buttons and wells.
@@ -61,6 +62,49 @@ enum Theme {
         index >= 8
     }
 
+    // MARK: Console surface (the "console tape" look)
+
+    /// The desk's surface: dark steel.
+    static let steel = Color(red: 0.090, green: 0.098, blue: 0.106)
+    /// A channel strip's panel, a shade lighter at the top.
+    static let stripTop = Color(red: 0.125, green: 0.137, blue: 0.149)
+    static let stripBottom = Color(red: 0.106, green: 0.114, blue: 0.125)
+    /// Rubber keys.
+    static let keyTop = Color(red: 0.227, green: 0.243, blue: 0.259)
+    static let keyBottom = Color(red: 0.173, green: 0.184, blue: 0.200)
+    /// Console tape and the marker on it.
+    static let tape = Color(red: 0.922, green: 0.898, blue: 0.824)
+    static let marker = Color(red: 0.11, green: 0.11, blue: 0.11)
+    /// LED amber: selected layers, lit processing, readouts.
+    static let led = Color(red: 1.0, green: 0.69, blue: 0.18)
+    static let readout = Color(red: 1.0, green: 0.81, blue: 0.48)
+
+    /// `a` moved `amount` of the way to `b` (Color.mix needs iOS 18).
+    static func blend(_ a: Color, _ b: Color, _ amount: CGFloat) -> Color {
+        var r1: CGFloat = 0, g1: CGFloat = 0, b1: CGFloat = 0, a1: CGFloat = 0
+        var r2: CGFloat = 0, g2: CGFloat = 0, b2: CGFloat = 0, a2: CGFloat = 0
+        UIColor(a).getRed(&r1, green: &g1, blue: &b1, alpha: &a1)
+        UIColor(b).getRed(&r2, green: &g2, blue: &b2, alpha: &a2)
+        let t = min(max(amount, 0), 1)
+        return Color(red: r1 + (r2 - r1) * t, green: g1 + (g2 - g1) * t, blue: b1 + (b2 - b1) * t, opacity: a1 + (a2 - a1) * t)
+    }
+
+    /// Panel legends: narrow caps, as printed on a desk.
+    static func legend(_ size: CGFloat, _ weight: Font.Weight = .semibold) -> Font {
+        let name: String
+        switch weight {
+        case .bold, .heavy, .black: name = ConsoleFonts.condensedBold
+        case .medium, .regular, .light, .thin, .ultraLight: name = ConsoleFonts.condensedMedium
+        default: name = ConsoleFonts.condensedSemiBold
+        }
+        return .custom(name, fixedSize: size)
+    }
+
+    /// Channel names written on the tape.
+    static func markerFont(_ size: CGFloat) -> Font {
+        .custom(ConsoleFonts.marker, fixedSize: size)
+    }
+
     static func label(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
         .system(size: size, weight: weight)
     }
@@ -105,50 +149,47 @@ struct LitButton: View {
     }
 
     private var face: some View {
-        let shape = RoundedRectangle(cornerRadius: min(6, height * 0.2), style: .continuous)
-        let glowing = style == .fill && isOn
-        return Text(title)
-            .font(.system(size: fontSize, weight: isOn && style == .fill ? .bold : .semibold))
-            .tracking(fontSize >= 12 ? 0.3 : 0)
-            .lineLimit(1)
-            .minimumScaleFactor(0.55)
-            .foregroundStyle(textColor)
-            .padding(.horizontal, 2)
-            .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background {
-                // The glow sits behind the key and only exists while it's lit, so the key itself
-                // never changes identity (which is what made state changes cross-fade).
-                if glowing {
-                    shape.fill(color.opacity(0.5)).blur(radius: 5)
-                }
+        let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
+        let lit = isOn
+        // Mute lights the whole key, as a desk's mute does; every other key lights its LED.
+        let tintsFace = lit && style == .fill && color == Theme.mute
+        return HStack(spacing: height >= 26 ? 5 : 3) {
+            if height >= 22 {
+                Circle()
+                    .fill(lit ? ledColor : ledColor.opacity(0.22))
+                    .frame(width: 6, height: 6)
+                    .background {
+                        if lit { Circle().fill(ledColor).blur(radius: 3.5) }
+                    }
             }
-            .background(shape.fill(fill))
-            .overlay(shape.fill(LinearGradient(colors: [Color.white.opacity(isOn ? 0.22 : 0.06), .clear],
-                                               startPoint: .top, endPoint: .center)))
-            .overlay(shape.strokeBorder(border, lineWidth: style == .outline && isOn ? 1.5 : 1))
-            .contentShape(Rectangle())
-            .transaction { $0.animation = nil }
+            Text(title.uppercased())
+                .font(Theme.legend(fontSize + 1, .bold))
+                .tracking(fontSize >= 11 ? 1.1 : 0.5)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .foregroundStyle(textColor)
+        }
+        .padding(.horizontal, 3)
+        .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
+        .background(shape.fill(LinearGradient(colors: tintsFace ? [Color(red: 0.31, green: 0.15, blue: 0.14), Color(red: 0.23, green: 0.11, blue: 0.11)]
+                                                              : [Theme.keyTop, Theme.keyBottom],
+                                              startPoint: .top, endPoint: .bottom)))
+        // Key depth: a lit top edge and a hard shadow under it.
+        .overlay(shape.strokeBorder(LinearGradient(colors: [Color.white.opacity(0.09), .clear], startPoint: .top, endPoint: .center), lineWidth: 1))
+        .background(shape.fill(Color.black).offset(y: 1.5))
+        .contentShape(Rectangle())
+        .transaction { $0.animation = nil }
     }
 
-    private var fill: Color {
-        switch style {
-        case .fill: return isOn ? color : (offColor ?? color.opacity(0.16))
-        case .outline: return isOn ? Theme.raised2 : Theme.raised
-        }
-    }
-
-    private var border: Color {
-        switch style {
-        case .fill: return isOn ? Color.white.opacity(0.25) : Color.white.opacity(0.06)
-        case .outline: return isOn ? Theme.on : Color.white.opacity(0.07)
-        }
+    private var ledColor: Color {
+        style == .outline ? Theme.on : color
     }
 
     private var textColor: Color {
-        switch style {
-        case .fill: return isOn ? Color.black.opacity(0.85) : Theme.text.opacity(0.7)
-        case .outline: return isOn ? Theme.text : Theme.secondary
-        }
+        guard isOn else { return Theme.text.opacity(0.62) }
+        if style == .outline { return Theme.text }
+        // The legend takes a pale version of the LED colour.
+        return Theme.blend(color, .white, 0.45)
     }
 }
 
@@ -213,7 +254,8 @@ struct ScribbleStyle {
     }
 }
 
-/// A channel-coloured name button (tap opens the channel).
+/// A channel's name, written in marker on a strip of console tape, with a dot of the channel's
+/// scribble colour stuck on the corner (a ring for the X32's inverted colours).
 struct ScribbleView: View {
     let name: String
     let colorIndex: Int
@@ -223,27 +265,82 @@ struct ScribbleView: View {
     var selected: Bool = false
 
     var body: some View {
-        let style = ScribbleStyle(colorIndex: colorIndex)
         let shownName = name.isEmpty ? placeholder : name
-        Text(shownName.uppercased())
-            .font(.system(size: fontSize, weight: .semibold))
-            .lineLimit(2)
-            .minimumScaleFactor(0.6)
-            .multilineTextAlignment(.center)
-            .foregroundStyle(style.text)
-            .tracking(0.4)
-            .padding(.horizontal, 2)
+        let colored = colorIndex % 8 != 0
+        let dot = Theme.scribble(colorIndex)
+        Text(shownName)
+            .font(Theme.markerFont(fontSize + 1.5))
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(Theme.marker.opacity(name.isEmpty ? 0.45 : 1))
+            .padding(.horizontal, colored ? 7 : 4)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(RoundedRectangle(cornerRadius: 6, style: .continuous).fill(style.fill))
-            // Backlit-display sheen.
-            .overlay(RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(LinearGradient(colors: [Color.white.opacity(0.28), Color.white.opacity(0.0), Color.black.opacity(0.12)],
-                                     startPoint: .top, endPoint: .bottom)))
-            .overlay(
-                RoundedRectangle(cornerRadius: 6, style: .continuous)
-                    .strokeBorder(selected ? Theme.accent : Color.black.opacity(0.35), lineWidth: selected ? 2 : 1)
-            )
+            .background(TapeShape(seed: TapeShape.seed(shownName)).fill(Theme.tape))
+            .overlay(alignment: .topLeading) {
+                if colored {
+                    Group {
+                        if Theme.isInverted(colorIndex) {
+                            Circle().strokeBorder(dot, lineWidth: 2)
+                        } else {
+                            Circle().fill(dot)
+                        }
+                    }
+                    .frame(width: 8, height: 8)
+                    .padding(3)
+                }
+            }
+            .overlay {
+                if selected {
+                    TapeShape(seed: TapeShape.seed(shownName)).stroke(Theme.accent, lineWidth: 2)
+                }
+            }
+            // Stuck on by hand: never quite straight.
+            .rotationEffect(.degrees(TapeShape.tilt(shownName)))
+            .compositingGroup()
+            .shadow(color: .black.opacity(0.5), radius: 1, y: 1)
             .contentShape(Rectangle())
+    }
+}
+
+/// A strip of tape with torn ends: straight-ish long edges, ragged short ones.
+struct TapeShape: Shape {
+    let seed: Int
+
+    static func seed(_ text: String) -> Int {
+        text.unicodeScalars.reduce(7) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
+    }
+
+    /// A small, steady tilt for a name (the same every time it's drawn).
+    static func tilt(_ text: String) -> Double {
+        Double(seed(text) % 29 - 14) / 10
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var rng = seed
+        func jitter(_ amount: CGFloat) -> CGFloat {
+            rng = (rng &* 1103515245 &+ 12345) & 0x7FFFFFFF
+            return CGFloat(rng % 1000) / 1000 * amount
+        }
+        let w = rect.width, h = rect.height
+        var p = Path()
+        p.move(to: CGPoint(x: rect.minX + jitter(2), y: rect.minY + jitter(1.5)))
+        p.addLine(to: CGPoint(x: rect.minX + w * 0.35, y: rect.minY + jitter(1)))
+        p.addLine(to: CGPoint(x: rect.minX + w * 0.7, y: rect.minY + jitter(1.2)))
+        p.addLine(to: CGPoint(x: rect.maxX - jitter(2), y: rect.minY + jitter(1)))
+        // torn right end
+        for i in 1...4 {
+            p.addLine(to: CGPoint(x: rect.maxX - jitter(2.5), y: rect.minY + h * CGFloat(i) / 5))
+        }
+        p.addLine(to: CGPoint(x: rect.maxX - jitter(2), y: rect.maxY - jitter(1.5)))
+        p.addLine(to: CGPoint(x: rect.minX + w * 0.65, y: rect.maxY - jitter(1)))
+        p.addLine(to: CGPoint(x: rect.minX + w * 0.3, y: rect.maxY - jitter(1.2)))
+        p.addLine(to: CGPoint(x: rect.minX + jitter(2), y: rect.maxY - jitter(1)))
+        // torn left end
+        for i in stride(from: 4, through: 1, by: -1) {
+            p.addLine(to: CGPoint(x: rect.minX + jitter(2.5), y: rect.minY + h * CGFloat(i) / 5))
+        }
+        p.closeSubpath()
+        return p
     }
 }
 

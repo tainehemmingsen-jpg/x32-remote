@@ -428,36 +428,45 @@ private struct SnapshotChip: View {
                 app.show(.scenes)
             } label: {
                 HStack(spacing: 6) {
-                    Image(systemName: "square.stack.3d.up.fill")
-                        .foregroundStyle(Theme.accent)
-                    if !compact {
-                        Text(current.map { "\($0.number). \($0.name)" } ?? "Snapshots")
+                    if compact {
+                        Image(systemName: "square.stack.3d.up.fill")
+                            .foregroundStyle(Theme.readout)
+                    } else {
+                        Text("SNAPSHOT")
+                            .font(Theme.legend(12, .semibold))
+                            .tracking(1)
+                            .foregroundStyle(Theme.secondary)
+                        Text(current.map { "\($0.number) · \($0.name)" } ?? "none")
+                            .font(Theme.legend(15, .bold))
+                            .foregroundStyle(current == nil ? Theme.tertiary : Theme.readout)
                             .lineLimit(1)
                             .frame(maxWidth: 140, alignment: .leading)
                     }
                 }
-                .font(.system(size: 13, weight: .semibold))
-                .foregroundStyle(Theme.text)
                 .padding(.leading, 10)
                 .padding(.trailing, 6)
                 .frame(height: 36)
                 .contentShape(Rectangle())
             }
             .buttonStyle(ConsoleKeyStyle())
-            Rectangle().fill(Theme.line).frame(width: 1, height: 20)
             Button { app.goNextSnapshot() } label: {
                 Text("GO")
-                    .font(.system(size: 13, weight: .heavy))
-                    .foregroundStyle(show.nextIndex == nil ? Theme.tertiary : Theme.on)
-                    .frame(width: 40, height: 36)
+                    .font(Theme.legend(15, .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(show.nextIndex == nil ? Theme.tertiary : Color.white)
+                    .frame(width: 46, height: 28)
+                    .background(RoundedRectangle(cornerRadius: 2, style: .continuous)
+                        .fill(show.nextIndex == nil ? Theme.keyBottom : Color(red: 0.16, green: 0.48, blue: 0.23)))
+                    .padding(.trailing, 4)
                     .contentShape(Rectangle())
             }
             .buttonStyle(ConsoleKeyStyle())
             .disabled(show.nextIndex == nil)
             .accessibilityLabel(show.nextIndex.map { "Go to snapshot \(show[$0].name)" } ?? "No next snapshot")
         }
-        .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(Theme.accent.opacity(0.12)))
-        .overlay(RoundedRectangle(cornerRadius: 9, style: .continuous).strokeBorder(Theme.accent.opacity(0.3), lineWidth: 1))
+        // A display window set into the panel.
+        .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(Color(white: 0.045)))
+        .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).strokeBorder(Color.black, lineWidth: 1))
     }
 }
 
@@ -640,10 +649,13 @@ struct TopIcon: View {
     let action: () -> Void
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
         Button(action: action) {
             face
-                .foregroundStyle(badge > 0 ? Theme.mute : (lit ? Theme.solo : Theme.text.opacity(0.9)))
-                .background(RoundedRectangle(cornerRadius: 9, style: .continuous).fill(lit ? Theme.solo.opacity(0.18) : Theme.raised.opacity(0.7)))
+                .foregroundStyle(badge > 0 ? Theme.blend(Theme.mute, .white, 0.3) : (lit ? Theme.solo : Theme.text.opacity(0.78)))
+                .background(shape.fill(LinearGradient(colors: [Theme.keyTop, Theme.keyBottom], startPoint: .top, endPoint: .bottom)))
+                .overlay(shape.strokeBorder(LinearGradient(colors: [Color.white.opacity(0.08), .clear], startPoint: .top, endPoint: .center), lineWidth: 1))
+                .background(shape.fill(Color.black).offset(y: 1.5))
                 .overlay(alignment: .topTrailing) {
                     if badge > 0 {
                         Text("\(min(badge, 9))")
@@ -664,17 +676,21 @@ struct TopIcon: View {
 
     @ViewBuilder private var face: some View {
         if let title {
-            VStack(spacing: 2) {
-                Image(systemName: systemName)
-                    .font(.system(size: 14, weight: .medium))
-                Text(title)
-                    .font(.system(size: 10, weight: .semibold))
+            // A printed legend, like the screen keys on the desk.
+            HStack(spacing: 5) {
+                if lit {
+                    Circle().fill(Theme.solo).frame(width: 5, height: 5)
+                        .background(Circle().fill(Theme.solo).blur(radius: 3))
+                }
+                Text(title.uppercased())
+                    .font(Theme.legend(13, .bold))
+                    .tracking(1.2)
                     .lineLimit(1)
                     .fixedSize()
             }
-            .padding(.horizontal, 8)
-            .frame(minWidth: 50)
-            .frame(height: 38)
+            .padding(.horizontal, 10)
+            .frame(minWidth: 44)
+            .frame(height: 34)
         } else {
             Image(systemName: systemName)
                 .font(.system(size: 17, weight: .medium))
@@ -714,7 +730,8 @@ private struct FaderModeBanner: View {
                 HStack(spacing: 8) {
                     Circle().fill(color).frame(width: 10, height: 10)
                     Text(text)
-                        .font(.system(size: 14, weight: .bold))
+                        .font(Theme.legend(15, .bold))
+                        .tracking(1)
                         .lineLimit(1)
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 15))
@@ -723,8 +740,8 @@ private struct FaderModeBanner: View {
                 .foregroundStyle(Theme.text)
                 .padding(.horizontal, 14)
                 .frame(height: 32)
-                .background(Capsule().fill(color.opacity(0.22)))
-                .overlay(Capsule().strokeBorder(color, lineWidth: 1.5))
+                .background(RoundedRectangle(cornerRadius: 3, style: .continuous).fill(color.opacity(0.22)))
+                .overlay(RoundedRectangle(cornerRadius: 3, style: .continuous).strokeBorder(color, lineWidth: 1.5))
             }
             .buttonStyle(ConsoleKeyStyle())
             .accessibilityLabel("\(text). Back to the main mix")
@@ -803,12 +820,14 @@ struct ConsoleMenu: View {
                     .frame(width: 8, height: 8)
                     .shadow(color: status.opacity(0.8), radius: 4)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(app.isDemo ? "Demo desk" : (app.connectedName.isEmpty ? "X32" : app.connectedName))
-                        .font(.system(size: 15, weight: .semibold))
+                    Text((app.isDemo ? "Demo desk" : (app.connectedName.isEmpty ? "X32" : app.connectedName)).uppercased())
+                        .font(Theme.legend(17, .bold))
+                        .tracking(1.2)
                         .foregroundStyle(Theme.text)
                         .lineLimit(1)
                     Text(mix)
-                        .font(.system(size: 11, weight: .medium))
+                        .font(Theme.legend(12, .medium))
+                        .tracking(0.4)
                         .foregroundStyle(mixColor)
                         .lineLimit(1)
                 }
@@ -1256,18 +1275,20 @@ private struct SidebarHeader: View {
     let title: String
 
     var body: some View {
-        Text(title)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Theme.secondary)
+        Text(title.uppercased())
+            .font(Theme.legend(11, .bold))
+            .tracking(1.4)
+            .foregroundStyle(Theme.tertiary)
             .lineLimit(1)
-            .minimumScaleFactor(0.75)
+            .minimumScaleFactor(0.7)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.leading, 2)
             .padding(.top, 2)
     }
 }
 
-/// A sidebar button: dark, optional colour stripe on the left, green rim when selected.
+/// A sidebar key: a rubber key with an LED that lights when it's the one selected, and the
+/// bus or layer colour as a stripe of tape down its left edge.
 struct SideButton: View {
     enum Style { case select, outline, red }
 
@@ -1279,41 +1300,38 @@ struct SideButton: View {
     let action: () -> Void
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 3, style: .continuous)
+        let led = style == .red ? Theme.mute : Theme.led
         Button(action: action) {
-            HStack(spacing: 0) {
-                if let stripe {
-                    RoundedRectangle(cornerRadius: 2, style: .continuous)
-                        .fill(stripe)
-                        .frame(width: 4)
-                        .padding(.vertical, 7)
-                        .padding(.leading, 5)
-                }
+            HStack(spacing: 7) {
+                Circle()
+                    .fill(active ? led : led.opacity(0.18))
+                    .frame(width: 6, height: 6)
+                    .background { if active { Circle().fill(led).blur(radius: 3.5) } }
                 Text(title)
-                    .font(.system(size: 13, weight: active ? .semibold : .medium))
-                    .foregroundStyle(style == .red && active ? Color.white : (active ? Theme.text : Theme.text.opacity(0.85)))
+                    .font(Theme.legend(14, active ? .bold : .semibold))
+                    .tracking(0.4)
+                    .foregroundStyle(active ? Color.white : Theme.text.opacity(0.78))
                     .lineLimit(2)
                     .minimumScaleFactor(0.65)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 3)
-                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
             }
+            .padding(.leading, stripe == nil ? 9 : 12)
+            .padding(.trailing, 4)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(fill)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(rim ? Theme.accent : Color.white.opacity(0.06), lineWidth: rim ? 1.5 : 1)
-            )
+            .background(shape.fill(LinearGradient(colors: [Theme.keyTop, Theme.keyBottom], startPoint: .top, endPoint: .bottom)))
+            .overlay(alignment: .leading) {
+                if let stripe {
+                    Rectangle().fill(stripe).frame(width: 3).padding(.vertical, 6).padding(.leading, 4)
+                }
+            }
+            .overlay(shape.strokeBorder(LinearGradient(colors: [Color.white.opacity(0.08), .clear], startPoint: .top, endPoint: .center), lineWidth: 1))
+            .background(shape.fill(Color.black).offset(y: 1.5))
             .contentShape(Rectangle())
         }
         .buttonStyle(ConsoleKeyStyle())
-    }
-
-    private var rim: Bool { active && style != .red }
-
-    private var fill: Color {
-        if style == .red && active { return Theme.mute }
-        return active ? Theme.accent.opacity(0.16) : Theme.raised
+        .accessibilityAddTraits(active ? .isSelected : [])
     }
 }
 
@@ -1467,18 +1485,21 @@ struct StripView: View {
     var body: some View {
         let _ = PerfProbe.hit("StripView")
         let target = FaderTarget.make(app: app, strip: strip, sendsBus: sendsBus, gain: gain)
-        let thumb: CGFloat = tallThumbs ? 62 : 46
-        VStack(spacing: 3) {
+        VStack(spacing: 4) {
             if detail >= .medium {
                 SourceChip(app: app, strip: strip, isMaster: isMaster)
-                    .frame(height: 20)
-                GainCell(app: app, strip: strip)
-                    .frame(height: 30)
-            }
-            if detail == .full {
-                StripThumbs(app: app, strip: strip, height: thumb, wide: wide)
+                    .frame(height: 16)
             }
             StripName(app: app, strip: strip)
+                .padding(.bottom, 2)
+            if detail >= .medium {
+                GainCell(app: app, strip: strip)
+                    .frame(height: 26)
+            }
+            if detail == .full {
+                ChainChips(app: app, strip: strip)
+                    .frame(height: 22)
+            }
             // Big enough to hit in the dark without catching a neighbour.
             SoloButton(app: app, strip: strip, height: wide ? 36 : 34)
             StripPanSlot(app: app, strip: strip, sendsBus: sendsBus, wide: wide)
@@ -1492,10 +1513,12 @@ struct StripView: View {
         .padding(.horizontal, 4)
         .padding(.vertical, 5)
         .frame(maxWidth: .infinity)
+        // A channel strip's panel: steel, a seam of black either side.
         .background(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(LinearGradient(colors: [Theme.panel.opacity(1), Theme.panel.opacity(0.75)], startPoint: .top, endPoint: .bottom))
+            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                .fill(LinearGradient(colors: [Theme.stripTop, Theme.stripBottom], startPoint: .top, endPoint: .bottom))
         )
+        .overlay(RoundedRectangle(cornerRadius: 4, style: .continuous).strokeBorder(Color.black, lineWidth: 1))
         .overlay(SelectionRing(app: app, strip: strip))
     }
 }
@@ -1508,8 +1531,9 @@ private struct SelectionRing: View {
 
     var body: some View {
         let selected = app.selectedStrip == strip
-        RoundedRectangle(cornerRadius: 8, style: .continuous)
-            .strokeBorder(selected ? Theme.accent : Theme.line, lineWidth: selected ? 1.5 : 1)
+        RoundedRectangle(cornerRadius: 4, style: .continuous)
+            .strokeBorder(selected ? Theme.led : Color.white.opacity(0.04), lineWidth: selected ? 1.5 : 1)
+            .padding(selected ? 0 : 1)
             .allowsHitTesting(false)
     }
 }
@@ -1527,9 +1551,10 @@ private struct StripFoot: View {
                     .foregroundStyle(Theme.accent)
                     .accessibilityLabel("Linked")
             }
-            Text(strip.footLabel)
-                .font(.system(size: 11))
-                .foregroundStyle(Theme.text.opacity(0.8))
+            Text(strip.footLabel.uppercased())
+                .font(Theme.legend(11, .semibold))
+                .tracking(0.8)
+                .foregroundStyle(Theme.secondary)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
         }
@@ -1665,29 +1690,29 @@ private struct SourceChip: View {
         let color = index % 8 == 0 ? Theme.tertiary : Theme.scribble(index)
         let ha = strip.headampIndexPath.map { app.param($0).int(or: -1) } ?? -1
         let phantom = ha >= 0 && ha < 128 && app.param(StripID.headampPhantomPath(ha)).bool
-        // A coloured tab with the input it comes from, like the top of a console strip.
+        // The input it comes from, printed at the top of the strip; 48 V shows as a red LED.
         HStack(spacing: 4) {
-            Capsule().fill(color).frame(width: 14, height: 4)
-            Text(label)
-                .font(.system(size: 11, weight: .semibold))
+            Text(label.uppercased())
+                .font(Theme.legend(11, .semibold))
+                .tracking(0.8)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
-                .foregroundStyle(Theme.secondary)
+                .foregroundStyle(Theme.tertiary)
             if phantom {
-                // 48 V on (it's switched from the input page, never here by accident).
-                Text("48V")
-                    .font(.system(size: 9, weight: .heavy))
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .fixedSize()
-                    .padding(.horizontal, 3)
-                    .frame(height: 14)
-                    .background(RoundedRectangle(cornerRadius: 3).fill(Theme.mute))
-                    .accessibilityLabel("48 volts on")
+                HStack(spacing: 2) {
+                    Circle().fill(Theme.mute).frame(width: 5, height: 5)
+                        .background(Circle().fill(Theme.mute).blur(radius: 2.5))
+                    Text("48V")
+                        .font(Theme.legend(10, .bold))
+                        .foregroundStyle(Theme.blend(Theme.mute, .white, 0.35))
+                }
+                .fixedSize()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("48 volts on")
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(RoundedRectangle(cornerRadius: 5, style: .continuous).fill(color.opacity(0.12)))
+        .accessibilityElement(children: .combine)
     }
 
     private var label: String {
@@ -1755,7 +1780,7 @@ private struct GainCell: View {
     }
 }
 
-/// The strip's gain as a bar with the value on it. Tap to change it.
+/// The strip's gain: an amber readout in a dark well. Tap to change it.
 private struct GainReadout: View {
     let value: Float
     let display: String
@@ -1764,17 +1789,17 @@ private struct GainReadout: View {
 
     var body: some View {
         Button(action: action) {
-            MiniBar(value: value, bipolar: bipolar, touching: false)
-                .overlay(
-                    Text(display)
-                        .font(Theme.mono(11))
-                        .foregroundStyle(Theme.text)
-                        .shadow(color: .black.opacity(0.8), radius: 1.5)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.6)
-                        .padding(.horizontal, 3)
-                )
-                .padding(.horizontal, 1)
+            Text(display)
+                .font(Theme.legend(15, .bold))
+                .monospacedDigit()
+                .foregroundStyle(display == "—" ? Theme.tertiary : Theme.readout)
+                .lineLimit(1)
+                .minimumScaleFactor(0.6)
+                .padding(.horizontal, 6)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Capsule().fill(Color(white: 0.055)))
+                .overlay(Capsule().strokeBorder(LinearGradient(colors: [Color.black, Color.white.opacity(0.06)], startPoint: .top, endPoint: .bottom), lineWidth: 1))
+                .padding(.horizontal, 3)
                 .contentShape(Rectangle())
         }
         .buttonStyle(ConsoleKeyStyle())
@@ -1865,115 +1890,57 @@ private struct MiniBar: View {
 
 /// G / EQ / C: gate, EQ and compressor toggle on tap. (48 V shows on the gain bar, and is only
 /// switched from the input page, never from the mixer by accident.)
-private struct StripLights: View {
+/// Gate, compressor and EQ as three small legends, lit amber while that section is in.
+/// Tap one for its quick editor over the faders; touch and hold for the channel page.
+private struct ChainChips: View {
     let app: AppModel
     let strip: StripID
 
     var body: some View {
-        let _ = PerfProbe.hit("StripLights")
-        HStack(spacing: 2) {
-            StripLight(text: "G", on: strip.hasGate && app.param(strip.gatePath("on")).bool, color: Theme.on, off: Theme.raised2, present: strip.hasGate) {
-                toggle(strip.gatePath("on"))
-            }
-            StripLight(text: "EQ", on: strip.hasEQ && app.param(strip.eqOnPath).bool, color: Theme.on, off: Theme.raised2, present: strip.hasEQ) {
-                toggle(strip.eqOnPath)
-            }
-            StripLight(text: "C", on: strip.hasDynamics && app.param(strip.dynPath("on")).bool, color: Theme.on, off: Theme.raised2, present: strip.hasDynamics) {
-                toggle(strip.dynPath("on"))
-            }
+        let _ = PerfProbe.hit("ChainChips")
+        HStack(spacing: 3) {
+            ChainChip(app: app, strip: strip, title: "G", tab: .gate, editor: .gate,
+                      present: strip.hasGate, on: strip.hasGate && app.param(strip.gatePath("on")).bool)
+            ChainChip(app: app, strip: strip, title: "C", tab: .comp, editor: .comp,
+                      present: strip.hasDynamics, on: strip.hasDynamics && app.param(strip.dynPath("on")).bool)
+            ChainChip(app: app, strip: strip, title: "EQ", tab: .eq, editor: .eq,
+                      present: strip.hasEQ, on: strip.hasEQ && app.param(strip.eqOnPath).bool)
         }
-    }
-
-    private func toggle(_ address: String) {
-        let p = app.param(address)
-        guard p.isKnown else { app.stillReading(); return }
-        app.setBool(address, !p.bool)
+        .padding(.horizontal, 2)
     }
 }
 
-private struct StripLight: View {
-    let text: String
-    let on: Bool
-    let color: Color
-    let off: Color
-    let present: Bool
-    let action: () -> Void
-
-    var body: some View {
-        if present {
-            LitButton(title: text, isOn: on, color: color, height: 26, fontSize: 11, offColor: off, action: action)
-                .accessibilityLabel("\(text) \(on ? "on" : "off")")
-        } else {
-            Color.black.opacity(0.2)
-                .frame(maxWidth: .infinity)
-                .frame(height: 26)
-        }
-    }
-}
-
-/// Gate, EQ and compressor pictures. Tap one to open that page.
-private struct StripThumbs: View {
+private struct ChainChip: View {
     let app: AppModel
     let strip: StripID
-    let height: CGFloat
-    var wide = false
-
-    var body: some View {
-        let _ = PerfProbe.hit("StripThumbs")
-        // The EQ curve is the one worth reading at a glance, so it gets the full width; the
-        // gate and compressor sit under it side by side. That leaves more height for the fader.
-        VStack(spacing: 2) {
-            ThumbSlot(app: app, strip: strip, tab: .eq, present: strip.hasEQ, height: height + 6) {
-                EQThumb(app: app, strip: strip)
-            }
-            HStack(spacing: 2) {
-                ThumbSlot(app: app, strip: strip, tab: .gate, present: strip.hasGate, height: height - 6) {
-                    GateGraph(app: app, strip: strip)
-                }
-                ThumbSlot(app: app, strip: strip, tab: .comp, present: strip.hasDynamics, height: height - 6) {
-                    CompGraph(app: app, strip: strip)
-                }
-            }
-        }
-    }
-}
-
-private struct ThumbSlot<Content: View>: View {
-    let app: AppModel
-    let strip: StripID
+    let title: String
     let tab: DetailTab
+    let editor: StripEditor
     let present: Bool
-    let height: CGFloat
-    @ViewBuilder var content: Content
-    @State private var editor: StripEditor?
+    let on: Bool
+    @State private var open: StripEditor?
 
     var body: some View {
+        let shape = RoundedRectangle(cornerRadius: 2, style: .continuous)
         if present {
-            content
-                .frame(height: height)
+            Text(title)
+                .font(Theme.legend(12, .bold))
+                .tracking(0.6)
+                .foregroundStyle(on ? Theme.readout : Theme.tertiary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(shape.fill(on ? Theme.led.opacity(0.10) : Color.clear))
+                .overlay(shape.strokeBorder(on ? Theme.led.opacity(0.55) : Color.white.opacity(0.12), lineWidth: 1))
                 .contentShape(Rectangle())
-                // Tap: edit it here, over the faders. Long press: the full channel page.
-                .onTapGesture {
-                    editor = tab == .gate ? .gate : (tab == .comp ? .comp : .eq)
-                }
-                .onLongPressGesture(minimumDuration: 0.4) {
-                    app.openDetail(strip, tab: tab)
-                }
-                .overlay(alignment: .topLeading) {
-                    Text(tab == .gate ? "Gate" : (tab == .comp ? "Comp" : "EQ"))
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(Theme.secondary)
-                        .padding(.horizontal, 3)
-                        .padding(.top, 2)
-                        .allowsHitTesting(false)
-                }
-                .stripEditor($editor, app: app, strip: strip)
+                .onTapGesture { open = editor }
+                .onLongPressGesture(minimumDuration: 0.4) { app.openDetail(strip, tab: tab) }
+                .stripEditor($open, app: app, strip: strip)
                 .accessibilityAddTraits(.isButton)
                 .accessibilityLabel("\(app.stripTitle(strip)) \(tab.title)")
+                .accessibilityValue(on ? "in" : "bypassed")
                 .accessibilityHint("Opens a quick editor. Touch and hold for the channel page.")
         } else {
-            Theme.graphBack.opacity(0.4)
-                .frame(height: height)
+            shape.strokeBorder(Color.white.opacity(0.04), lineWidth: 1)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
     }
 }

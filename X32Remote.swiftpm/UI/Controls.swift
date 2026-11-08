@@ -380,8 +380,9 @@ private struct FaderCap: View {
             // drop shadow
             ctx.fill(Path(roundedRect: body.offsetBy(dx: 0, dy: 2), cornerRadius: 4), with: .color(Color.black.opacity(0.55)))
             let lift: Double = touching ? 0.08 : 0
+            // Brushed metal: light at the top, a dark waist, light again underneath.
             let shades: [Color] = tint.map { c in [c.opacity(0.95), c.opacity(0.72), c.opacity(0.9)] }
-                ?? [Color(white: 0.40 + lift), Color(white: 0.24 + lift), Color(white: 0.30 + lift)]
+                ?? [Color(white: 0.36 + lift), Color(white: 0.23 + lift), Color(white: 0.17 + lift), Color(white: 0.27 + lift)]
             ctx.fill(Path(roundedRect: body, cornerRadius: 4),
                      with: .linearGradient(Gradient(colors: shades), startPoint: .zero, endPoint: CGPoint(x: 0, y: body.height)))
             // top edge catching the light
@@ -551,20 +552,21 @@ struct MeterView: View {
             let yellow = MeterScale.position(MeterScale.yellowFrom)
             let red = MeterScale.position(MeterScale.redFrom)
             let bands: [(CGFloat, CGFloat, Color)] = [(0, yellow, Theme.meterLow), (yellow, red, Theme.meterMid), (red, 1, Theme.meterHigh)]
+            // An LED ladder: separate segments, unlit ones glowing faintly in their colour.
+            let segments = max(8, Int(size.height / 7))
+            let pitch = size.height / CGFloat(segments)
+            let segGap: CGFloat = min(2, pitch * 0.3)
             for i in 0..<bars {
                 let db = i == 0 ? left : right
                 let x = CGFloat(i) * (barWidth + gap)
                 let pos = MeterScale.position(db)
-                ctx.fill(Path(CGRect(x: x, y: 0, width: barWidth, height: size.height)), with: .color(Color.black))
-                for band in bands {
-                    let dim = CGRect(x: x, y: size.height * (1 - band.1), width: barWidth, height: size.height * (band.1 - band.0))
-                    ctx.fill(Path(dim), with: .color(band.2.opacity(0.17)))
-                    let a = min(pos, band.0)
-                    let b = min(pos, band.1)
-                    if b > a {
-                        let lit = CGRect(x: x, y: size.height * (1 - b), width: barWidth, height: size.height * (b - a))
-                        ctx.fill(Path(lit), with: .color(band.2))
-                    }
+                for k in 0..<segments {
+                    let bottom = CGFloat(k) / CGFloat(segments)
+                    let middle = (CGFloat(k) + 0.5) / CGFloat(segments)
+                    let band = bands.first { middle >= $0.0 && middle < $0.1 } ?? bands[bands.count - 1]
+                    let rect = CGRect(x: x, y: size.height - CGFloat(k + 1) * pitch + segGap / 2, width: barWidth, height: pitch - segGap)
+                    let lit = pos > bottom + 0.25 / CGFloat(segments)
+                    ctx.fill(Path(roundedRect: rect, cornerRadius: 1), with: .color(lit ? band.2 : band.2.opacity(0.13)))
                 }
             }
             guard showsPeak else { return }
