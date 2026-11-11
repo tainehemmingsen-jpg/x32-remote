@@ -177,8 +177,12 @@ private struct StripBank: View {
     var body: some View {
         let _ = PerfProbe.hit("StripBank")
         let sendsBus = app.layer.supportsBusSends || app.spillDCA != nil ? app.sendsBus : nil
+        // The master on the right is Main LR unless a DCA or a mix is on the faders; the
+        // Matrix/Main layer would otherwise show it twice.
+        let masterIsMain = app.spillDCA == nil && sendsBus == nil
+        let shown = masterIsMain ? strips.filter { $0 != StripID.mainLR } : strips
         HStack(spacing: 3) {
-            ForEach(strips) { strip in
+            ForEach(shown) { strip in
                 StripView(app: app, strip: strip, sendsBus: strip.isBusSource ? sendsBus : nil, gain: app.gainOnFaders, detail: detail, tallThumbs: tallThumbs, wide: wideStrips)
                     .frame(width: stripWidth)
             }
