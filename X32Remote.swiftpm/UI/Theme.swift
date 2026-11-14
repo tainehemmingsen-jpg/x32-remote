@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Colours and type: a console's surface. Dark steel, rubber keys with LEDs, channel names on
-/// console tape, panel legends in narrow caps, and the desk's own colours for state (green on,
+/// backlit scribble-strip displays, panel legends in narrow caps, and the desk's own colours for state (green on,
 /// red mute, yellow solo, amber for what's selected).
 enum Theme {
     /// Behind everything.
@@ -72,9 +72,6 @@ enum Theme {
     /// Rubber keys.
     static let keyTop = Color(red: 0.227, green: 0.243, blue: 0.259)
     static let keyBottom = Color(red: 0.173, green: 0.184, blue: 0.200)
-    /// Console tape and the marker on it.
-    static let tape = Color(red: 0.922, green: 0.898, blue: 0.824)
-    static let marker = Color(red: 0.11, green: 0.11, blue: 0.11)
     /// LED amber: selected layers, lit processing, readouts.
     static let led = Color(red: 1.0, green: 0.69, blue: 0.18)
     static let readout = Color(red: 1.0, green: 0.81, blue: 0.48)
@@ -98,11 +95,6 @@ enum Theme {
         default: name = ConsoleFonts.condensedSemiBold
         }
         return .custom(name, fixedSize: size)
-    }
-
-    /// Channel names written on the tape.
-    static func markerFont(_ size: CGFloat) -> Font {
-        .custom(ConsoleFonts.marker, fixedSize: size)
     }
 
     static func label(_ size: CGFloat, _ weight: Font.Weight = .regular) -> Font {
@@ -254,8 +246,9 @@ struct ScribbleStyle {
     }
 }
 
-/// A channel's name, written in marker on a strip of console tape, with a dot of the channel's
-/// scribble colour stuck on the corner (a ring for the X32's inverted colours).
+/// A channel's name on a backlit scribble-strip display, like the LCDs on a desk: dark glass, the
+/// name lit in the channel's colour, and a lit bar of that colour along the bottom. The X32's
+/// inverted colours light the whole window instead, with dark letters.
 struct ScribbleView: View {
     let name: String
     let colorIndex: Int
@@ -267,80 +260,37 @@ struct ScribbleView: View {
     var body: some View {
         let shownName = name.isEmpty ? placeholder : name
         let colored = colorIndex % 8 != 0
-        let dot = Theme.scribble(colorIndex)
-        Text(shownName)
-            .font(Theme.markerFont(fontSize + 1.5))
+        let inverted = Theme.isInverted(colorIndex)
+        let tint = colored ? Theme.scribble(colorIndex) : Color(white: 0.75)
+        let shape = RoundedRectangle(cornerRadius: 2, style: .continuous)
+        Text(shownName.uppercased())
+            .font(Theme.legend(fontSize + 3, .bold))
+            .tracking(0.8)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
-            .foregroundStyle(Theme.marker.opacity(name.isEmpty ? 0.45 : 1))
-            .padding(.horizontal, colored ? 7 : 4)
+            .foregroundStyle(inverted ? Color.black.opacity(0.85) : Theme.blend(tint, .white, 0.45).opacity(name.isEmpty ? 0.4 : 1))
+            .shadow(color: inverted ? .clear : tint.opacity(0.7), radius: 3)
+            .padding(.horizontal, 4)
+            .padding(.bottom, 2)
             .frame(maxWidth: .infinity, minHeight: height, maxHeight: height)
-            .background(TapeShape(seed: TapeShape.seed(shownName)).fill(Theme.tape))
-            .overlay(alignment: .topLeading) {
-                if colored {
-                    Group {
-                        if Theme.isInverted(colorIndex) {
-                            Circle().strokeBorder(dot, lineWidth: 2)
-                        } else {
-                            Circle().fill(dot)
-                        }
-                    }
-                    .frame(width: 8, height: 8)
-                    .padding(3)
+            .background {
+                if inverted {
+                    shape.fill(tint)
+                } else {
+                    // Dark glass with the backlight bleeding down from the top.
+                    shape.fill(Color(white: 0.03))
+                        .overlay(shape.fill(LinearGradient(colors: [tint.opacity(0.22), .clear], startPoint: .top, endPoint: .init(x: 0.5, y: 0.7))))
                 }
             }
-            .overlay {
-                if selected {
-                    TapeShape(seed: TapeShape.seed(shownName)).stroke(Theme.accent, lineWidth: 2)
+            .overlay(alignment: .bottom) {
+                if !inverted {
+                    Rectangle().fill(tint).frame(height: 3)
+                        .background(Rectangle().fill(tint).blur(radius: 3))
                 }
             }
-            // Stuck on by hand: never quite straight.
-            .rotationEffect(.degrees(TapeShape.tilt(shownName)))
-            .compositingGroup()
-            .shadow(color: .black.opacity(0.5), radius: 1, y: 1)
+            .clipShape(shape)
+            .overlay(shape.strokeBorder(selected ? Theme.led : Color.black, lineWidth: selected ? 2 : 1))
             .contentShape(Rectangle())
-    }
-}
-
-/// A strip of tape with torn ends: straight-ish long edges, ragged short ones.
-struct TapeShape: Shape {
-    let seed: Int
-
-    static func seed(_ text: String) -> Int {
-        text.unicodeScalars.reduce(7) { ($0 &* 31 &+ Int($1.value)) & 0xFFFF }
-    }
-
-    /// A small, steady tilt for a name (the same every time it's drawn).
-    static func tilt(_ text: String) -> Double {
-        Double(seed(text) % 29 - 14) / 10
-    }
-
-    func path(in rect: CGRect) -> Path {
-        var rng = seed
-        func jitter(_ amount: CGFloat) -> CGFloat {
-            rng = (rng &* 1103515245 &+ 12345) & 0x7FFFFFFF
-            return CGFloat(rng % 1000) / 1000 * amount
-        }
-        let w = rect.width, h = rect.height
-        var p = Path()
-        p.move(to: CGPoint(x: rect.minX + jitter(2), y: rect.minY + jitter(1.5)))
-        p.addLine(to: CGPoint(x: rect.minX + w * 0.35, y: rect.minY + jitter(1)))
-        p.addLine(to: CGPoint(x: rect.minX + w * 0.7, y: rect.minY + jitter(1.2)))
-        p.addLine(to: CGPoint(x: rect.maxX - jitter(2), y: rect.minY + jitter(1)))
-        // torn right end
-        for i in 1...4 {
-            p.addLine(to: CGPoint(x: rect.maxX - jitter(2.5), y: rect.minY + h * CGFloat(i) / 5))
-        }
-        p.addLine(to: CGPoint(x: rect.maxX - jitter(2), y: rect.maxY - jitter(1.5)))
-        p.addLine(to: CGPoint(x: rect.minX + w * 0.65, y: rect.maxY - jitter(1)))
-        p.addLine(to: CGPoint(x: rect.minX + w * 0.3, y: rect.maxY - jitter(1.2)))
-        p.addLine(to: CGPoint(x: rect.minX + jitter(2), y: rect.maxY - jitter(1)))
-        // torn left end
-        for i in stride(from: 4, through: 1, by: -1) {
-            p.addLine(to: CGPoint(x: rect.minX + jitter(2.5), y: rect.minY + h * CGFloat(i) / 5))
-        }
-        p.closeSubpath()
-        return p
     }
 }
 
